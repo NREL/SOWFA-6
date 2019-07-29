@@ -1,0 +1,22 @@
+All of these files compose the current version of the SOWFA (Simulator for 
+Offshore Wind Farm Applications), created at the National Renewable Energy 
+Laboratory (NREL).  The files are based on the OpenFOAM software and are 
+either new files or modifications of files in the OpenFOAM source code 
+distribution. Please see the included OpenFOAM readme file 
+("README.OpenFOAM") and the GPL licence information ("COPYING"). Access
+to and use of SOWPA imposes obligations on the user, as set forth in the 
+NWTC Design Codes DATA USE DISCLAIMER AGREEMENT that can be found at
+<https://nwtc.nrel.gov/disclaimer>.
+
+
+
+Required OpenFOAM Version:  6
+Optional OpenFAST Version:  dev
+
+
+
+This is a placeholder for a stable version of SOWFA meant to work with 
+OpenFOAM-6.  We are currently developing this code on the 'dev' branch
+of this repository.  If you would like to check it out, please checkout
+that branch and explore.  SOWFA-6 will work with OpenFOAM-6, will contain
+one unified solver, and will generally be improved.
