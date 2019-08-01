@@ -1,8 +1,8 @@
 /*---------------------------------------------------------------------------*\
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
-   \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Copyright (C) 2011-2018 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -23,7 +23,7 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "arrayStructuredSet.H"
+#include "arrayStructured.H"
 #include "sampledSet.H"
 #include "meshSearch.H"
 #include "DynamicList.H"
@@ -36,14 +36,17 @@ License
 
 namespace Foam
 {
-    defineTypeNameAndDebug(arrayStructuredSet, 0);
-    addToRunTimeSelectionTable(sampledSet, arrayStructuredSet, word);
+namespace sampledSets
+{
+    defineTypeNameAndDebug(arrayStructured, 0);
+    addToRunTimeSelectionTable(sampledSet, arrayStructured, word);
+}
 }
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-void Foam::arrayStructuredSet::calcSamples
+void Foam::sampledSets::arrayStructured::calcSamples
 (
     DynamicList<point>& samplingPts,
     DynamicList<label>& samplingCells,
@@ -52,84 +55,41 @@ void Foam::arrayStructuredSet::calcSamples
     DynamicList<scalar>& samplingCurveDist
 ) const
 {
-    const meshSearch& queryMesh = searchEngine();
+    const scalar dx = (pointsDensity_.x() > 1) ? spanBox_.x()/(pointsDensity_.x() - 1) : 0;
+    const scalar dy = (pointsDensity_.y() > 1) ? spanBox_.y()/(pointsDensity_.y() - 1) : 0;
+    const scalar dz = (pointsDensity_.z() > 1) ? spanBox_.z()/(pointsDensity_.z() - 1) : 0;
 
-    label nTotalSamples
-    (
-        pointsDensity_.x()
-       *pointsDensity_.y()
-       *pointsDensity_.z()
-    );
-
-    List<point> sampleCoords(nTotalSamples);
-
-    scalar deltax = 0.0;
-    scalar deltay = 0.0;
-    scalar deltaz = 0.0;
-    if (pointsDensity_.x() > 1)
+    for (label k = 0; k < pointsDensity_.z(); k++)
     {
-        deltax = spanBox_.x()/(pointsDensity_.x() - 1);
-    }
-    else
-    {
-        deltax = 0.0;
-    }
-
-    if (pointsDensity_.y() > 1)
-    {
-        deltay = spanBox_.y()/(pointsDensity_.y() - 1);
-    }
-    else
-    {
-        deltay = 0.0;
-    }
-
-    if (pointsDensity_.z() > 1)
-    {
-        deltaz = spanBox_.z()/(pointsDensity_.z() - 1);
-    }
-    else
-    {
-        deltaz = 0.0;
-    }
-
-
-    label p(0);
-    for (label k=0; k<pointsDensity_.z(); k++)
-    {
-        for (label j=0; j<pointsDensity_.y(); j++)
+        for (label j = 0; j < pointsDensity_.y(); j++)
         {
-            for (label i=0; i<pointsDensity_.x(); i++)
+            for (label i = 0; i < pointsDensity_.x(); i++)
             {
-                vector t(deltax*i , deltay*j, deltaz*k);
-                sampleCoords[p] = coordSys_.origin() + t;
-                p++;
+		// Local Cartesian
+		point pt(i*dx, j*dy, k*dz);
+
+		// Global Cartesian
+                Info << "origin = " << csys_.origin() << " point before = " << pt;
+		pt = csys_.globalPosition(pt);
+                Info << " point after = " << pt - csys_.origin() << " " << pt << endl;
+
+                const label celli = searchEngine().findCell(pt);
+
+                if (celli != -1)
+                {
+                    samplingPts.append(pt);
+                    samplingCells.append(celli);
+                    samplingFaces.append(-1);
+                    samplingSegments.append(0);
+                    samplingCurveDist.append(scalar(i));
+                }
             }
-        }
-    }
-
-    forAll(sampleCoords, i)
-    {
-        sampleCoords[i] = transform(coordSys_.R().R(), sampleCoords[i]);
-    }
-
-    forAll(sampleCoords, sampleI)
-    {
-        label cellI = queryMesh.findCell(sampleCoords[sampleI]);
-
-        if (cellI != -1)
-        {
-            samplingPts.append(sampleCoords[sampleI]);
-            samplingCells.append(cellI);
-            samplingFaces.append(-1);
-            samplingSegments.append(0);
-            samplingCurveDist.append(1.0 * sampleI);
         }
     }
 }
 
 
-void Foam::arrayStructuredSet::genSamples()
+void Foam::sampledSets::arrayStructured::genSamples()
 {
     // Storage for sample points
     DynamicList<point> samplingPts;
@@ -166,32 +126,28 @@ void Foam::arrayStructuredSet::genSamples()
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::arrayStructuredSet::arrayStructuredSet
+Foam::sampledSets::arrayStructured::arrayStructured
 (
     const word& name,
     const polyMesh& mesh,
     const meshSearch& searchEngine,
     const word& axis,
-    const coordinateSystem& origin,
+    const cartesianCS& csys,
     const Vector<label>& pointsDensity,
     const Vector<scalar>& spanBox
 )
 :
     sampledSet(name, mesh, searchEngine, axis),
-    coordSys_(origin),
+    csys_(csys),
     pointsDensity_(pointsDensity),
     spanBox_(spanBox)
 {
     genSamples();
-
-    if (debug)
-    {
-        write(Info);
-    }
 }
 
 
-Foam::arrayStructuredSet::arrayStructuredSet
+
+Foam::sampledSets::arrayStructured::arrayStructured
 (
     const word& name,
     const polyMesh& mesh,
@@ -200,7 +156,7 @@ Foam::arrayStructuredSet::arrayStructuredSet
 )
 :
     sampledSet(name, mesh, searchEngine, dict),
-    coordSys_(dict),
+    csys_(dict),
     pointsDensity_(dict.lookup("pointsDensity")),
     spanBox_(dict.lookup("spanBox"))
 {
@@ -215,8 +171,7 @@ Foam::arrayStructuredSet::arrayStructuredSet
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::arrayStructuredSet::~arrayStructuredSet()
+Foam::sampledSets::arrayStructured::~arrayStructured()
 {}
-
 
 // ************************************************************************* //
