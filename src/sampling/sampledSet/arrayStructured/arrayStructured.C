@@ -69,9 +69,7 @@ void Foam::sampledSets::arrayStructured::calcSamples
 		point pt(i*dx, j*dy, k*dz);
 
 		// Global Cartesian
-                Info << "origin = " << csys_.origin() << " point before = " << pt;
 		pt = csys_.globalPosition(pt);
-                Info << " point after = " << pt - csys_.origin() << " " << pt << endl;
 
                 const label celli = searchEngine().findCell(pt);
 
