@@ -1,8 +1,8 @@
 /*---------------------------------------------------------------------------*\
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
-   \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Copyright (C) 2011-2018 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,49 +22,70 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::arrayStructuredSet
+    Foam::sampledSets::arrayStructured
 
 Description
+    Specifieds an ordered array of uniformly distributed sampling points
+
+Usage
+    \table
+        Property    | Description                            | Req'd? | Default
+        box         | The box which contains the samples     | yes    |
+        nPoints     | The number of points in each direction | yes    |
+        axis        | The coordinate axis that is written    | yes    |
+    \endtable
+
+    Example specification:
+    \verbatim
+    {
+        type        arrayStructured;
+        box         (0.95 0 0.25) (1.2 0.25 0.5);
+        nPoints     (2 4 6);
+        axis        x;
+    }
+    \endverbatim
 
 SourceFiles
-    arrayStructuredSet.C
+    arrayStructured.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef arrayStructuredSet_H
-#define arrayStructuredSet_H
+#ifndef arrayStructured_H
+#define arrayStructured_H
 
 #include "sampledSet.H"
+#include "labelVector.H"
 #include "DynamicList.H"
-#include "coordinateSystem.H"
+#include "cartesianCS.H"
+#include "cylindricalCS.H"
+#include "boundBox.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-// Forward declaration of classes
-class passiveParticle;
-template<class Type> class particle;
+namespace sampledSets
+{
 
 /*---------------------------------------------------------------------------*\
-                           Class arrayStructuredSet Declaration
+                           Class arrayStructured Declaration
 \*---------------------------------------------------------------------------*/
 
-class arrayStructuredSet
+class arrayStructured
 :
     public sampledSet
 {
     // Private data
 
-        //- Coordinate syste
-        coordinateSystem coordSys_;
+        //- Local Cartesian coordinate system
+	cartesianCS csys_;
 
-        //- Point density vector
-        Vector<label> pointsDensity_;
+        //- The number of points across each direction of the array
+        labelVector pointsDensity_;
 
-        //- Span box
-        Vector<scalar> spanBox_;
+	//- Span box
+	vector spanBox_;
 
 
     // Private Member Functions
@@ -92,34 +113,35 @@ public:
     // Constructors
 
         //- Construct from components
-        arrayStructuredSet
+        arrayStructured
         (
             const word& name,
             const polyMesh& mesh,
             const meshSearch& searchEngine,
-            const word& axis,
-            const coordinateSystem& coordSys,
-            const Vector<label>& pointsDensity,
-            const Vector<scalar>& spanBox
+	    const word& axis,
+	    const cartesianCS& csys,
+	    const Vector<label>& pointDensity,
+	    const Vector<scalar>& spanBox
         );
 
-        //- Construct from dictionary
-        arrayStructuredSet
-        (
+	//- Construct from dictionary
+	arrayStructured
+	(
             const word& name,
-            const polyMesh& mesh,
-            const meshSearch& searchEngine,
-            const dictionary& dict
-        );
+	    const polyMesh& mesh,
+	    const meshSearch& searchEngine,
+	    const dictionary& dict
+	);
 
 
     //- Destructor
-    virtual ~arrayStructuredSet();
+    virtual ~arrayStructured();
 };
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+} // End namespace sampledSets
 } // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
