@@ -1,5 +1,4 @@
-setWriters = sampledSetWriters
-
-$(setWriters)/vtkStructured/vtkStructuredSetWriterRunTime.C
+sampledSetWriters/vtkStructured/vtkStructuredSetWriterRunTime.C
+sampledSurfaceWriters/boundaryData/boundaryDataSurfaceWriter.C
 
 LIB = $(SOWFA_DIR)/lib/$(WM_OPTIONS)/libSOWFAfileFormats
