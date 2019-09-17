@@ -92,9 +92,7 @@ cp -rf $startTime.original $startTime
 
 
 # Build the mesh.
-cp constant/polyMesh/blockMeshDict ./
 rm -rf constant/polyMesh/*
-mv ./blockMeshDict constant/polyMesh
 blockMesh > log.blockMesh 2>&1
 
 
