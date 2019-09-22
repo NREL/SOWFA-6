@@ -81,4 +81,10 @@ temperatureSource
 planetaryRotationPeriod   $EarthPeriod;
 latitude                  $latitude;
 
+// Statistics gathering input
+// - to write out postProcessing/sourceHistory
+statisticsOn            true;
+statisticsFrequency     $statisticsFrequency;
+
+
 // ************************************************************************* //
