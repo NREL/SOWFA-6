@@ -10,7 +10,7 @@
 
 
 # User Input.
-OpenFOAMversion=2.4.x-central   # OpenFOAM version
+OpenFOAMversion=6-dev          # OpenFOAM version
 startTime=0                     # Start time
 updateBCType=0                  # Boolean for whether or not the boundary condition types will be updated over 
                                 #    what is in the initial conditions files. Leave it 0 for precursors
@@ -87,14 +87,16 @@ cp system/controlDict.1 system/controlDict
 
 # Copy the "clean" .original initial fields to a working copy.  OpenFOAM does not
 # read the ".original" initial fields--that's why they remain clean.
-rm -rf $startTime
+if [ -f "$startTime" ]; then
+    rm -rf $startTime
+fi
 cp -rf $startTime.original $startTime
 
 
 # Build the mesh.
-cp constant/polyMesh/blockMeshDict ./
-rm -rf constant/polyMesh/*
-mv ./blockMeshDict constant/polyMesh
+if [ -d "constant/polyMesh" ]; then
+    rm -rf constant/polyMesh
+fi
 blockMesh > log.blockMesh 2>&1
 
 
