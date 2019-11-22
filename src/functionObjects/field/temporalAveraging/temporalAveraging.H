@@ -31,8 +31,8 @@ Description
     user-specified selection of volumetric and surface fields. The extended
     functionality allows to compute the correlation between the field and the
     velocity field.
-    
-    
+
+
     Fields are entered as a list
     of sub-dictionaries, which indicate the type of averages to perform, and
     can be updated during the calculation.  The current options include:
@@ -193,8 +193,14 @@ protected:
             //- Total time counter
             List<scalar> totalTime_;
 
+            //- Total time counter
+            List<scalar> totalTimeCorr_;
+
             //- Index for periodic restart
             label periodIndex_;
+
+            // Bool correlation Fields
+            bool evalCorrelationFields_;
 
 
     // Protected Member Functions
