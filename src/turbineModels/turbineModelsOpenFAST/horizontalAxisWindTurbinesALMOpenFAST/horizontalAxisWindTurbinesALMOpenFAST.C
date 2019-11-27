@@ -2398,9 +2398,13 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
                         //   be from the distorted disk surface.
                         vector cellPointCyl = transformGlobalCartToRotorLocalCyl(mesh_.C()[bladeInfluenceCells[i][m]], turbineNumber);
                         vector bladePointCyl = transformGlobalCartToRotorLocalCyl(bladePoints[i][j][k], turbineNumber);
-                      //scalar rotorSurfaceX = getPointOnRotorSurface(turbineNumber, cellPointCyl.x(), cellPointCyl.y());
                         vector disVectorCyl = cellPointCyl - bladePointCyl;
-                      //disVectorCyl.z() = cellPointCyl.z() - rotorSurfaceX;
+                        scalar rotorSurfaceX = 0.0;
+                        if (bladeForceProjectionType[i] == "lineToDiskGaussian3D")
+                        {
+                            rotorSurfaceX = getPointOnRotorSurface(turbineNumber, cellPointCyl.x(), cellPointCyl.y());
+                            disVectorCyl.z() = cellPointCyl.z() - rotorSurfaceX;
+                        }
 
                         // - some projection functions need radius along blade.
                         scalar r0 = rotorSurfaceCoeffs[i][j][0];
@@ -2412,7 +2416,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
                             scalar spreading = 1.0;
                             if (bladeForceProjectionType[i] == "lineToDiskGaussian3D")
                             {
-                      //        spreading = computeBladeProjectionFunction(disVectorCyl,r0,i,j,k);
+                                spreading = computeBladeProjectionFunction(disVectorCyl,r0,i,j,k);
                             }
                             else
                             {
@@ -3206,7 +3210,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::computeRotorSurfaceCoeffs(int turbin
         }
 
         // The first entry in the rotorSurfaceCoeff list is the radius, and then
-        // the coefficients follw.
+        // the coefficients follow.
         // Compute the mean displacement, which becomes the constant coefficient, C0,
         // of the sin/cos series.
         rotorSurfaceCoeffs[i][k][0] = 0.0;
@@ -3257,7 +3261,7 @@ scalar horizontalAxisWindTurbinesALMOpenFAST::getPointOnRotorSurface(int turbine
     // Find the bounding radii of the stored surface data.
     label indexM = 0;
     label indexP = 0;
-    DynamicList<scalar> rList(numBladePoints[turbineNumber]);
+    DynamicList<scalar> rList(numBladePoints[turbineNumber],0.0);
     forAll(rList,i)
     {
         rList[i] = rotorSurfaceCoeffs[turbineNumber][i][0];
