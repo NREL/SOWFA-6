@@ -266,6 +266,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::initialize()
         }
     }
 
+
     // Get the positions out after solution0 and step are called.
     getPositions();
 
@@ -420,7 +421,6 @@ void horizontalAxisWindTurbinesALMOpenFAST::sendInput()
   } else {
     fi.simStart = fast::init;
   }
-  Pout << "nFASTSubSteps has to be the same for all turbines" << endl ;
   fi.dtFAST = dt/nFASTSubSteps[0]; 
   fi.nEveryCheckPoint = checkPointInterval ;
   fi.tMax = timeSimulationEnd-timeSimulationStart ; 
@@ -471,7 +471,6 @@ void horizontalAxisWindTurbinesALMOpenFAST::initializeArrays()
     getNumBlades();
     getNumBladePoints();
     getNumTowerPoints();
-
 
 
     // Create the actuator line points (not yet rotated for initial nacelle
@@ -541,8 +540,8 @@ void horizontalAxisWindTurbinesALMOpenFAST::initializeArrays()
         nacelleSamplePoint.append(vector::zero);
 
 
-
         
+
         // Rotor distortion coefficients.
         rotorSurfaceCoeffs.append(List<List<scalar> >(numBladePoints[i],List<scalar>(2*numBl[i]+2,0.0)));
 
@@ -696,6 +695,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::initializeArrays()
         towerProjectionRadius.append(0.0);
 
         rotorSpeed.append(0.0);
+
     }
 
     Pstream::scatter(bladePointsPerturbVector);
@@ -713,6 +713,10 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateRotorSearchCells(int turbineNu
     // applying the force field.  (The i-index is at the turbine array  
     // level for each turbine and the j-index is at the individual blade level.)
     int i = turbineNumber;
+
+
+    // This will be the list of cells that this rotor influences
+    DynamicList<label> influenceCellsI;
 
 
     // First compute the radius of the force projection (to the radius
@@ -749,7 +753,6 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateRotorSearchCells(int turbineNu
         }
     }
 */
-
     if ((bladeForceProjectionType[i] == "uniformGaussian") ||
         (bladeForceProjectionType[i] == "generalizedGaussian") ||
         (bladeForceProjectionType[i] == "generalizedGaussian2D"))
@@ -773,10 +776,10 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateRotorSearchCells(int turbineNu
     // Get a measure of blade precone angle, blade tip radius, and distance from tower top to blade tip.
     List<scalar> preCone(numBl[i],0.0);
     List<scalar> tipRadius(numBl[i],0.0);
-    List<scalar> towerTopToTip(numBl[i],0.0);
+  //List<scalar> towerTopToTip(numBl[i],0.0);
     scalar preConeMax = 0.0;
     scalar tipRadiusMax = 0.0;
-    scalar towerTopToTipMax = 0.0;
+  //scalar towerTopToTipMax = 0.0;
 
 
     forAll(preCone,j)
@@ -797,11 +800,11 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateRotorSearchCells(int turbineNu
 
         vector bladeLength = bladePoints[i][j][numBladePoints[i]-1] - rotorApex[i];
 
-        vector towerTopToBladeTip = bladePoints[i][j][numBladePoints[i]-1] - towerPoints[i][numTowerPoints[i]-1];
+      //vector towerTopToBladeTip = bladePoints[i][j][numBladePoints[i]-1] - towerPoints[i][numTowerPoints[i]-1];
 
         tipRadius[j] = Foam::mag(bladeLength);
         
-        towerTopToTip[j] = Foam::mag(towerTopToBladeTip);
+      //towerTopToTip[j] = Foam::mag(towerTopToBladeTip);
 
         if (mag(preCone[j]) > mag(preConeMax))
         {
@@ -813,10 +816,10 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateRotorSearchCells(int turbineNu
            tipRadiusMax = tipRadius[j];
         }
 
-        if (towerTopToTip[j] > towerTopToTipMax)
-        {
-           towerTopToTipMax = towerTopToTip[j];
-        }
+      //if (towerTopToTip[j] > towerTopToTipMax)
+      //{
+      //   towerTopToTipMax = towerTopToTip[j];
+      //}
 
         /*
         Info << "r = " << r << endl;
@@ -832,31 +835,11 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateRotorSearchCells(int turbineNu
     }
 
 
-        
-    // Defines the search cell set a all cells within a sphere that occupies
-    // the volume that the rotor lies in for any yaw angle.  This is a fairly
-    // large volume, so possibly inefficient for fine meshes.  See the "disk"
-    // option below.
-    DynamicList<label> influenceCellsI;
-    if (bladeSearchCellMethod[i] == "sphere")
-    {
-        scalar sphereRadius = towerTopToTipMax + bladeProjectionRadius[i];
-
-        // Find the cells within the region of influence.
-        forAll(U_.mesh().cells(),cellI)
-        {
-            if (mag(U_.mesh().C()[cellI] - towerPoints[i][numTowerPoints[i]-1]) <= sphereRadius)
-            {
-                influenceCellsI.append(cellI);
-                searchCells[cellI] = 1;
-            }
-        }
-    }
 
     // Defines the search cell set as a disk with thickness that surrounds the 
     // rotor revolution plane.  It isn't really a disk because it accounts for
     // rotor precone, so it is more of a disk that is coned.
-    else if (bladeSearchCellMethod[i] == "disk")
+    if (bladeSearchCellMethod[i] == "disk")
     {
         forAll(U_.mesh().cells(),cellI)
         {
@@ -888,6 +871,15 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateRotorSearchCells(int turbineNu
             }
         }     
     }
+
+    // Place holder for future more efficient coarse search.
+    else 
+    {
+        // Nothing for now.
+    }
+
+   
+    // Populate the bladeInfluenceCells list for this turbine.
     bladeInfluenceCells[i].clear();
     bladeInfluenceCells[i] = influenceCellsI;
     influenceCellsI.clear();
@@ -1809,6 +1801,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::getNumBlades()
    {
       numBl[i] = 0;
    }
+
    
    // Get the number of blades of the turbine that this processor's instance
    // of FAST controls.
@@ -2405,9 +2398,13 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
                         //   be from the distorted disk surface.
                         vector cellPointCyl = transformGlobalCartToRotorLocalCyl(mesh_.C()[bladeInfluenceCells[i][m]], turbineNumber);
                         vector bladePointCyl = transformGlobalCartToRotorLocalCyl(bladePoints[i][j][k], turbineNumber);
-                        scalar rotorSurfaceX = getPointOnRotorSurface(turbineNumber, cellPointCyl.x(), cellPointCyl.y());
                         vector disVectorCyl = cellPointCyl - bladePointCyl;
-                        disVectorCyl.z() = cellPointCyl.z() - rotorSurfaceX;
+                        scalar rotorSurfaceX = 0.0;
+                        if (bladeForceProjectionType[i] == "lineToDiskGaussian3D")
+                        {
+                            rotorSurfaceX = getPointOnRotorSurface(turbineNumber, cellPointCyl.x(), cellPointCyl.y());
+                            disVectorCyl.z() = cellPointCyl.z() - rotorSurfaceX;
+                        }
 
                         // - some projection functions need radius along blade.
                         scalar r0 = rotorSurfaceCoeffs[i][j][0];
@@ -2419,11 +2416,11 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
                             scalar spreading = 1.0;
                             if (bladeForceProjectionType[i] == "lineToDiskGaussian3D")
                             {
-                                spreading = computeBladeProjectionFunction(disVector,r0,i,j,k);
+                                spreading = computeBladeProjectionFunction(disVectorCyl,r0,i,j,k);
                             }
                             else
                             {
-                                spreading = computeBladeProjectionFunction(disVectorCyl,r0,i,j,k);
+                                spreading = computeBladeProjectionFunction(disVector,r0,i,j,k);
                             }
 
                             // Add this spreading to the overall force projection field.
@@ -3213,7 +3210,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::computeRotorSurfaceCoeffs(int turbin
         }
 
         // The first entry in the rotorSurfaceCoeff list is the radius, and then
-        // the coefficients follw.
+        // the coefficients follow.
         // Compute the mean displacement, which becomes the constant coefficient, C0,
         // of the sin/cos series.
         rotorSurfaceCoeffs[i][k][0] = 0.0;
@@ -3264,7 +3261,7 @@ scalar horizontalAxisWindTurbinesALMOpenFAST::getPointOnRotorSurface(int turbine
     // Find the bounding radii of the stored surface data.
     label indexM = 0;
     label indexP = 0;
-    DynamicList<scalar> rList(numBladePoints[turbineNumber]);
+    DynamicList<scalar> rList(numBladePoints[turbineNumber],0.0);
     forAll(rList,i)
     {
         rList[i] = rotorSurfaceCoeffs[turbineNumber][i][0];
