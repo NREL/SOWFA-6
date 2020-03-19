@@ -1,0 +1,48 @@
+#!/bin/bash
+#SBATCH --job-name=setupTutPrec
+#SBATCH --output foam1preprocess.log
+#SBATCH --partition=debug
+#SBATCH --ntasks=1
+#SBATCH --time=1:00:00
+#SBATCH --account=mmc
+
+source $HOME/.bash_profile
+cores=$SLURM_NTASKS
+
+echo "Working directory is" $SLURM_SUBMIT_DIR
+echo "Job name is" $SLURM_JOB_NAME
+echo "Starting OpenFOAM job at: " $(date)
+echo "using" $cores "core(s)"
+echo "with modules:"
+module list
+
+# ******************************************** USER INPUT ******************************************** #
+OpenFOAM-6-intel-dev      # OpenFOAM/SOWFA version. OpenFOAM-6-{icc,intel}-{central,dev}
+startTime=0               # Start time
+stabState=neutral         # neutral, stable, unstable
+solver=superDeliciousVanilla
+# **************************************************************************************************** #
+
+# **************************************** PERFORM SOME CHECKS *************************************** #
+if [ ! -f system/controlDict.$solver.startAt$startTime ]; then echo "Job killed (1)."; scancel $SLURM_JOBID; fi
+if [ ! -f setUp.$stabState ];                             then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
+# **************************************************************************************************** #
+
+# ************************************ COPYING APPROPRIATE FILES ************************************* #
+cp system/controlDict.$solver.startAt$startTime        system/controlDict
+cp setUp.$stabState                                    setUp
+cp 0.original/qwall.$stabState                         0.original/qwall
+# **************************************************************************************************** #
+
+# Copy the "clean" .original initial fields to a working copy
+rm -rf $startTime
+cp -rf $startTime.original $startTime
+rm     $startTime/qwall.*
+
+# Build the mesh and check it
+blockMesh -noFunctionObjects > log.1.blockMesh 2>&1
+checkMesh -noFunctionObjects > log.1.checkMesh.background 2>&1
+
+echo "Ending OpenFOAM job at: " $(date)
+
+# **************************************************************************************************** #
