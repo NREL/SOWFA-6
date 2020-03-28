@@ -287,7 +287,11 @@ timeVaryingMappedInletOutletFvPatchField
     endSampledValues_(0),
     endAverage_(Zero),
     offset_()
-{}
+{
+    this->refValue() = Zero;
+    this->refGrad() = Zero;
+    this->valueFraction() = 0.0;
+}
 
 
 template<class Type>
@@ -366,6 +370,10 @@ timeVaryingMappedInletOutletFvPatchField
         //       a new update.
         this->evaluate(Pstream::commsTypes::blocking);
     }
+
+    this->refValue() = Zero;
+    this->refGrad() = Zero;
+    this->valueFraction() = 0.0;
 }
 
 
