@@ -270,7 +270,8 @@ timeVaryingMappedInletOutletFvPatchField
     const DimensionedField<Type, volMesh>& iF
 )
 :
-    fixedValueFvPatchField<Type>(p, iF),
+    mixedFvPatchField<Type>(p, iF),
+    phiName_("phi"),
     fieldTableName_(iF.name()),
     dataDir_(this->db().time().constant()/"boundaryData"/this->patch().name()),
     pointsName_("points"),
@@ -298,7 +299,8 @@ timeVaryingMappedInletOutletFvPatchField
     const dictionary& dict
 )
 :
-    fixedValueFvPatchField<Type>(p, iF, dict, false),
+    mixedFvPatchField<Type>(p, iF, dict),
+    phiName_("phi"),
     fieldTableName_(dict.lookupOrDefault("fieldTable", iF.name())),
     dataDir_
     (
@@ -377,7 +379,8 @@ timeVaryingMappedInletOutletFvPatchField
     const fvPatchFieldMapper& mapper
 )
 :
-    fixedValueFvPatchField<Type>(ptf, p, iF, mapper),
+    mixedFvPatchField<Type>(ptf, p, iF, mapper),
+    phiName_("phi"),
     fieldTableName_(ptf.fieldTableName_),
     dataDir_(ptf.dataDir_),
     pointsName_(ptf.pointsName_),
@@ -404,7 +407,8 @@ timeVaryingMappedInletOutletFvPatchField
     const timeVaryingMappedInletOutletFvPatchField<Type>& ptf
 )
 :
-    fixedValueFvPatchField<Type>(ptf),
+    mixedFvPatchField<Type>(ptf),
+    phiName_("phi"),
     fieldTableName_(ptf.fieldTableName_),
     dataDir_(ptf.dataDir_),
     pointsName_(ptf.pointsName_),
@@ -432,7 +436,8 @@ timeVaryingMappedInletOutletFvPatchField
     const DimensionedField<Type, volMesh>& iF
 )
 :
-    fixedValueFvPatchField<Type>(ptf, iF),
+    mixedFvPatchField<Type>(ptf, iF),
+    phiName_("phi"),
     fieldTableName_(ptf.fieldTableName_),
     dataDir_(ptf.dataDir_),
     pointsName_(ptf.pointsName_),
@@ -460,7 +465,7 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::autoMap
     const fvPatchFieldMapper& m
 )
 {
-    fixedValueFvPatchField<Type>::autoMap(m);
+    mixedFvPatchField<Type>::autoMap(m);
     if (startSampledValues_.size())
     {
         startSampledValues_.autoMap(m);
@@ -480,7 +485,7 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::rmap
     const labelList& addr
 )
 {
-    fixedValueFvPatchField<Type>::rmap(ptf, addr);
+    mixedFvPatchField<Type>::rmap(ptf, addr);
 
     const timeVaryingMappedInletOutletFvPatchField<Type>& tiptf =
         refCast<const timeVaryingMappedInletOutletFvPatchField<Type>>(ptf);
@@ -599,7 +604,7 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::updateCoeffs()
             << " avg:" << gAverage(*this) << endl;
     }
 
-    fixedValueFvPatchField<Type>::updateCoeffs();
+    mixedFvPatchField<Type>::updateCoeffs();
 }
 
 

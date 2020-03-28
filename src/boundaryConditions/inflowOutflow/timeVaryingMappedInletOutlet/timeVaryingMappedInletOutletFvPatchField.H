@@ -100,7 +100,7 @@ SourceFiles
 #ifndef timeVaryingMappedInletOutletFvPatchField_H
 #define timeVaryingMappedInletOutletFvPatchField_H
 
-#include "fixedValueFvPatchFields.H"
+#include "mixedFvPatchFields.H"
 #include "FixedList.H"
 #include "instantList.H"
 #include "pointToPointPlanarInterpolation.H"
@@ -118,8 +118,16 @@ namespace Foam
 template<class Type>
 class timeVaryingMappedInletOutletFvPatchField
 :
-    public fixedValueFvPatchField<Type>
+    public mixedFvPatchField<Type>
 {
+
+protected:
+
+    // Protected data
+
+        //- Name of flux field
+        word phiName_;
+
     // Private data
 
         //- Name of the field data table, defaults to the name of the field
