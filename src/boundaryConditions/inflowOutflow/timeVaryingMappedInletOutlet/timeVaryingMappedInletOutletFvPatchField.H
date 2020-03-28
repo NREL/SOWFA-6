@@ -108,6 +108,7 @@ SourceFiles
 #define timeVaryingMappedInletOutletFvPatchField_H
 
 #include "mixedFvPatchFields.H"
+#include "surfaceFields.H" // to properly call lookupPatchField
 #include "FixedList.H"
 #include "instantList.H"
 #include "pointToPointPlanarInterpolation.H"
