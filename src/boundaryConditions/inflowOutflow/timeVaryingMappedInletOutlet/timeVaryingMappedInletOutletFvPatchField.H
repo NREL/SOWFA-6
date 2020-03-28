@@ -25,11 +25,18 @@ Class
     Foam::timeVaryingMappedInletOutletFvPatchField
 
 Description
-    This boundary conditions interpolates the values from a set of supplied
-    points in space and time.
+    This boundary condition is like inletOutlet in which if the flow is
+    outflow, it is set to zero gradient; if the flow is inflow, the value is
+    set.  Rather than set it to a single value as with inletOutlet, the value
+    is set as timeVaryingMappedFixedValue would set the value using a saved
+    time history of spatially varying data.  This is of use in atmospheric
+    simulations in which some boundaries may have inflow and outflow faces, and
+    the inflow comes from pre-generated, saved turbulent flow.
 
-    By default the data files should be provide in
-    constant/boundaryData/\<patch name\>/ directory:
+    As with timeVaryingMappedFixedValue, on inflow faces, this boundary
+    condition interpolates the values from a set of supplied points in space
+    and time.  Supplied data should be specified in the
+    constant/boundaryData/\<patch name\>/ directory where::
       - points             : pointField of locations
       - \<time\>/\<field\> : field of values at time \<time\>
 
@@ -52,7 +59,7 @@ Description
     The optional mapMethod nearest will avoid all projection and triangulation
     and just use the value at the nearest vertex.
 
-    Values are interpolated linearly between times.
+    Inflow values are interpolated linearly between times.
 
 Usage
     \table
