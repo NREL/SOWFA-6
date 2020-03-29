@@ -123,6 +123,9 @@ int main(int argc, char *argv[])
             #include "computeDivergence.H"
         }
 
+        // Update timeVaryingMappedInletOutlet parameters
+        #include "updateFixesValue.H"
+
         // Write the solution if at write time.
         runTime.write();
 

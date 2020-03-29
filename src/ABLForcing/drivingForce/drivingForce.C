@@ -359,21 +359,8 @@ namespace Foam
 
 
 template<class Type>
-void Foam::drivingForce<Type>::readInputData_()
+void Foam::drivingForce<Type>::readInputData_(const IOdictionary& ABLProperties)
 {
-    // Define dictionary with input data
-    IOdictionary ABLProperties
-    (
-        IOobject
-        (
-            "ABLProperties",
-            runTime_.time().constant(),
-            runTime_,
-            IOobject::MUST_READ,
-            IOobject::NO_WRITE
-        )
-    );
-
     // PROPERTIES CONCERNING THE SOURCE TERM.
     const dictionary& sourceDict(ABLProperties.subOrEmptyDict(name_ & "Source"));
 
@@ -719,6 +706,7 @@ void Foam::drivingForce<Type>::openFiles_()
 template<class Type>
 Foam::drivingForce<Type>::drivingForce
 (
+    const IOdictionary& dict,
     const word& name,
     const GeometricField<Type, fvPatchField, volMesh>& field
 )
@@ -761,7 +749,7 @@ Foam::drivingForce<Type>::drivingForce
 {
     Info << "Creating driving force object for " << name_ << endl;
 
-    readInputData_();
+    readInputData_(dict);
     openFiles_();
 }
 
