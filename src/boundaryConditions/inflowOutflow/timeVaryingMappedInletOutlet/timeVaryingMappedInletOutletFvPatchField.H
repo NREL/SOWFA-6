@@ -155,6 +155,9 @@ protected:
         //- If true adjust the mapped field to maintain average value
         Switch setAverage_;
 
+        //- Does this boundary fix values so that they cannot be adjusted by adjustPhi
+        Switch fixesValue_;
+
         //- Fraction of perturbation (fraction of bounding box) to add
         scalar perturb_;
 
@@ -271,6 +274,14 @@ public:
             const Field<Type> startSampledValues()
             {
                  return startSampledValues_;
+            }
+
+            //- Returns true if this patch fixes a value.  This is used for
+            //  setting a reference value for a Poisson solve (pressure),
+            //  and for determining if adjustPhi affects the flux here.
+            virtual bool fixesValue() const
+            {
+                return fixesValue_;
             }
 
 

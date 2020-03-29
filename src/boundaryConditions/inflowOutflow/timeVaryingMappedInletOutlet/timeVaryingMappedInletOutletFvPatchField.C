@@ -278,6 +278,7 @@ timeVaryingMappedInletOutletFvPatchField
     pointsName_("points"),
     sampleName_(word::null),
     setAverage_(false),
+    fixesValue_(false),
     perturb_(0),
     mapperPtr_(nullptr),
     sampleTimes_(0),
@@ -317,6 +318,7 @@ timeVaryingMappedInletOutletFvPatchField
     ),
     pointsName_(dict.lookupOrDefault<fileName>("points", "points")),
     sampleName_(dict.lookupOrDefault("sample", word::null)),
+    fixesValue_(dict.lookupOrDefault("fixesValue", false)),
     setAverage_(dict.lookupOrDefault("setAverage", false)),
     perturb_(dict.lookupOrDefault("perturb", 1e-5)),
     mapMethod_
@@ -395,6 +397,7 @@ timeVaryingMappedInletOutletFvPatchField
     pointsName_(ptf.pointsName_),
     sampleName_(ptf.sampleName_),
     setAverage_(ptf.setAverage_),
+    fixesValue_(ptf.fixesValue_),
     perturb_(ptf.perturb_),
     mapMethod_(ptf.mapMethod_),
     mapperPtr_(nullptr),
@@ -423,6 +426,7 @@ timeVaryingMappedInletOutletFvPatchField
     pointsName_(ptf.pointsName_),
     sampleName_(ptf.sampleName_),
     setAverage_(ptf.setAverage_),
+    fixesValue_(ptf.fixesValue_),
     perturb_(ptf.perturb_),
     mapMethod_(ptf.mapMethod_),
     mapperPtr_(nullptr),
@@ -452,6 +456,7 @@ timeVaryingMappedInletOutletFvPatchField
     pointsName_(ptf.pointsName_),
     sampleName_(ptf.sampleName_),
     setAverage_(ptf.setAverage_),
+    fixesValue_(ptf.fixesValue_),
     perturb_(ptf.perturb_),
     mapMethod_(ptf.mapMethod_),
     mapperPtr_(nullptr),
@@ -683,6 +688,10 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::write
     {
         offset_->writeData(os);
     }
+
+    this->refValue().writeEntry("refValue", os);
+    this->refGrad().writeEntry("refGradient", os);
+    this->valueFraction().writeEntry("valueFraction", os);
 
     this->writeEntry("value", os);
 }
