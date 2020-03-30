@@ -285,6 +285,14 @@ public:
             }
 
 
+        // Setters
+
+            void setFixesValue(bool b)
+            {
+                fixesValue_ = b;
+            }
+
+
         // Mapping functions
 
             //- Map (and resize as needed) from self given a mapping object
