@@ -53,6 +53,7 @@ if(updateFixesValue)
             {
                 Info<< "[TVMIO] switch " << Up.patch().name()
                     << " to fixesValue=" << fixesValue
+                    << " at " << runTime.timeName()
                     << endl;
 
                 /* Is this the best way to access the TVMIO patch? Reference:
