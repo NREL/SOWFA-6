@@ -661,6 +661,10 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::write
 ) const
 {
     fvPatchField<Type>::write(os);
+    if (phiName_ != "phi")
+    {
+        os.writeKeyword("phi") << phiName_ << token::END_STATEMENT << Nl;
+    }
 
     this->writeEntryIfDifferent
     (
