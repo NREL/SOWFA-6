@@ -272,7 +272,9 @@ timeVaryingMappedInletOutletFvPatchField
 )
 :
     mixedFvPatchField<Type>(p, iF),
+    // inletOutlet:
     phiName_("phi"),
+    // timeVaryingMapped:
     fieldTableName_(iF.name()),
     dataDir_(this->db().time().constant()/"boundaryData"/this->patch().name()),
     pointsName_("points"),
@@ -306,7 +308,9 @@ timeVaryingMappedInletOutletFvPatchField
 )
 :
     mixedFvPatchField<Type>(p, iF, dict),
-    phiName_("phi"),
+    // inletOutlet:
+    phiName_(dict.lookupOrDefault<word>("phi", "phi")),
+    // timeVaryingMapped:
     fieldTableName_(dict.lookupOrDefault("fieldTable", iF.name())),
     dataDir_
     (
@@ -391,7 +395,9 @@ timeVaryingMappedInletOutletFvPatchField
 )
 :
     mixedFvPatchField<Type>(ptf, p, iF, mapper),
-    phiName_("phi"),
+    // inletOutlet:
+    phiName_(ptf.phiName_),
+    // timeVaryingMapped:
     fieldTableName_(ptf.fieldTableName_),
     dataDir_(ptf.dataDir_),
     pointsName_(ptf.pointsName_),
@@ -420,7 +426,9 @@ timeVaryingMappedInletOutletFvPatchField
 )
 :
     mixedFvPatchField<Type>(ptf),
-    phiName_("phi"),
+    // inletOutlet:
+    phiName_(ptf.phiName_),
+    // timeVaryingMapped:
     fieldTableName_(ptf.fieldTableName_),
     dataDir_(ptf.dataDir_),
     pointsName_(ptf.pointsName_),
@@ -450,7 +458,9 @@ timeVaryingMappedInletOutletFvPatchField
 )
 :
     mixedFvPatchField<Type>(ptf, iF),
-    phiName_("phi"),
+    // inletOutlet:
+    phiName_(ptf.phiName_),
+    // timeVaryingMapped:
     fieldTableName_(ptf.fieldTableName_),
     dataDir_(ptf.dataDir_),
     pointsName_(ptf.pointsName_),
