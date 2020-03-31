@@ -209,7 +209,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::initialize()
 
     // Get the chord lengths from FAST.
     getChordLengths();
-    
+
     // Define the sets of search cells when sampling velocity and projecting
     // the body force.
     forAll(turbineName,i)
@@ -266,9 +266,21 @@ void horizontalAxisWindTurbinesALMOpenFAST::initialize()
         }
     }
 
-
     // Get the positions out after solution0 and step are called.
     getPositions();
+
+    forAll(turbineName,i)
+    {
+        updateRotorSearchCells(i);
+      //if (includeNacelle[i])
+      //{
+            updateNacelleSearchCells(i);
+      //}
+      //if (includeTower[i])
+      //{
+            updateTowerSearchCells(i);
+      //}
+    }
 
     // Set the rotorApex and mainShaftOrientation that was before
     // the latest search.
@@ -722,15 +734,6 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateRotorSearchCells(int turbineNu
     // First compute the radius of the force projection (to the radius
     // where the projection is only 0.001 its maximum value - this seems
     // recover 99.9% of the total forces when integrated).
-    scalar bladeEpsilonMax = -1.0E6;
-    for (int j = 0; j < 3; j++)
-    {
-        if(bladeEpsilon[i][j] > bladeEpsilonMax)
-        {
-            bladeEpsilonMax = bladeEpsilon[i][j];
-        }
-    }
-
     scalar bladeChordMax = -1.0E6;
     forAll (bladePointChord[i],j)
     {
@@ -753,24 +756,26 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateRotorSearchCells(int turbineNu
         }
     }
 */
-    if ((bladeForceProjectionType[i] == "uniformGaussian") ||
-        (bladeForceProjectionType[i] == "generalizedGaussian") ||
-        (bladeForceProjectionType[i] == "generalizedGaussian2D"))
+    if (bladeForceProjectionType[i] == "chordThicknessGaussian")
     {
-        bladeProjectionRadius[i] = bladeEpsilonMax * Foam::sqrt(Foam::log(1.0/0.001));
+        bladeProjectionRadius[i] = bladeChordMax * max(max(bladeEpsilon[i][0],bladeEpsilon[i][1]),bladeEpsilon[i][2]) * Foam::sqrt(Foam::log(1.0/0.001));
     }
-
-/*
-    else if (bladeForceProjectionType[i] == "variableUniformGaussianUserDef")
+    else if (bladeForceProjectionType[i] == "chordThicknessGaussian2D")
     {
-        bladeProjectionRadius[i] = bladeUserDefMax * bladeEpsilonMax * Foam::sqrt(Foam::log(1.0/0.001));
+        bladeProjectionRadius[i] = bladeChordMax * max(bladeEpsilon[i][0],bladeEpsilon[i][1]) * Foam::sqrt(Foam::log(1.0/0.001));
     }
-*/
     else if ((bladeForceProjectionType[i] == "variableUniformGaussianChord") ||
-             (bladeForceProjectionType[i] == "chordThicknessGaussian") ||
-             (bladeForceProjectionType[i] == "chordThicknessGaussian2D"))
+             (bladeForceProjectionType[i] == "variableUniformGaussianUserDef"))
     {
-        bladeProjectionRadius[i] = bladeChordMax * bladeEpsilonMax * Foam::sqrt(Foam::log(1.0/0.001));
+        bladeProjectionRadius[i] = bladeEpsilon[i][2] * Foam::sqrt(Foam::log(1.0/0.001));
+    }
+    else if (bladeForceProjectionType[i] == "lineToDiskGaussian3D")
+    {
+        bladeProjectionRadius[i] = max(bladeEpsilon[i][0],bladeEpsilon[i][1]) * Foam::sqrt(Foam::log(1.0/0.001));
+    }
+    else
+    {
+        bladeProjectionRadius[i] = bladeEpsilon[i][0] * Foam::sqrt(Foam::log(1.0/0.001));
     }
 
     // Get a measure of blade precone angle, blade tip radius, and distance from tower top to blade tip.
@@ -1326,6 +1331,8 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateRadius(int turbineNumber)
         vector vP = vector::zero;
         vector v = vector::zero;
 
+      //vector vCyl = vector::zero;
+
         v = U_.mesh().C()[cellI] - rotorApex[i];
         zP.z() = 1.0;
         xP = mainShaftOrientation[i];
@@ -1335,6 +1342,11 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateRadius(int turbineNumber)
         zP = xP ^ yP;
         zP /= mag(zP);
         vP = transformGlobalCartToLocalCart(v,xP,yP,zP);
+
+      //vCyl = transformCartToCyl(vP);
+
+      //Pout << "vP = " << vP << tab << "vCyl = " << vCyl << tab << "vCyl (from vP) = (" << Foam::sqrt(Foam::sqr(vP.y())+Foam::sqr(vP.z())) << " " << Foam::atan2(vP.z(),vP.y()) << " " << vP.x() << ")" << endl;
+
         rFromShaft[cellI] = Foam::sqrt(Foam::sqr(vP.y()) + Foam::sqr(vP.z()));
     }
 }
@@ -2337,13 +2349,13 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
 {
     int i = turbineNumber;
 
-
     // If this uses the actuator disk body force spreading, then first compute the
     // shape of the rotor disk.
     if (bladeForceProjectionType[i] == "lineToDiskGaussian3D")
     {
         computeRotorSurfaceCoeffs(i);
     }
+  //Info << "rotorSurfaceCoeffs[" << i << " = " << rotorSurfaceCoeffs[i] << endl;
 
     
     // Initialize variables that are integrated forces.
@@ -2398,16 +2410,19 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
                         //   be from the distorted disk surface.
                         vector cellPointCyl = transformGlobalCartToRotorLocalCyl(mesh_.C()[bladeInfluenceCells[i][m]], turbineNumber);
                         vector bladePointCyl = transformGlobalCartToRotorLocalCyl(bladePoints[i][j][k], turbineNumber);
+                      //Pout << "cellPointCyl = " << cellPointCyl << tab << "cellPointCart = " << mesh_.C()[bladeInfluenceCells[i][m]] << endl;
+                      //Pout << "bladePointCyl = " << bladePointCyl << tab << "bladePointCart = " << bladePoints[i][j][k] << endl;
                         vector disVectorCyl = cellPointCyl - bladePointCyl;
                         scalar rotorSurfaceX = 0.0;
                         if (bladeForceProjectionType[i] == "lineToDiskGaussian3D")
                         {
                             rotorSurfaceX = getPointOnRotorSurface(turbineNumber, cellPointCyl.x(), cellPointCyl.y());
                             disVectorCyl.z() = cellPointCyl.z() - rotorSurfaceX;
+                            dis = 0.0;
                         }
 
                         // - some projection functions need radius along blade.
-                        scalar r0 = rotorSurfaceCoeffs[i][j][0];
+                        scalar r0 = rotorSurfaceCoeffs[i][k][0];
 
                         if (dis <= bladeProjectionRadius[i])
                         {
@@ -2416,6 +2431,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
                             scalar spreading = 1.0;
                             if (bladeForceProjectionType[i] == "lineToDiskGaussian3D")
                             {
+                               
                                 spreading = computeBladeProjectionFunction(disVectorCyl,r0,i,j,k);
                             }
                             else
@@ -3156,16 +3172,37 @@ scalar horizontalAxisWindTurbinesALMOpenFAST::lineToDiskGaussian3D(vector epsilo
     // Compute a spreading function that projects line forces to a rotor disk of force.
     // allows us to keep the actuator line framework while applying an actuator disk.
 
-    // Compute the spreading function.
+    // Get the spreading function parameters.
+    // - Gaussian width in the radial direction and axial directions.
     scalar epsR = epsilon[0];
     scalar epsX = epsilon[1];
-    scalar coeff = (4.0 / n) * Foam::sqr(Foam::constant::mathematical::pi) * r0 * epsX * epsR;
-    scalar cosineComponent = 0.0;
-    if (abs(disVector.y()) < (2.0 / n) * Foam::constant::mathematical::pi)
+
+    // - Spreading is a cosine^2 function in the azimuthal direction that goes from 1 at the blade to zero at next blade.
+    //   Because cos^2(theta) + sin^2(theta) = 1, the overlapping spreading functions from each blade will sum to 1 to
+    //   create a disk of body force.  The spreading also follows the distorted disk shape.  fWidth is the half width
+    //   of the cos^2 function for a blade in radians (just the distance from one blade to the next).
+    scalar fWidth = 2.0 * Foam::constant::mathematical::pi / n;
+
+    // - Make sure the azimuth angle argument to the cosine^2 function falls in the range of -pi to +pi.
+    scalar cosArg = disVector.y();
+    if (cosArg > Foam::constant::mathematical::pi)
     {
-       cosineComponent = (Foam::cos(0.5*n*disVector.y()) + 1.0);
+        cosArg -= 2.0*Foam::constant::mathematical::pi;
     }
-    scalar f = coeff * cosineComponent * Foam::exp(-Foam::sqr(disVector.z()/epsX)) * Foam::exp(-Foam::sqr(disVector.x()/epsR));
+    else if (cosArg < -Foam::constant::mathematical::pi)
+    {
+        cosArg += 2.0*Foam::constant::mathematical::pi;
+    }
+    
+    // - To make the cosine^2 function remain zero at theta greater than the function width, limit the argument to
+    //   cosine^2 function such that it is never greater than the function width.
+    cosArg = Foam::max(Foam::min(cosArg,fWidth),-fWidth);
+    
+    // - Compute a coefficient that makes the volume integral of the spreading function equal to 1.
+    scalar coeff = 1.0 / ((2.0/n) * Foam::sqr(Foam::constant::mathematical::pi) * r0 * epsX * epsR);
+
+    // Compute the spreading function
+    scalar f = coeff * Foam::sqr(Foam::cos((n/4.0)*cosArg)) * Foam::exp(-Foam::sqr(disVector.z()/epsX)) * Foam::exp(-Foam::sqr(disVector.x()/epsR));
 
     return f;
 }
@@ -3231,8 +3268,8 @@ void horizontalAxisWindTurbinesALMOpenFAST::computeRotorSurfaceCoeffs(int turbin
             {
                 L(m,n) = Foam::cos((n+1)*pCylLocal[m].y());
                 L(m,n+numBl[i]) = Foam::sin((n+1)*pCylLocal[m].y());
-                L(m+numBl[i],n) = -(n+1)*Foam::sin((k+1)*pCylLocal[m].y());
-                L(m+numBl[i],n+numBl[i]) = (n+1)*Foam::cos((k+1)*pCylLocal[m].y());
+                L(m+numBl[i],n) = -(n+1)*Foam::sin((n+1)*pCylLocal[m].y());
+                L(m+numBl[i],n+numBl[i]) = (n+1)*Foam::cos((n+1)*pCylLocal[m].y());
             }
         }
 
@@ -3240,12 +3277,24 @@ void horizontalAxisWindTurbinesALMOpenFAST::computeRotorSurfaceCoeffs(int turbin
         List<scalar> R(2*numBl[i], 0.0);
         for (int j = 0; j < numBl[i]; j++)
         {
-            R[j] = pCylLocal[j].z() - rotorSurfaceCoeffs[i][k][0];
+            R[j] = pCylLocal[j].z() - rotorSurfaceCoeffs[i][k][1];
             R[j+numBl[i]] = dxdtheta[j];
         }
 
+      //Info << "x = ";
+      //for (int j = 0; j < numBl[i]; j++)
+      //{
+      //    Info << pCylLocal[j].z() << tab;
+      //}
+      //Info << endl;
+      //Info << "dx/dtheta = " << dxdtheta << endl;
+      //Info << "A0 = " << rotorSurfaceCoeffs[i][k][1] << endl;
+      //Info << "L = " << L << endl;
+      //Info << "R = " << R << endl;
+
         // Solve the coefficients.
         LUsolve(L,R);
+      //Info << "x = " << R << endl;
         for (int j = 0; j < numBl[i]; j++)
         {
             rotorSurfaceCoeffs[i][k][j+2] = R[j];
@@ -3799,6 +3848,9 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
     {
         printOutputFiles();
     }
+
+    // Update the force on boundaries.
+    bodyForce.correctBoundaryConditions();
 
     // Now that at least the first time step is finished, set pastFirstTimeStep
     // to true.
