@@ -378,15 +378,24 @@ timeVaryingMappedInletOutletFvPatchField
 
     if (dict.found("value"))
     {
+        // timeVaryingMapped:
         fvPatchField<Type>::operator==(Field<Type>("value", dict, p.size()));
     }
     else
     {
+        // timeVaryingMapped:
         // Note: we use evaluate() here to trigger updateCoeffs followed
         //       by re-setting of fvatchfield::updated_ flag. This is
         //       so if first use is in the next time step it retriggers
         //       a new update.
-        this->evaluate(Pstream::commsTypes::blocking);
+        //this->evaluate(Pstream::commsTypes::blocking);
+
+        // inletOutlet:
+        // Note: when processing patches prior to solution, updateCoeffs
+        //       may be called in a situation in which phi is not available
+        //       thereby throwing a fatal error; instead, we simply extrapolate
+        //       from the interior
+        fvPatchField<Type>::operator=(this->patchInternalField());
     }
 
     //-----------------------------------------------------
