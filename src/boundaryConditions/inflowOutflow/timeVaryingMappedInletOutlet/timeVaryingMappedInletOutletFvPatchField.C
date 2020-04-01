@@ -307,7 +307,9 @@ timeVaryingMappedInletOutletFvPatchField
     const dictionary& dict
 )
 :
-    mixedFvPatchField<Type>(p, iF, dict),
+    //mixedFvPatchField<Type>(p, iF, dict),
+    // skip reading in refGradient
+    mixedFvPatchField<Type>(p, iF),
     // inletOutlet:
     phiName_(dict.lookupOrDefault<word>("phi", "phi")),
     // timeVaryingMapped:
@@ -343,6 +345,15 @@ timeVaryingMappedInletOutletFvPatchField
     endAverage_(Zero),
     offset_()
 {
+    // instead of reading these in from mixedFvPatchField<Type>(p, iF, dict)
+    // do the read here so we skip reading refGradient
+    this->refValue() = Field<Type>("refValue", dict, p.size());
+    this->valueFraction() = scalarField("valueFraction", dict, p.size());
+
+    //-----------------------------------------------------
+    //
+    // timeVaryingMapped
+    //
     dataDir_.expand();
     pointsName_.expand();
     sampleName_.expand();
@@ -378,9 +389,14 @@ timeVaryingMappedInletOutletFvPatchField
         this->evaluate(Pstream::commsTypes::blocking);
     }
 
-    this->refValue() = Zero;
+    //-----------------------------------------------------
+    //
+    // inletOutlet
+    //
+    // Note: updateCoeffs sets refValue and valueFraction
+    //this->refValue() = Zero;
     this->refGrad() = Zero;
-    this->valueFraction() = 0.0;
+    //this->valueFraction() = 0.0;
 }
 
 
@@ -539,7 +555,7 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::updateCoeffs()
         );
 
     // Note: this was changed from pos to pos0 between 2.4.x and 6
-    //   pos0 returns 1 if positive or zero, otherwise 0
+    //       pos0 returns 1 if positive or zero, otherwise 0
     this->valueFraction() = 1.0 - pos0(phip);
 
     checkTable();
@@ -663,7 +679,7 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::write
     fvPatchField<Type>::write(os);
     if (phiName_ != "phi")
     {
-        os.writeKeyword("phi") << phiName_ << token::END_STATEMENT << Nl;
+        os.writeKeyword("phi") << phiName_ << token::END_STATEMENT << nl;
     }
 
     this->writeEntryIfDifferent
@@ -704,7 +720,7 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::write
     }
 
     this->refValue().writeEntry("refValue", os);
-    this->refGrad().writeEntry("refGradient", os);
+    //this->refGrad().writeEntry("refGradient", os);
     this->valueFraction().writeEntry("valueFraction", os);
 
     this->writeEntry("value", os);
