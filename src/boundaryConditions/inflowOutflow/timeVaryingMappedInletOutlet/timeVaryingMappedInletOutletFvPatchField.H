@@ -314,6 +314,12 @@ public:
             //- Update the coefficients associated with the patch field
             virtual void updateCoeffs();
 
+            //- Evaluate the patch field
+            virtual void evaluate
+            (
+                const Pstream::commsTypes commsType =
+                    Pstream::commsTypes::blocking
+            );
 
         //- Write
         virtual void write(Ostream&) const;

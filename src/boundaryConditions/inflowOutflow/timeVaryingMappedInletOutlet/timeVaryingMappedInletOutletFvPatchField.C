@@ -680,6 +680,27 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::updateCoeffs()
 
 
 template<class Type>
+void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::evaluate(
+    const Pstream::commsTypes commsType
+)
+{
+    scalar NValueFraction = this->valueFraction().size();
+    scalar sumValueFraction = 0;
+    forAll(this->valueFraction(), faceI)
+    {
+        sumValueFraction += this->valueFraction()[faceI];
+    }
+    reduce(sumValueFraction, sumOp<scalar>());
+    reduce(NValueFraction, sumOp<scalar>());
+    Info<< "[TVMIO] Calling evaluate() for " << this->patch().name()
+        << " with avg valueFraction=" << sumValueFraction/NValueFraction
+        << endl;
+
+    Foam::mixedFvPatchField<Type>::evaluate(commsType);
+}
+
+
+template<class Type>
 void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::write
 (
     Ostream& os
