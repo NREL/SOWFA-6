@@ -378,7 +378,6 @@ timeVaryingMappedInletOutletFvPatchField
 
     if (dict.found("value"))
     {
-        // timeVaryingMapped:
         fvPatchField<Type>::operator==(Field<Type>("value", dict, p.size()));
     }
     else
@@ -390,12 +389,8 @@ timeVaryingMappedInletOutletFvPatchField
         //       a new update.
         //this->evaluate(Pstream::commsTypes::blocking);
 
-        // inletOutlet:
-        // Note: when processing patches prior to solution, updateCoeffs
-        //       may be called in a situation in which phi is not available
-        //       thereby throwing a fatal error; instead, we simply extrapolate
-        //       from the interior
-        fvPatchField<Type>::operator=(this->patchInternalField());
+        updateFixedValue(); // update refValues
+        fvPatchField<Type>::operator==(this->refValue());
     }
 
     //-----------------------------------------------------
@@ -557,6 +552,33 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::updateCoeffs()
         return;
     }
 
+    // The inletOutlet part of the update, which determines whether direction
+    // of the massflow from phi and updates the valueFraction variable
+    updateInletOutlet();
+
+    // The fixedValue part of the update, closely following the updateCoeffs
+    // function from timeVaryingMappedFixedValue to update the refValue variable
+    updateFixedValue();
+
+    // Instead of applying operator==, as is done in the timeVaryingMappedFixedValue,
+    // let the field assignment take place in evaluate()
+    //
+    // Notes:
+    // - operator== and operator= are equivalent for fvPatchFields
+    // - valueFraction is always 1 or 0--switching between inflow and outflow,
+    //   respectively--and is calculated from phi
+    // - refGrad == 0 (hard-coded for now), i.e., for outflow, the value is
+    //   always extrapolated directly from the interior; this is only used if 
+    //   for some reason mixedFvPatchField<Type>::evaluate() is called instead
+    //   of timeVaryingMappedInletOutletFvPatchField<Type>::evaluate()
+    // - calling updateCoeffs from the parent class sets updated to true
+    mixedFvPatchField<Type>::updateCoeffs();
+}
+
+
+template<class Type>
+void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::updateInletOutlet()
+{
     const Field<scalar>& phip =
         this->patch().template lookupPatchField<surfaceScalarField, scalar>
         (
@@ -566,7 +588,12 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::updateCoeffs()
     // Note: this was changed from pos to pos0 between 2.4.x and 6
     //       pos0 returns 1 if positive or zero, otherwise 0
     this->valueFraction() = 1.0 - pos0(phip);
+}
 
+
+template<class Type>
+void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::updateFixedValue()
+{
     checkTable();
 
     // Interpolate between the sampled data
@@ -578,7 +605,7 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::updateCoeffs()
         // Only start value
         if (debug)
         {
-            Pout<< "updateCoeffs : Sampled, non-interpolated values"
+            Pout<< "updateFixedValue : Sampled, non-interpolated values"
                 << " from start time:"
                 << sampleTimes_[startSampleTime_].name() << nl;
         }
@@ -596,7 +623,7 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::updateCoeffs()
 
         if (debug)
         {
-            Pout<< "updateCoeffs : Sampled, interpolated values"
+            Pout<< "updateFixedValue : Sampled, interpolated values"
                 << " between start time:"
                 << sampleTimes_[startSampleTime_].name()
                 << " and end time:" << sampleTimes_[endSampleTime_].name()
@@ -620,7 +647,7 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::updateCoeffs()
 
         if (debug)
         {
-            Pout<< "updateCoeffs :"
+            Pout<< "updateFixedValue :"
                 << " actual average:" << averagePsi
                 << " wanted average:" << wantedAverage
                 << endl;
@@ -632,7 +659,7 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::updateCoeffs()
             const Type offset = wantedAverage - averagePsi;
             if (debug)
             {
-                Pout<< "updateCoeffs :"
+                Pout<< "updateFixedValue :"
                     << " offsetting with:" << offset << endl;
             }
             //this->operator==(fld + offset);
@@ -644,7 +671,7 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::updateCoeffs()
 
             if (debug)
             {
-                Pout<< "updateCoeffs :"
+                Pout<< "updateFixedValue :"
                     << " scaling with:" << scale << endl;
             }
             //this->operator==(scale*fld);
@@ -662,20 +689,10 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::updateCoeffs()
 
     if (debug)
     {
-        Pout<< "updateCoeffs : set fixedValue to min:" << gMin(*this)
-            << " max:" << gMax(*this)
-            << " avg:" << gAverage(*this) << endl;
+        Pout<< "updateFixedValue : set refValue to min:" << gMin(this->refValue())
+            << " max:" << gMax(this->refValue())
+            << " avg:" << gAverage(this->refValue()) << endl;
     }
-
-    // Instead of applying operator==, let the field assignment take place in
-    // mixedFvPatchField::evaluate(). This sets the field to:
-    //   valueFraction*refValue + (1 - valueFraction)*(patchInternalField + refGrad/deltaCoeffs)
-    // Notes:
-    // - valueFraction is always 1 or 0--switching between inflow and outflow,
-    //   respectively--and is calculated from phi
-    // - refGrad == 0 (hard-coded for now), i.e., for outflow, the value is
-    //   always extrapolated directly from the interior
-    mixedFvPatchField<Type>::updateCoeffs();
 }
 
 
@@ -684,6 +701,11 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::evaluate(
     const Pstream::commsTypes commsType
 )
 {
+    if (!this->updated())
+    {
+        this->updateCoeffs();
+    }
+
     scalar NValueFraction = this->valueFraction().size();
     scalar sumValueFraction = 0;
     forAll(this->valueFraction(), faceI)
@@ -692,10 +714,13 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::evaluate(
     }
     reduce(sumValueFraction, sumOp<scalar>());
     reduce(NValueFraction, sumOp<scalar>());
-    Info<< "[TVMIO] Calling evaluate() for " << this->patch().name()
-        << " with avg valueFraction=" << sumValueFraction/NValueFraction
+    Info<< "[TVMIO] evaluate() " << this->patch().name()
+        << ", avg valueFraction =" << sumValueFraction/NValueFraction
         << endl;
 
+    // This sets the patch to:
+    //   valueFraction*refValue
+    // + (1 - valueFraction)*(patchInternalField + refGrad*delta)
     Foam::mixedFvPatchField<Type>::evaluate(commsType);
 }
 

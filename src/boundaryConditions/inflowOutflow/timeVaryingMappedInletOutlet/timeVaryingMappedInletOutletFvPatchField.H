@@ -311,6 +311,12 @@ public:
 
         // Evaluation functions
 
+            //- Update valueFraction
+            void updateInletOutlet();
+
+            //- Update refValue
+            void updateFixedValue();
+
             //- Update the coefficients associated with the patch field
             virtual void updateCoeffs();
 

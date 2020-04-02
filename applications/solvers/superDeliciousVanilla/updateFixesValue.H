@@ -35,10 +35,10 @@ if(updateFixesValue)
             reduce(massOut, sumOp<scalar>());
 
             // verbose output
-            Info<< "[TVMIO] patch " << Up.patch().name()
-                << " massIn= " << massIn
-                << " massOut= " << massOut
-                << endl;
+            //Info<< "[TVMIO] patch " << Up.patch().name()
+            //    << " massIn= " << massIn
+            //    << " massOut= " << massOut
+            //    << endl;
 
             if(massIn > massOut)
             {
@@ -53,7 +53,7 @@ if(updateFixesValue)
             {
                 Info<< "[TVMIO] switch " << Up.patch().name()
                     << " to fixesValue=" << fixesValue
-                    << " at " << runTime.timeName()
+                    << " at t=" << runTime.timeName()
                     << endl;
 
                 /* Is this the best way to access the TVMIO patch? Reference:
