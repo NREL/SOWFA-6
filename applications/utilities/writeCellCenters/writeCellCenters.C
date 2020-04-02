@@ -71,6 +71,7 @@ int main(int argc, char *argv[])
         );
         Info<< "Writing mesh cell centers to " << outputCSVFile << endl;
         OFstream csv(outputCSVFile);
+        csv << "x,y,z" << nl;
         forAll(mesh.cellCentres(), cellI)
         {
             vector cc = mesh.cellCentres()[cellI];
