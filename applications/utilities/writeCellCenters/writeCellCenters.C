@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 
         fileName outputFile
         (
-            mesh.time().path()/"cellCenters"
+            mesh.time().path()/"constant"/"cellCenters"
         );
         Info<< "Writing mesh cell centers to " << outputFile << endl;
         OFstream os(outputFile);
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
 
         fileName outputCSVFile
         (
-            mesh.time().path()/"cellCenters.csv"
+            mesh.time().path()/"constant"/"cellCenters.csv"
         );
         Info<< "Writing mesh cell centers to " << outputCSVFile << endl;
         OFstream csv(outputCSVFile);
