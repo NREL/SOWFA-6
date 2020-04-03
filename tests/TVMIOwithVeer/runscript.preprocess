@@ -116,6 +116,9 @@ refineMeshLocal $refinementLevels
 
 # Save cell centers for mapping internal fields
 writeCellCenters > log.writeCellCenters 2>&1
+${SOWFA_DIR}/tools/compareValues.py \
+    constant/assumed_blockmesh_cc.csv \
+    constant/cellCenters.csv
 
 
 # If running in parallel from this point forward, then do the following:
