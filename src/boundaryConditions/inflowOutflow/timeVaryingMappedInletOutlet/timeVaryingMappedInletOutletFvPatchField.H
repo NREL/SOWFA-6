@@ -152,6 +152,9 @@ protected:
         //  read, defaults to ""
         fileName sampleName_;
 
+        //- Optional format of points and data files, defaults to "ascii"
+        word format_;
+
         //- If true adjust the mapped field to maintain average value
         Switch setAverage_;
 

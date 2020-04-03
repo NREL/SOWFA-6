@@ -74,12 +74,13 @@ template<class Type>
 void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::checkTable()
 {
     // Initialise
+    Foam::IOstream::streamFormat fmt = Foam::IOstream::formatEnum(format_);
     if (mapperPtr_.empty())
     {
         // Reread values and interpolate
         const fileName samplePointsFile(dataDir_/pointsName_);
 
-        pointField samplePoints((IFstream(samplePointsFile)()));
+        pointField samplePoints((IFstream(samplePointsFile, fmt)()));
 
         if (debug)
         {
@@ -183,13 +184,13 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::checkTable()
 
             if (setAverage_)
             {
-                AverageField<Type> avals((IFstream(valsFile)()));
+                AverageField<Type> avals((IFstream(valsFile, fmt)()));
                 vals = avals;
                 startAverage_ = avals.average();
             }
             else
             {
-                IFstream(valsFile)() >> vals;
+                IFstream(valsFile, fmt)() >> vals;
             }
 
             if (vals.size() != mapperPtr_().sourceSize())
@@ -237,13 +238,13 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::checkTable()
 
             if (setAverage_)
             {
-                AverageField<Type> avals((IFstream(valsFile)()));
+                AverageField<Type> avals((IFstream(valsFile, fmt)()));
                 vals = avals;
                 endAverage_ = avals.average();
             }
             else
             {
-                IFstream(valsFile)() >> vals;
+                IFstream(valsFile, fmt)() >> vals;
             }
 
             if (vals.size() != mapperPtr_().sourceSize())
@@ -279,6 +280,7 @@ timeVaryingMappedInletOutletFvPatchField
     dataDir_(this->db().time().constant()/"boundaryData"/this->patch().name()),
     pointsName_("points"),
     sampleName_(word::null),
+    format_("ascii"),
     setAverage_(false),
     fixesValue_(false),
     perturb_(0),
@@ -324,6 +326,7 @@ timeVaryingMappedInletOutletFvPatchField
     ),
     pointsName_(dict.lookupOrDefault<fileName>("points", "points")),
     sampleName_(dict.lookupOrDefault("sample", word::null)),
+    format_(dict.lookupOrDefault<word>("format", "ascii")),
     fixesValue_(dict.lookupOrDefault("fixesValue", false)),
     setAverage_(dict.lookupOrDefault("setAverage", false)),
     perturb_(dict.lookupOrDefault("perturb", 1e-5)),
@@ -422,6 +425,7 @@ timeVaryingMappedInletOutletFvPatchField
     dataDir_(ptf.dataDir_),
     pointsName_(ptf.pointsName_),
     sampleName_(ptf.sampleName_),
+    format_(ptf.format_),
     setAverage_(ptf.setAverage_),
     fixesValue_(ptf.fixesValue_),
     perturb_(ptf.perturb_),
@@ -453,6 +457,7 @@ timeVaryingMappedInletOutletFvPatchField
     dataDir_(ptf.dataDir_),
     pointsName_(ptf.pointsName_),
     sampleName_(ptf.sampleName_),
+    format_(ptf.format_),
     setAverage_(ptf.setAverage_),
     fixesValue_(ptf.fixesValue_),
     perturb_(ptf.perturb_),
@@ -485,6 +490,7 @@ timeVaryingMappedInletOutletFvPatchField
     dataDir_(ptf.dataDir_),
     pointsName_(ptf.pointsName_),
     sampleName_(ptf.sampleName_),
+    format_(ptf.format_),
     setAverage_(ptf.setAverage_),
     fixesValue_(ptf.fixesValue_),
     perturb_(ptf.perturb_),
@@ -748,6 +754,8 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::write
     this->writeEntryIfDifferent(os, "points", fileName("points"), pointsName_);
 
     this->writeEntryIfDifferent(os, "sample", fileName::null, sampleName_);
+
+    this->writeEntryIfDifferent(os, "format", word("ascii"), format_);
 
     this->writeEntryIfDifferent(os, "setAverage", Switch(false), setAverage_);
 
