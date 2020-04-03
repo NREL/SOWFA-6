@@ -44,32 +44,28 @@ boundaryField
     west
     {
         type            timeVaryingMappedInletOutlet;
-        setAverage      0;
-        peturb          1e-05;
+        format          binary;
         valueFraction   uniform 0;
         refValue        uniform (0 0 0);
     }
     east
     {   
         type            timeVaryingMappedInletOutlet;
-        setAverage      0;
-        peturb          1e-05;
+        format          binary;
         valueFraction   uniform 0;
         refValue        uniform (0 0 0);
     }
     south
     {
         type            timeVaryingMappedInletOutlet;
-        setAverage      0;
-        peturb          1e-05;
+        format          binary;
         valueFraction   uniform 0;
         refValue        uniform (0 0 0);
     }
     north
     {   
         type            timeVaryingMappedInletOutlet;
-        setAverage      0;
-        peturb          1e-05;
+        format          binary;
         valueFraction   uniform 0;
         refValue        uniform (0 0 0);
     }
