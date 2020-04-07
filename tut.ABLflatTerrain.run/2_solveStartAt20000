@@ -1,0 +1,40 @@
+#!/bin/bash
+#SBATCH --job-name=runTutFarm
+#SBATCH --output foam2run_startAt20000.log
+#SBATCH --partition=debug
+#SBATCH --ntasks=36         # Change on setUp as well
+#SBATCH --time=1:00:00
+#SBATCH --account=mmc
+
+source $HOME/.bash_profile
+cores=$SLURM_NTASKS
+
+echo "Working directory is" $SLURM_SUBMIT_DIR
+echo "Job name is" $SLURM_JOB_NAME
+echo "Starting OpenFOAM job at: " $(date)
+echo "using" $cores "cores"
+echo "with modules:"
+module list
+
+# ******************************************** USER INPUT ******************************************** #
+OpenFOAM-6-intel-dev 			# OpenFOAM/SOWFA version. OpenFOAM-6-{icc,intel}-{central,dev}
+startTime=20000                 # Start time (cp script for restarted runs)
+solver=superDeliciousVanilla
+# **************************************************************************************************** #
+
+# **************************************** PERFORM SOME CHECKS *************************************** #
+if [ ! -f foam1* ];                                       then echo "Job killed (1)."; scancel $SLURM_JOBID; fi
+if [ ! -f system/controlDict.$solver.startAt$startTime ]; then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
+if [ ! -f setUp ];                                        then echo "Job killed (3)."; scancel $SLURM_JOBID; fi
+# **************************************************************************************************** #
+
+# ************************************ COPYING APPROPRIATE FILES ************************************* #
+cp system/controlDict.$solver.startAt$startTime        system/controlDict
+# **************************************************************************************************** #
+
+# Run the solver (parallel)
+srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$startTime 2>&1
+
+echo "Ending OpenFOAM job at: " $(date)
+
+# **************************************************************************************************** #

@@ -1,0 +1,117 @@
+#!/bin/bash
+#SBATCH --job-name=setupTutFarm
+#SBATCH --output foam1setup.log
+#SBATCH --partition=debug
+#SBATCH --ntasks=1
+#SBATCH --time=1:00:00
+#SBATCH --account=mmc
+
+source $HOME/.bash_profile
+cores=$SLURM_NTASKS
+
+echo "Working directory is" $SLURM_SUBMIT_DIR
+echo "Job name is" $SLURM_JOB_NAME
+echo "Starting OpenFOAM job at: " $(date)
+echo "using" $cores "cores"
+echo "with modules:"
+module list
+
+# ******************************************** USER INPUT ******************************************** #
+OpenFOAM-6-intel-dev           # OpenFOAM/SOWFA version. OpenFOAM-6-{icc,intel}-{central,dev}
+precursorDir=~/OpenFOAM/rthedin-6/run/tutSOWFA/tut.ABLflatTerrain.precursor
+startTime=20000                # Start time
+inflowDir=southwest     
+nLocalRefs=2                   # Number of local refinements (serial)
+nGlobalRefs=0                  # Number of global refinements (parallel). Triggers a parallel run
+solver=superDeliciousVanilla
+refType=local
+# The stability state should follow the precursor settings. This is done by copying 'setUp' (and not 
+# setUp.*)  from the precursor and updating it for nCores and maybe wallModelAverageType
+# **************************************************************************************************** #
+
+# **************************************** PERFORM SOME CHECKS *************************************** #
+if [ ! -f system/controlDict.$solver.startAt$startTime ];                              then echo "Job killed (1)."; scancel $SLURM_JOBID; fi
+if [ ! -f system/changeDictionary.updateBCs.$inflowDir ];                             then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
+if [nLocalRefs -gt 0 ] && [ ! -f system/topoSetDict.$refType.$nLocalRefs ];            then echo "Job killed (3)."; scancel $SLURM_JOBID; fi
+if [ ! -d $precursorDir/postProcessing/boundaryData ];                                 then echo "Job killed (4)."; scancel $SLURM_JOBID; fi
+if ! { [ -d $precursorDir/processor0/$starTime ] || [ -d $precursorDir/$starTime ]; }; then echo "Job killed (5)."; scancel $SLURM_JOBID; fi  
+if [ ! -f setUp ];                                                                     then echo "Job killed (6)."; scancel $SLURM_JOBID; fi
+# **************************************************************************************************** #
+
+# ************************************ COPYING APPROPRIATE FILES ************************************* #
+cp system/controlDict.$solver.startAt$startTime        system/controlDict
+# **************************************************************************************************** #
+
+# *************************************** REFINEMENT FUNCTIONS *************************************** #
+refineMeshLocal()
+{
+   i=1
+   while [ $i -le $1 ]; do
+      # Select cells, refine them, and check the new mesh
+      topoSet -dict system/topoSetDict.$refType.$i -noFunctionObjects > log.1.toposet.$refType.$i 2>&1
+      refineHexMesh -region local -overwrite > log.1.refineHexMesh.local.$i 2>&1 #original sowfa
+      checkMesh -noFunctionObjects > log.1.checkMesh.local.$i 2>&1
+      let i=i+1
+   done
+}
+
+refineMeshGlobal()
+{
+   i=1
+   while [ $i -le $1 ]
+   do
+      # Refine all cells and check the new mesh
+      srun -n $cores refineMesh -all -parallel -overwrite -noFunctionObjects > log.1.refineMesh.global.$i 2>&1
+      srun -n $cores checkMesh  -parallel -noFunctionObjects > log.1.checkMesh.global.$i 2>&1
+      let i=i+1
+   done
+}
+# **************************************************************************************************** #
+
+# Clean up case before start 
+rm -rf $startTime*
+rm -rf constant/polyMesh
+rm -rf constant/boundaryData
+
+# If the precursor hasn't been reconstructed yet, do it now
+if[ ! -d $precursorDir/$startTime ]; then
+   cd $precursorDir
+   reconstructPar -time $startTime > log.1.reconstructPar.precursor 2>&1
+   cd $SLURM_SUBMIT_DIR
+fi
+
+# Copy the startTime solution dir from precursor
+cp -rf $precursorDir/$startTime $startTime.fromPrec
+rm -rf $startTime.fromPrec/{cellDist,uniform}
+cp -rf $startTime.fromPrec $startTime
+
+# Copy the mesh from precursor
+cp -rf $precursorDir/constant/polyMesh constant
+cp -rf $precursorDir/system/blockMeshDict system
+
+# Make the link to the boundary data
+ln -s $precursorDir/postProcessing/boundaryData constant/boundaryData
+
+# Change the boundary conditions from cyclic to inflow/outflow based on inflowDir
+changeDictionary -dict system/changeDictionaryDict.updateBCs.$inflowDir -time $startTime -enableFunctionEntries > log.1.changeDictionary.1.updateBCs.$inflowDir 2>&1
+
+# Do serial local refinement
+refineMeshLocal $nLocalRefs
+
+# Decompose the mesh and solution files
+decomposePar -cellDist -force > log.1.decomposePar 2>&1
+
+# Perform global refinements after decomposePar, avoiding load unbalance
+refineMeshGlobal $nGlobalRefs
+
+# The mesh got globally refined, but the solution file did not, so the boundary fields may not have the correct number of entries.
+# Use the changeDictionary utility to overwrite the spatially varying boundary data to a uniform single value.
+srun -n $cores changeDictionary -dict system/changeDictionaryDict.updateBCs.$inflowDir -time $startTime -enableFunctionEntries -parallel > log.1.changeDictionary.2.updateBCs.$inflowDir 2>&1
+
+# Renumber the mesh for better matrix solver performance.
+srun -n $cores renumberMesh -parallel -overwrite > log.1.renumberMesh 2>&1
+
+# Do a final check on the mesh.
+srun -n $cores checkMesh -parallel -allGeometry -allTopology > log.1.checkMesh.full 2>&1
+
+
