@@ -17,6 +17,8 @@ FoamFile
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+#include   "../setUp"
+
 solvers
 {
     p_rgh
@@ -85,7 +87,7 @@ PIMPLE
     nOuterCorrectors         1;
     nCorrectors              3;
     nNonOrthogonalCorrectors 0;
-    pRefCell                 0;
+    pRefPoint                (#calc "($xMax + $xMin)/2+53.5"    #calc "($yMax + $yMin)/2+53.5"    #calc "$zMin+303.5");
     pRefValue                0;
 }
 
