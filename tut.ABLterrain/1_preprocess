@@ -1,0 +1,78 @@
+#!/bin/bash
+#SBATCH --job-name=setupBiglow51
+#SBATCH --output foam1preprocess.log
+#SBATCH --ntasks=792
+#SBATCH --time=2:00:00
+#SBATCH --account=car
+#SBATCH --qos=high
+
+source $HOME/.bash_profile
+cores=$SLURM_NTASKS
+
+cores=576
+
+echo "Working directory is" $SLURM_SUBMIT_DIR
+echo "Job name is" $SLURM_JOB_NAME
+echo "Starting OpenFOAM job at: " $(date)
+echo "using" $cores "core(s)"
+
+# ******************************************** USER INPUT ******************************************** #
+OpenFOAM-6-gcc-dev      # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
+startTime=0               # Start time
+stabState=neutral         # neutral, stable, unstable
+inflowDir=west            
+meshSolver=moveDynamicMesh
+terrainSTL=biglow_xm15001to16009_ym5005to15485_blendFlatNSEW_shifted.stl
+# Make sure the terrain vertical bounding box is below zMin. Use `surfaceTransformPoints' to translate stl
+# **************************************************************************************************** #
+
+# **************************************** PERFORM SOME CHECKS *************************************** #
+if [ ! -f system/controlDict.$meshSolver.startAt$startTime ]; then echo "Job killed (1)."; scancel $SLURM_JOBID; fi
+if [ ! -f setUp.$stabState ];                                 then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
+if [ ! -f 0.original/qwall.$stabState ];                      then echo "Job killed (3)."; scancel $SLURM_JOBID; fi
+if [ ! -f 0.original/pointDisplacement ];                     then echo "Job killed (4)."; scancel $SLURM_JOBID; fi
+if [ ! -f constant/dynamicMeshDict ];                         then echo "Job killed (5)."; scancel $SLURM_JOBID; fi
+if [ ! -f constant/triSurface/$terrainSTL ] ;                 then echo "Job killed (6)."; scancel $SLURM_JOBID; fi
+if [ $(foamDictionary -entry "nCores" -value setUp.$stabState) -ne $cores ]; then echo "Job killed (7)."; scancel $SLURM_JOBID; fi
+stlbb=$(surfaceCheck constant/triSurface/$terrainSTL | grep -e "Bounding" | awk '{print $9}' | awk -F. '{print $1}')
+if [[ $stlbb -ge $(foamDictionary -entry "zMin1" -value setUp.$stabState) ]];  then echo "Job killed (8)."; scancel $SLURM_JOBID; fi
+# **************************************************************************************************** #
+
+# ************************************ COPYING APPROPRIATE FILES ************************************* #
+rm problemFaces
+cd constant/triSurface  &&  ln -sf $terrainSTL    terrain.stl  &&  cd ../..
+cp system/controlDict.$meshSolver.startAt$startTime    system/controlDict
+cp setUp.$stabState                                    setUp
+cp system/fvSolution.mesh                              system/fvSolution
+cp system/fvSchemes.mesh                               system/fvSchemes
+# **************************************************************************************************** #
+
+# Copy the "clean" .original initial fields to a working copy
+rm -rf $startTime
+cp -rf $startTime.original $startTime
+cp     $startTime/qwall.$stabState   $startTime/qwall  &&  rm $startTime/qwall.*
+
+# Change BCs depending on the inflowDir
+# changeDictionary -dict system/changeDictionaryDict.updateBCs.$inflowDir -time $startTime -enableFunctionEntries > log.1.changeDictionary.updateBCs.$inflowDir 2>&1
+
+# Build the mesh
+blockMesh -noFunctionObjects > log.1.blockMesh 2>&1
+
+# Decompose the mesh
+decomposePar -cellDist -force > log.1.decomposePar 2>&1
+
+# Check the mesh
+srun -n $cores checkMesh -noFunctionObjects -parallel > log.1.checkMesh.background 2>&1
+
+# Make the mesh conform to the terrain boundary
+srun -n $cores $meshSolver -noFunctionObjects -parallel > log.1.$meshSolver 2>&1
+
+# Check the final mesh
+srun -n $cores checkMesh -latestTime -noFunctionObjects -parallel > log.1.checkMesh.final 2>&1
+
+# Extract the volume over time from the moveDynamicMesh output
+grep -e "Total volume" -e "^Time" log.1.moveDynamicMesh | awk 'NR%2 {print $12} !(NR%2) {printf $3 "\t"}' > log.1.meshVolumeHistory 2>&1
+
+echo "Ending OpenFOAM job at: " $(date)
+
+# **************************************************************************************************** #

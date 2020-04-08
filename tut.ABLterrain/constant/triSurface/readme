@@ -1,0 +1,8 @@
+# readme for ${caseDir}/constant/triSurface
+
+The terrain .stl files should go in this directory. The `terrain.stl` file referenced to by the scripts is a dynamic link to the actual STL. 
+
+To translate an STL file, use a call like the following:
+
+surfaceTransformPoints -translate (0 0 -1028) file.stl file_shifted.stl
+

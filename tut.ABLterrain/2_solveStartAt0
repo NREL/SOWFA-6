@@ -1,0 +1,69 @@
+#!/bin/bash
+#SBATCH --job-name=runBiglow51
+#SBATCH --output foam2run_startAt0.log
+#SBATCH --ntasks=576        # Change on setUp as well
+#SBATCH --time=1-00
+#SBATCH --account=car
+#SBATCH --qos=high
+
+source $HOME/.bash_profile
+cores=$SLURM_NTASKS
+
+echo "Working directory is" $SLURM_SUBMIT_DIR
+echo "Job name is" $SLURM_JOB_NAME
+echo "Starting OpenFOAM job at: " $(date)
+echo "using" $cores "core(s)"
+
+# ******************************************** USER INPUT ******************************************** #
+OpenFOAM-6-gcc-dev 	        # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
+startTime=0                     # Start time (cp script for restarted runs)
+stabState=neutral               # neutral, stable, unstable
+inflowDir=southwest
+solver=superDeliciousVanilla
+initializer=none                # setFieldsABL, none
+interp=midpoint                 # midpoint, linearupwind. divSchemes midpoint needed for gravity waves
+# Final mesh is assumed to be in the last saved time step from the moveDynamicMesh execution.
+# **************************************************************************************************** #
+
+# **************************************** PERFORM SOME CHECKS *************************************** #
+if [ ! -f foam1* ];                                                     then echo "Job killed (1)."; scancel $SLURM_JOBID; fi
+if [ ! -f system/controlDict.$solver.startAt$startTime ];               then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
+#if [ ! -f system/changeDictionary.updateBCs.$inflowDir ];              then echo "Job killed (3)."; scancel $SLURM_JOBID; fi
+if [ $initializer = setFieldsABL ] && [ ! -f system/setFieldsABLDict ]; then echo "Job killed (4)."; scancel $SLURM_JOBID; fi
+if [ ! -f setUp ];                                                      then echo "Job killed (5)."; scancel $SLURM_JOBID; fi
+# **************************************************************************************************** #
+
+# ************************************ COPYING APPROPRIATE FILES ************************************* #
+cp system/controlDict.$solver.startAt$startTime        system/controlDict
+cp system/fvSolution.flow                              system/fvSolution
+cp system/fvSchemes.flow.$interp                       system/fvSchemes
+endTimeMesh=$(foamListTimes -processor -latestTime | tail -1)
+# **************************************************************************************************** #
+
+# If not a restarted run, adjust the starting time to be $startTime, and not $endTimeMesh
+if [ ! -f log.2.$solver.* ]; then
+	for (( c=0; c<$cores; c++)); do
+	    mv processor$c/$endTimeMesh/polyMesh processor$c/$startTime/
+	    mv processor$c/$startTime processor$c/temp
+	    find processor$c -mindepth 1 -type d -not -path "*constant*" -not -path "*temp*" -exec rm -rf {} +
+	    mv processor$c/temp processor$c/$startTime
+	done	
+fi
+
+# Run the flow field initializer
+if [ $initializer = setFieldsABL ] && [ ! -f log.2.$initializer ];  then
+   srun -n $cores --cpu_bind=cores $initializer -parallel > log.2.$initializer 2>&1
+fi
+
+# Run the solver
+srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$startTime 2>&1
+
+# Get some quantities from the logfile
+grep -e "maximum"  -e "^Time =" log.2.$solver.startAt$startTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $2}' > log.maxlocalerror
+
+grep -e "total - flux"  -e "^Time =" log.2.$solver.startAt$startTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $4}'  > log.totalboundaryflux
+
+
+echo "Ending OpenFOAM job at: " $(date)
+
+# **************************************************************************************************** #
