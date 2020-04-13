@@ -59,6 +59,7 @@ FoamFile
   {
       #include "sampling/planarAveraging"
       #include "sampling/boundaryData"
+      #include "sampling/sliceDataInstantaneous"
   }
 
 // ************************************************************************* //

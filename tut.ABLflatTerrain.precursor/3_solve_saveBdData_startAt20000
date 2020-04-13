@@ -2,7 +2,7 @@
 #SBATCH --job-name=runBdDataTutPrec
 #SBATCH --output foam3saveBd_startAt20000.log
 #SBATCH --ntasks=288         # Change on setUp as well
-#SBATCH --time=8:00:00
+#SBATCH --time=2:00:00
 #SBATCH --account=car
 #SBATCH --qos=high
 
@@ -22,7 +22,7 @@ solver=superDeliciousVanilla
 
 # **************************************** PERFORM SOME CHECKS *************************************** #
 if [ ! -f foam2* ];                                                  then echo "Job killed (1)."; scancel $SLURM_JOBID; fi
-if [ ! -f system/controlDict.$solver.aveBdData.tartAt$startTime ];   then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
+if [ ! -f system/controlDict.$solver.aveBdData.startAt$startTime ];   then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
 if [ ! -f setUp ];                                                   then echo "Job killed (3)."; scancel $SLURM_JOBID; fi
 if [ $(foamDictionary -entry "nCores" -value setUp) -ne $cores ];    then echo "Job killed (4)."; scancel $SLURM_JOBID; fi
 # **************************************************************************************************** #
