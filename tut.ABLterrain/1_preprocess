@@ -7,9 +7,8 @@
 #SBATCH --qos=high
 
 source $HOME/.bash_profile
-cores=$SLURM_NTASKS
-
-cores=576
+#cores=$SLURM_NTASKS
+cores=$(foamDictionary -entry "nCores" -value setUp.$stabState) 
 
 echo "Working directory is" $SLURM_SUBMIT_DIR
 echo "Job name is" $SLURM_JOB_NAME

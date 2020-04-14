@@ -249,7 +249,7 @@ dictionaryReplacement
                 z0              uniform $z0;
                 betaM           $betaM;
                 gammaM          $gammaM;
-                averageType     "planarAverage";
+                averageType     $wallModelAverageType;
                 value           uniform (0 0 0 0 0 0);
             }
             upper

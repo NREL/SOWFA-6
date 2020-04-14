@@ -6,8 +6,6 @@
 #SBATCH --account=car
 #SBATCH --qos=high
 
-scancel 2950986
-
 source $HOME/.bash_profile
 cores=$SLURM_NTASKS
 
@@ -17,8 +15,8 @@ echo "Starting OpenFOAM job at: " $(date)
 echo "using" $cores "core(s)"
 
 # ******************************************** USER INPUT ******************************************** #
-OpenFOAM-6-gcc-dev              # OpenFOAM/SOWFA version. OpenFOAM-6-{icc,intel}-{central,dev}
-startTime=0                     # Start time (cp script for restarted runs)
+OpenFOAM-6-gcc-dev              # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
+startTime=0                     # Start time
 stabState=neutral               # neutral, stable, unstable
 solver=superDeliciousVanilla
 initializer=setFieldsABL

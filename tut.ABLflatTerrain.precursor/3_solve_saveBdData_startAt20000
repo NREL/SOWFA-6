@@ -2,7 +2,7 @@
 #SBATCH --job-name=runBdDataTutPrec
 #SBATCH --output foam3saveBd_startAt20000.log
 #SBATCH --ntasks=288         # Change on setUp as well
-#SBATCH --time=2:00:00
+#SBATCH --time=10:00:00
 #SBATCH --account=car
 #SBATCH --qos=high
 
@@ -15,19 +15,32 @@ echo "Starting OpenFOAM job at: " $(date)
 echo "using" $cores "core(s)"
 
 # ******************************************** USER INPUT ******************************************** #
-OpenFOAM-6-gcc-dev              # OpenFOAM/SOWFA version. OpenFOAM-6-{icc,intel}-{central,dev}
-startTime=20000                 # Start time (cp script for restarted runs)
+OpenFOAM-6-gcc-dev               # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
+startTime=20000                  # Start time (cp script for restarted runs)
 solver=superDeliciousVanilla
 # **************************************************************************************************** #
 
 # **************************************** PERFORM SOME CHECKS *************************************** #
 if [ ! -f foam2* ];                                                  then echo "Job killed (1)."; scancel $SLURM_JOBID; fi
-if [ ! -f system/controlDict.$solver.saveBdData.startAt$startTime ];   then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
+if [ ! -f system/controlDict.$solver.saveBdData.startAt$startTime ]; then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
 if [ ! -f setUp ];                                                   then echo "Job killed (3)."; scancel $SLURM_JOBID; fi
 if [ $(foamDictionary -entry "nCores" -value setUp) -ne $cores ];    then echo "Job killed (4)."; scancel $SLURM_JOBID; fi
 # **************************************************************************************************** #
 
 # ************************************ COPYING APPROPRIATE FILES ************************************* #
+case $(foamDictionary -entry "windDir" -value setUp) in
+  0|360)                    inflowDir=north;;
+  [1-9]|[1-8][0-9])         inflowDir=northeast;;
+  90)                       inflowDir=east;;
+  9[1-9]|1[0-7][0-9])       inflowDir=southeast;;
+  180)                      inflowDir=south;;
+  1[8-9][0-9]|2[0-6][0-9])  inflowDir=southwest;;
+  270)                      inflowDir=west;;
+  2[7-9][0-9]|3[0-5][0-9])  inflowDir=northwest;;
+  *)                        echo "Job killed (5)"; scancel $SLURM_JOBID;;
+esac
+cp system/sampling/boundaryData.$inflowDir   system/sampling/boundaryData
+
 cp system/controlDict.$solver.saveBdData.startAt$startTime        system/controlDict
 # **************************************************************************************************** #
 

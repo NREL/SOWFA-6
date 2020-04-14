@@ -58,6 +58,7 @@ FoamFile
   functions
   {
       #include "sampling/planarAveraging"
+      #include "sampling/slicesPrecursor"
   }
 
 // ************************************************************************* //

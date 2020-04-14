@@ -37,7 +37,7 @@ boundaryField
         betaH           $betaH;
         gammaH          $gammaH;
         alphaH          $alphaH;
-        averageType     "planarAverage";
+        averageType     $wallModelAverageType;
         value           uniform $qwall;
     }
     upper

@@ -14,7 +14,7 @@ echo "Starting OpenFOAM job at: " $(date)
 echo "using" $cores "core(s)"
 
 # ******************************************** USER INPUT ******************************************** #
-OpenFOAM-6-gcc-dev              # OpenFOAM/SOWFA version. OpenFOAM-6-{icc,intel}-{central,dev}
+OpenFOAM-6-gcc-dev              # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
 startTime=20000                 # Start time (cp script for restarted runs)
 solver=superDeliciousVanilla
 # **************************************************************************************************** #
@@ -24,6 +24,9 @@ if [ ! -f foam1* ];                                                then echo "Jo
 if [ ! -f system/controlDict.$solver.startAt$startTime ];          then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
 if [ ! -f setUp ];                                                 then echo "Job killed (3)."; scancel $SLURM_JOBID; fi
 if [ $(foamDictionary -entry "nCores" -value setUp) -ne $cores ];  then echo "Job killed (4)."; scancel $SLURM_JOBID; fi
+lastBdData=$(ls $(ls -d constant/boundaryData/* | head -1) | head -1)
+endTime=$(foamDictionary -entry "endTime" -value -disableFunctionEntries system/controlDict.$solver.startAt$startTime)
+if [ $lastBdData -lt $endTime ];                                   then echo "Job killed (5)."; scancel $SLURM_JOBID; fi
 # **************************************************************************************************** #
 
 # ************************************ COPYING APPROPRIATE FILES ************************************* #
