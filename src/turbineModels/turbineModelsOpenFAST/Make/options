@@ -7,7 +7,7 @@ EXE_INC = \
     $(PFLAGS) \
     $(PINC) \
     -I$(OPENFAST_DIR)/include \
-    -I$(HDF5_ROOT)/include
+    -I$(HDF5_DIR)/include
 
 LIB_LIBS = \
     -lfiniteVolume \
@@ -39,7 +39,7 @@ LIB_LIBS = \
     -lservodynlib \
     -lsubdynlib \
     -lversioninfolib \
-    -L$(HDF5_ROOT)/lib \
+    -L$(HDF5_DIR)/lib \
     -lhdf5 \
     -lhdf5_hl 
 
