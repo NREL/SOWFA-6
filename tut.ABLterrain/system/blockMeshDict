@@ -23,10 +23,10 @@ convertToMeters 1.0;
 
 vertices        
 (
-    ( $xMin   $yMin   $zMin1)
-    ( $xMax   $yMin   $zMin1)
-    ( $xMax   $yMax   $zMin1)
-    ( $xMin   $yMax   $zMin1)
+    ( $xMin   $yMin   $zMin)
+    ( $xMax   $yMin   $zMin)
+    ( $xMax   $yMax   $zMin)
+    ( $xMin   $yMax   $zMin)
     ( $xMin   $yMin   $zMax1)
     ( $xMax   $yMin   $zMax1)
     ( $xMax   $yMax   $zMax1)
@@ -54,10 +54,10 @@ vertices
     ( $xMax   $yMin   $zMin4)
     ( $xMax   $yMax   $zMin4)
     ( $xMin   $yMax   $zMin4)
-    ( $xMin   $yMin   $zMax4)
-    ( $xMax   $yMin   $zMax4)
-    ( $xMax   $yMax   $zMax4)
-    ( $xMin   $yMax   $zMax4)
+    ( $xMin   $yMin   $zMax)
+    ( $xMax   $yMin   $zMax)
+    ( $xMax   $yMax   $zMax)
+    ( $xMin   $yMax   $zMax)
 );
 
 blocks          

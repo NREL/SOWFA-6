@@ -19,10 +19,8 @@ echo "using" $cores "core(s)"
 OpenFOAM-6-gcc-dev      # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
 startTime=0               # Start time
 stabState=neutral         # neutral, stable, unstable
-inflowDir=west            
 meshSolver=moveDynamicMesh
 terrainSTL=biglow_xm15001to16009_ym5005to15485_blendFlatNSEW_shifted.stl
-# Make sure the terrain vertical bounding box is below zMin. Use `surfaceTransformPoints' to translate stl
 # **************************************************************************************************** #
 
 # **************************************** PERFORM SOME CHECKS *************************************** #
@@ -34,7 +32,7 @@ if [ ! -f constant/dynamicMeshDict ];                         then echo "Job kil
 if [ ! -f constant/triSurface/$terrainSTL ] ;                 then echo "Job killed (6)."; scancel $SLURM_JOBID; fi
 if [ $(foamDictionary -entry "nCores" -value setUp.$stabState) -ne $cores ]; then echo "Job killed (7)."; scancel $SLURM_JOBID; fi
 stlbb=$(surfaceCheck constant/triSurface/$terrainSTL | grep -e "Bounding" | awk '{print $9}' | awk -F. '{print $1}')
-if [[ $stlbb -ge $(foamDictionary -entry "zMin1" -value setUp.$stabState) ]];  then echo "Job killed (8)."; scancel $SLURM_JOBID; fi
+if [[ $stlbb -ge $(foamDictionary -entry "zMin" -value setUp.$stabState) ]]; then echo "Job killed (8)."; scancel $SLURM_JOBID; fi
 # **************************************************************************************************** #
 
 # ************************************ COPYING APPROPRIATE FILES ************************************* #
@@ -50,9 +48,6 @@ cp system/fvSchemes.mesh                               system/fvSchemes
 rm -rf $startTime
 cp -rf $startTime.original $startTime
 cp     $startTime/qwall.$stabState   $startTime/qwall  &&  rm $startTime/qwall.*
-
-# Change BCs depending on the inflowDir
-# changeDictionary -dict system/changeDictionaryDict.updateBCs.$inflowDir -time $startTime -enableFunctionEntries > log.1.changeDictionary.updateBCs.$inflowDir 2>&1
 
 # Build the mesh
 blockMesh -noFunctionObjects > log.1.blockMesh 2>&1

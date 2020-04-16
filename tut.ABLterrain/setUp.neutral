@@ -19,7 +19,7 @@ xMax                 15080.0;                      // Maximum x-extent of domain
 yMax                 15480.0;                      // Maximum y-extent of domain (m).
 
 // Domain heights and number of cells (level 1).
-zMin1                    0.0;                      // Minimum z-extent of domain (m).
+zMin                     0.0;                      // Minimum z-extent of domain (m).
 zMax1                 1600.0;                      // Maximum z-extent of domain (m).
 nx1                      752;                      // Number of cells in x-direction.
 ny1                      512;                      // Number of cells in y-direction.
@@ -41,7 +41,7 @@ nz3                       50;                      // Number of cells in z-direc
 
 // Domain heights and number of cells (level 4).
 zMin4                 6600.0;                      // Minimum z-extent of domain (m).
-zMax4                 9960.0;                      // Maximum z-extent of domain (m).
+zMax                  9960.0;                      // Maximum z-extent of domain (m).
 nx4                      188;                      // Number of cells in x-direction.
 ny4                      128;                      // Number of cells in y-direction.
 nz4                       21;                      // Number of cells in z-direction.

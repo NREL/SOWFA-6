@@ -118,7 +118,7 @@ PIMPLE
     nOuterCorrectors         1;
     nCorrectors              3;
     nNonOrthogonalCorrectors 2;
-    pRefPoint                (#calc "($xMax + $xMin)/2+53.5"    #calc "($yMax + $yMin)/2+53.5"    #calc "$zMin1+303.5");
+    pRefPoint                (#calc "($xMax + $xMin)/2+53.5"    #calc "($yMax + $yMin)/2+53.5"    #calc "$zMin+303.5");
     pRefValue                0;
 }
 
