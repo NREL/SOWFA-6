@@ -1,4 +1,4 @@
-slicesPrecurosr
+slicesPrecursor
 {
     type surfaces;
     functionObjectLibs ( "libsampling.so" );

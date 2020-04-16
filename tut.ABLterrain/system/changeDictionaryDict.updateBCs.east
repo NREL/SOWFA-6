@@ -58,39 +58,12 @@ dictionaryReplacement
                 type            zeroGradient;
                 value           uniform 300;
             }
-            east
-            {
-                type            timeVaryingMappedFixedValue;
-                setAverage      0;
-                peturb          1e-05;
-                offset          0;
-                value           uniform 300;
-            }
-            west
-            {
-                type            zeroGradient;
-                value           uniform 300;
-            }
         }
     }
     U
     {
         boundaryField
         {
-            east
-            {
-                type            timeVaryingMappedFixedValue;
-                setAverage      0;
-                peturb          1e-05;
-                offset          (0 0 0);
-                value           uniform (0 0 0);
-            }
-            west
-            {   
-                type            inletOutlet;
-                inletValue      uniform (0 0 0);
-                value           uniform (0 0 0);
-            }
             east
             {
                 type            timeVaryingMappedFixedValue;
@@ -124,35 +97,12 @@ dictionaryReplacement
                 type            zeroGradient;
                 value           uniform 0.1;
             }
-            east
-            {
-                type            timeVaryingMappedFixedValue;
-                setAverage      0;
-                peturb          1e-05;
-                offset          0;
-                value           uniform 0.1;
-            }
-            west
-            {
-                type            zeroGradient;
-                value           uniform 0.1;
-            }
         }
     }
     kappat
     {
         boundaryField
         {
-            east
-            {
-                type            zeroGradient;
-                value           uniform 0.0;
-            }
-            west
-            {
-                type            zeroGradient;
-                value           uniform 0.0;
-            }
             east
             {
                 type            zeroGradient;
@@ -179,32 +129,12 @@ dictionaryReplacement
                 type            zeroGradient;
                 value           uniform 0.0;
             }
-            east
-            {
-                type            zeroGradient;
-                value           uniform 0.0;
-            }
-            west
-            {
-                type            zeroGradient;
-                value           uniform 0.0;
-            }
         }
     }
     p_rgh
     {
         boundaryField
         {
-            east
-            {
-                type            fixedFluxPressure;
-                value           uniform 0.0;
-            }
-            west
-            {
-                type            zeroGradient;
-                value           uniform 0.0;
-            }
             east
             {
                 type            fixedFluxPressure;
@@ -241,16 +171,6 @@ dictionaryReplacement
                 type            fixedValue;
                 value           uniform (0 0 0);
             }
-            east
-            {
-                type            fixedValue;
-                value           uniform (0 0 0);
-            }
-            west
-            {
-                type            fixedValue;
-                value           uniform (0 0 0);
-            }
             lower
             {
                 type            fixedValue;
@@ -277,16 +197,6 @@ dictionaryReplacement
                 type            fixedValue;
                 value           uniform (0 0 0 0 0 0);
             }
-            east
-            {
-                type            fixedValue;
-                value           uniform (0 0 0 0 0 0);
-            }
-            west
-            {
-                type            fixedValue;
-                value           uniform (0 0 0 0 0 0);
-            }
             lower
             {
                 type            SchumannGrotzbach;
@@ -294,7 +204,7 @@ dictionaryReplacement
                 z0              uniform $z0;
                 betaM           $betaM;
                 gammaM          $gammaM;
-                averageType     "local";
+                averageType     $wallModelAverageType;
                 value           uniform (0 0 0 0 0 0);
             }
             upper
