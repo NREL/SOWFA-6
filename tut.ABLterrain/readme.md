@@ -12,6 +12,7 @@
 # To-do
 
 - Put the default BC as inflow/outflow and update second script (set fields ABL)
+- See if `$Rwall` and `$qwall` need to be included in the `changeDictionaryDict`s
 - Allow different wind directions
 - Allow different stability states
 - Add WRF boundary condition

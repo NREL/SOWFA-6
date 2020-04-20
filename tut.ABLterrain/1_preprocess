@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=setupBiglow51
+#SBATCH --job-name=setupTerrain
 #SBATCH --output foam1preprocess.log
 #SBATCH --ntasks=792
 #SBATCH --time=2:00:00
@@ -8,7 +8,7 @@
 
 source $HOME/.bash_profile
 #cores=$SLURM_NTASKS
-cores=$(foamDictionary -entry "nCores" -value setUp.$stabState) 
+cores=576
 
 echo "Working directory is" $SLURM_SUBMIT_DIR
 echo "Job name is" $SLURM_JOB_NAME

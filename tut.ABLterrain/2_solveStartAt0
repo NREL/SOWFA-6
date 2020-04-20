@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=runBiglow52
+#SBATCH --job-name=runTerrain
 #SBATCH --output foam2run_startAt0.log
 #SBATCH --ntasks=576        # Change on setUp as well
 #SBATCH --time=1-00
@@ -21,7 +21,7 @@ startTime=0                     # Start time (cp script for restarted runs)
 stabState=neutral               # neutral, stable, unstable
 solver=superDeliciousVanilla
 initializer=none                # setFieldsABL, none
-bc=inflowOutflow                # inflowOutflow, boundaryData, cyclic
+bc=inflowOutflow                # inflowOutflow, boundaryData, cyclic, wrf
 interp=midpoint                 # midpoint, linearupwind. divSchemes midpoint needed for gravity waves
 # **************************************************************************************************** #
 
@@ -66,19 +66,25 @@ if [ $initializer = setFieldsABL ] && [ ! -f log.2.$initializer ];  then
    srun -n $cores --cpu_bind=cores $initializer -parallel > log.2.$initializer 2>&1
 fi
 
-# Change BCs depending on the inflowDir for inflow-outflow cases
-if [ $bc = boundaryData ]; then
-    changeDictionary -dict system/changeDictionaryDict.updateBCs.$inflowDir -time $startTime -enableFunctionEntries > log.2.changeDictionary.updateBCs.$inflowDir 2>&1
+# Change BCs depending on the inflowDir and BC type
+if [ $bc = boundaryData ] || [ $bc = wrf ]; then
+    changeDictionary -dict system/changeDictionaryDict.updateBCs.timeVarying.$inflowDir -time $startTime -enableFunctionEntries > log.2.changeDictionary.timeVarying.$inflowDir 2>&1
 elif [ $bc = cyclic ]; then
-    changeDictionary -dict system/changeDictionaryDict.updateBCs.cyclic -time $startTime -enableFunctionEntries > log.2.changeDictionary.updateBCs.cyclic 2>&1
+    changeDictionary -dict system/changeDictionaryDict.updateBCs.cyclic -time $startTime -enableFunctionEntries > log.2.changeDictionary.cyclic 2>&1
+elif [ $bc = inflowOutflow ]; then
+    changeDictionary -dict system/changeDictionaryDict.updateBCs.inflowOutflow.$inflowDir -time $startTime -enableFunctionEntries > log.2.changeDictionary.inflowOutflow.$inflowDir 2>&1
 fi 
+
+# if convective, change the bottom BC too
+if [ $stabState = unstable ] || [ $stabState = stable ]; then
+   # changeDictionary -dic system/changeDictionary.updateBC.lower -time $startTime -enableFunctionEntries > log.2.changeDictionary.lower 2>&1
+fi
 
 # Run the solver
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$startTime 2>&1
 
 # Get some quantities from the logfile
 grep -e "maximum"  -e "^Time =" log.2.$solver.startAt$startTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $2}' > log.maxlocalerror
-
 grep -e "total - flux"  -e "^Time =" log.2.$solver.startAt$startTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $4}'  > log.totalboundaryflux
 
 
