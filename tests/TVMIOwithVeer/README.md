@@ -28,9 +28,9 @@ This is intended to be a very small test case, to be run quickly on 4 cores.
 
 1. `./generate_ICBCs.py`:
 
-    - Create reference inflow data in `<casedir>/constant/boundaryData`
-    - Create initial velocity field in `<casedir>/U0`
-    - Output expected cell-center locations for verification in
+    - Creates reference inflow data in `<casedir>/constant/boundaryData`
+    - Creates initial velocity field in `<casedir>/U0`
+    - Outputs expected cell-center locations for verification in
       `<casedir>/constant/assumed_blockmesh_cc.csv`
 
 2. `./runscript.preprocess`:
