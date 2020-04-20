@@ -17,7 +17,8 @@ step 5.
 1. `cd /path/to/local/python/libraries` : Where the mmctools library will live
 2. ``export PYTHONPATH="`pwd`:$PYTHONPATH"`` : Add location to Python path
 3. `git clone https://github.com/a2e-mmc/mmctools.git` : Get mmctools library
-4. `cd mmctools && checkout dev` : Switch to the devlopment branch
+4. `cd mmctools && checkout dev` : Switch to the devlopment branch (tested with
+   commit 1a8b466)
 5. `conda create -n mmc python=3.7` : Create a new environment (optional)
 6. `conda activate mmc` : Switch to the new (or an existing) environment
 7. `conda update --file environment.yaml` : Install dependencies
@@ -32,7 +33,7 @@ This is intended to be a very small test case, to be run quickly on 4 cores.
     - Output expected cell-center locations for verification in
       `<casedir>/constant/assumed_blockmesh_cc.csv`
 
-2. `./runscript.preprocess.py`:
+2. `./runscript.preprocess`:
 
     - Generates `blockMesh`
     - Runs `writeCellCenters` and verifies the output against the output from

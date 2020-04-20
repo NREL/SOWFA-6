@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from windtools.openfoam import InputFile # for reading in setUp
+from windtools.openfoam import InputFile # for reading in setUp (optional)
 from mmctools.coupling.sowfa import BoundaryCoupling
 from mmctools.coupling.domain import Domain
 
