@@ -23,7 +23,7 @@ initializer=setFieldsABL
 # **************************************************************************************************** #
 
 # **************************************** PERFORM SOME CHECKS *************************************** #
-if [ ! -f foam1* ];                                                     then echo "Job killed (1)."; scancel $SLURM_JOBID; fi
+if [ ! -f "foam1*" ];                                                     then echo "Job killed (1)."; scancel $SLURM_JOBID; fi
 if [ ! -f system/controlDict.$solver.startAt$startTime ];               then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
 if [ $initializer = setFieldsABL ] && [ ! -f system/setFieldsABLDict ]; then echo "Job killed (3)."; scancel $SLURM_JOBID; fi
 if [ ! -f setUp ];                                                      then echo "Job killed (4)."; scancel $SLURM_JOBID; fi
