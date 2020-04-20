@@ -68,11 +68,11 @@ fi
 
 # Change BCs depending on the inflowDir and BC type
 if [ $bc = boundaryData ] || [ $bc = wrf ]; then
-    changeDictionary -dict system/changeDictionaryDict.updateBCs.timeVarying.$inflowDir -time $startTime -enableFunctionEntries > log.2.changeDictionary.timeVarying.$inflowDir 2>&1
+    changeDictionary -dict system/changeDictionaryDict.timeVarying.$inflowDir -time $startTime -enableFunctionEntries > log.2.changeDictionary.timeVarying.$inflowDir 2>&1
 elif [ $bc = cyclic ]; then
-    changeDictionary -dict system/changeDictionaryDict.updateBCs.cyclic -time $startTime -enableFunctionEntries > log.2.changeDictionary.cyclic 2>&1
+    changeDictionary -dict system/changeDictionaryDict.cyclic -time $startTime -enableFunctionEntries > log.2.changeDictionary.cyclic 2>&1
 elif [ $bc = inflowOutflow ]; then
-    changeDictionary -dict system/changeDictionaryDict.updateBCs.inflowOutflow.$inflowDir -time $startTime -enableFunctionEntries > log.2.changeDictionary.inflowOutflow.$inflowDir 2>&1
+    changeDictionary -dict system/changeDictionaryDict.inflowOutflow.$inflowDir -time $startTime -enableFunctionEntries > log.2.changeDictionary.inflowOutflow.$inflowDir 2>&1
 fi 
 
 # if convective, change the bottom BC too

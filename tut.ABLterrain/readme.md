@@ -15,7 +15,6 @@
 - See if `$Rwall` and `$qwall` need to be included in the `changeDictionaryDict`s
 - Allow different wind directions
 - Allow different stability states
-- Add WRF boundary condition
 - Finish making the `bc` variable general
 - Incorporate Eliot's check whether or not run was successful
 
