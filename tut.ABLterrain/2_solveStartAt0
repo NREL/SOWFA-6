@@ -52,7 +52,7 @@ esac
 # **************************************************************************************************** #
 
 # If not a restarted run, adjust the starting time to be $startTime, and not $endTimeMesh
-if [ ! -f log.2.$solver.* ]; then
+if [ ! -f "log.2.$solver.*" ]; then
     for (( c=0; c<$cores; c++)); do
          mv processor$c/$endTimeMesh/polyMesh processor$c/$startTime/
          mv processor$c/$startTime processor$c/temp
