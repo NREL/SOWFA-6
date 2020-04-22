@@ -68,16 +68,16 @@ fi
 
 # Change BCs depending on the inflowDir and BC type
 if [ $bc = boundaryData ] || [ $bc = wrf ]; then
-    changeDictionary -dict system/changeDictionaryDict.timeVarying.$inflowDir -time $startTime -enableFunctionEntries > log.2.changeDictionary.timeVarying.$inflowDir 2>&1
+    srun -n $cores changeDictionary -dict system/changeDictionaryDict.timeVarying.$inflowDir -time $startTime -enableFunctionEntries -parallel > log.2.changeDictionary.timeVarying.$inflowDir 2>&1
 elif [ $bc = cyclic ]; then
-    changeDictionary -dict system/changeDictionaryDict.cyclic -time $startTime -enableFunctionEntries > log.2.changeDictionary.cyclic 2>&1
+    srun -n $cores changeDictionary -dict system/changeDictionaryDict.cyclic -time $startTime -enableFunctionEntries -parallel > log.2.changeDictionary.cyclic 2>&1
 elif [ $bc = inflowOutflow ]; then
-    changeDictionary -dict system/changeDictionaryDict.inflowOutflow.$inflowDir -time $startTime -enableFunctionEntries > log.2.changeDictionary.inflowOutflow.$inflowDir 2>&1
+    srun -n $cores changeDictionary -dict system/changeDictionaryDict.inflowOutflow.$inflowDir -time $startTime -enableFunctionEntries -parallel > log.2.changeDictionary.inflowOutflow.$inflowDir 2>&1
 fi 
 
 # if convective, change the bottom BC too
 if [ $stabState = unstable ] || [ $stabState = stable ]; then
-   # changeDictionary -dic system/changeDictionary.updateBC.lower -time $startTime -enableFunctionEntries > log.2.changeDictionary.lower 2>&1
+   #srun -n $cores changeDictionary -dic system/changeDictionary.updateBC.lower -time $startTime -enableFunctionEntries -parallel > log.2.changeDictionary.lower 2>&1
 fi
 
 # Run the solver

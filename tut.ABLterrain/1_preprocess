@@ -65,7 +65,7 @@ srun -n $cores $meshSolver -noFunctionObjects -parallel > log.1.$meshSolver 2>&1
 srun -n $cores checkMesh -latestTime -noFunctionObjects -parallel > log.1.checkMesh.final 2>&1
 
 # Extract the volume over time from the moveDynamicMesh output
-grep -e "Total volume" -e "^Time" log.1.moveDynamicMesh | awk 'NR%2 {print $12} !(NR%2) {printf $3 "\t"}' > log.1.meshVolumeHistory 2>&1
+grep -e "Total volume" -e "^Time" log.1.moveDynamicMesh | awk 'NR%2 {print $12} !(NR%2) {printf $3 "\t"}' > log.1.volumeMeshHistory 2>&1
 
 echo "Ending OpenFOAM job at: " $(date)
 

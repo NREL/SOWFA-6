@@ -4,5 +4,5 @@ The terrain .stl files should go in this directory. The `terrain.stl` file refer
 
 To translate an STL file, use a call like the following:
 
-surfaceTransformPoints -translate (0 0 -1028) file.stl file_shifted.stl
+surfaceTransformPoints -translate '(0 0 -1028)' file.stl file_shifted.stl
 
