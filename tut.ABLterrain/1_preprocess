@@ -31,7 +31,7 @@ if [ ! -f 0.original/pointDisplacement ];                     then echo "Job kil
 if [ ! -f constant/dynamicMeshDict ];                         then echo "Job killed (5)."; scancel $SLURM_JOBID; fi
 if [ ! -f constant/triSurface/$terrainSTL ] ;                 then echo "Job killed (6)."; scancel $SLURM_JOBID; fi
 if [ $(foamDictionary -entry "nCores" -value setUp.$stabState) -ne $cores ]; then echo "Job killed (7)."; scancel $SLURM_JOBID; fi
-stlbb=$(surfaceCheck constant/triSurface/$terrainSTL | grep -e "Bounding" | awk '{print $9}' | awk -F. '{print $1}')
+stlbb=$(surfaceCheck constant/triSurface/$terrainSTL | grep -e "Bounding" | awk '{print $9}' | awk -F "[.)]" '{print $1}')
 if [[ $stlbb -ge $(foamDictionary -entry "zMin" -value setUp.$stabState) ]]; then echo "Job killed (8)."; scancel $SLURM_JOBID; fi
 # **************************************************************************************************** #
 
