@@ -37,7 +37,7 @@ zMax                      $zMax;
 zRef                      $zMax;
 
 // Specify if distance from wall should be used as z.
-useWallDistZ              false;
+useWallDistZ              true;
 scaleVelocityWithHeight   false;
 
 

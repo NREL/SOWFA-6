@@ -54,7 +54,11 @@ maxDeltaT       25;
 
 functions
 {
+    #includeFunc Q
+    #includeFunc vorticity
+    #include "sampling/fieldAverages"
     #include "sampling/slicesTerrain"
+    #include "sampling/slicesBump"
 }
 
 

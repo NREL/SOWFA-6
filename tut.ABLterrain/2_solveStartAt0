@@ -18,6 +18,10 @@ echo "using" $cores "core(s)"
 # ******************************************** USER INPUT ******************************************** #
 OpenFOAM-6-gcc-dev 	        # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
 startTime=0                     # Start time (cp script for restarted runs)
+startTimeAvg=200                # Start time for computing averages
+                                # The writeInterval should be a multiple of startTimeAvg
+# h=40                            # 100,40.  For bump cases.
+# cp system/sampling/slicesBump.h$h                      system/sampling/slicesBump
 stabState=neutral               # neutral, stable, unstable
 solver=superDeliciousVanilla
 initializer=none                # setFieldsABL, none
@@ -30,6 +34,13 @@ if [ ! -f foam1preprocess.log ];                                        then ech
 if [ ! -f system/controlDict.$solver.startAt$startTime ];               then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
 if [ $initializer = setFieldsABL ] && [ ! -f system/setFieldsABLDict ]; then echo "Job killed (4)."; scancel $SLURM_JOBID; fi
 if [ ! -f setUp ];                                                      then echo "Job killed (5)."; scancel $SLURM_JOBID; fi
+if [ $startTimeAvg -le $startTime ];                                    then echo "Job killed (6)."; scancel $SLURM_JOBID; fi
+
+endTime=$(foamDictionary -entry "endTime" -value system/controlDict.$solver.startAt$startTime)
+writeInterval=$(foamDictionary -entry "writeInterval" -value system/controlDict.$solver.startAt$startTime)
+if [ $startTimeAvg -ge $endTime ];                        then echo "Job killed (7)"; scancel $SLURM_JOBID; fi
+if [ $writeInterval -gt $startTimeAvg ];                  then echo "Job killed (8)"; scancel $SLURM_JOBID; fi 
+if [ $(echo "$startTimeAvg%$writeInterval" | bc) -ne 0 ]; then echo "Job killed (9)"; scancel $SLURM_JOBID; fi
 # **************************************************************************************************** #
 
 # ************************************ COPYING APPROPRIATE FILES ************************************* #
@@ -75,18 +86,29 @@ elif [ $bc = inflowOutflow ]; then
     srun -n $cores changeDictionary -dict system/changeDictionaryDict.inflowOutflow.$inflowDir -time $startTime -enableFunctionEntries -parallel > log.2.changeDictionary.inflowOutflow.$inflowDir 2>&1
 fi 
 
-# if convective, change the bottom BC too
+# if non neutral, change the bottom BC too
 if [ $stabState = unstable ] || [ $stabState = stable ]; then
-   #srun -n $cores changeDictionary -dic system/changeDictionary.updateBC.lower -time $startTime -enableFunctionEntries -parallel > log.2.changeDictionary.lower 2>&1
+   # srun -n $cores changeDictionary -dic system/changeDictionary.updateBC.lower.$stabState -time $startTime -enableFunctionEntries -parallel > log.2.changeDictionary.lower 2>&1
+   echo "Not implemented yet"
 fi
 
-# Run the solver
+# Split run to get to developed-flow stage
+foamDictionary -entry "fieldAverages.enabled" -set "false" system/sampling/fieldAverages
+foamDictionary -entry "endTime" -set $startTimeAvg -disableFunctionEntries system/controlDict
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$startTime 2>&1
+
+# Split run to save averages
+foamDictionary -entry "fieldAverages.timeStart" -set $startTimeAvg system/sampling/fieldAverages
+foamDictionary -entry "fieldAverages.enabled" -set "true" system/sampling/fieldAverages
+foamDictionary -entry "startTime" -set $startTimeAvg -disableFunctionEntries system/controlDict
+foamDictionary -entry "endTime" -set $endTime -disableFunctionEntries system/controlDict 
+srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$startTimeAvg 2>&1
 
 # Get some quantities from the logfile
 grep -e "maximum"  -e "^Time =" log.2.$solver.startAt$startTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $2}' > log.maxlocalerror
-grep -e "total - flux"  -e "^Time =" log.2.$solver.startAt$startTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $4}'  > log.totalboundaryflux
-
+grep -e "total - flux"  -e "^Time =" log.2.$solver.startAt$startTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $4}' > log.totalboundaryflux
+grep -e "maximum"  -e "^Time =" log.2.$solver.startAt$startTimeAvg | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $2}' >> log.maxlocalerror
+grep -e "total - flux"  -e "^Time =" log.2.$solver.startAt$startTimeAvg | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $4}' >> log.totalboundaryflux
 
 echo "Ending OpenFOAM job at: " $(date)
 
