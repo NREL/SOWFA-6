@@ -27,7 +27,7 @@ wallModelType=planarAverage     # planarAverage, local
 
 # **************************************** PERFORM SOME CHECKS *************************************** #
 if [ ! -f system/controlDict.$solver.startAt$startTime ];                              then echo "Job killed (1)."; scancel $SLURM_JOBID; fi
-if [ nLocalRefs -gt 0 ] && [ ! -f system/topoSetDict.$refLoc.$nLocalRefs ];            then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
+if [ $nLocalRefs -gt 0 ] && [ ! -f system/topoSetDict.$refLoc.$nLocalRefs ];            then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
 if [ ! -f $precursorDir/setUp ];                                                       then echo "Job killed (3)."; scancel $SLURM_JOBID; fi
 if [ ! -d $precursorDir/postProcessing/boundaryData ];                                 then echo "Job killed (4)."; scancel $SLURM_JOBID; fi
 if ! { [ -d $precursorDir/processor0/$starTime ] || [ -d $precursorDir/$starTime ]; }; then echo "Job killed (5)."; scancel $SLURM_JOBID; fi  
@@ -86,7 +86,7 @@ rm -rf constant/boundaryData
 # If the precursor hasn't been reconstructed yet, do it now
 if [ ! -d $precursorDir/$startTime ]; then
    cd $precursorDir
-   reconstructPar -time $startTime > log.1.reconstructPar.precursor 2>&1
+   reconstructPar -time $startTime > log.4.reconstructPar.precursor 2>&1
    cd $SLURM_SUBMIT_DIR
 fi
 
@@ -116,7 +116,7 @@ refineMeshGlobal $nGlobalRefs
 
 # The mesh got globally refined, but the solution file did not, so the boundary fields may not have the correct number of entries.
 # Use the changeDictionary utility to overwrite the spatially varying boundary data to a uniform single value.
-if [ nGlobalRefs > 0 ]; then
+if [ $nGlobalRefs > 0 ]; then
    srun -n $cores changeDictionary -dict system/changeDictionaryDict.updateBCs.$inflowDir -time $startTime -enableFunctionEntries -parallel > log.1.changeDictionary.2.updateBCs.$inflowDir 2>&1
 fi
 

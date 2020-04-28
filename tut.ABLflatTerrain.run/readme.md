@@ -10,3 +10,6 @@
 
 - Incorporate Eliot's check whether or not run was successful
 
+# bug
+
+- changedictionary doesn't seem to be working. The blockmesh dict needs to have patch as opposed to cyclic?
