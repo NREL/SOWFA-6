@@ -386,7 +386,9 @@ void horizontalAxisWindTurbinesALMOpenFAST::readInput()
         nacelleCd.append(scalar(readScalar(turbineArrayProperties.subDict(turbineName[i]).lookup("nacelleCd"))));
         nacelleEquivalentRadius.append(Foam::sqrt(nacelleFrontalArea[i]/Foam::constant::mathematical::pi));
 
-        tipRootLossCorrType.append(word(turbineArrayProperties.subDict(turbineName[i]).lookup("tipRootLossCorrType")));
+        tipRootLossCorrType.append(word(turbineArrayProperties.subDict(turbineName[i]).subDict("tipRootLossCorr").lookup("tipRootLossCorrType")))
+        
+        tipRootLossCorrField.append(word(turbineArrayProperties.subDict(turbineName[i]).subDict("tipRootLossCorr").lookup("tipRootLossCorrField")))
 
         velocityDragCorrType.append(word(turbineArrayProperties.subDict(turbineName[i]).lookup("velocityDragCorrType")));
 
@@ -1751,6 +1753,12 @@ void horizontalAxisWindTurbinesALMOpenFAST::getForces()
                m++;
            }
        }
+       
+       // Apply a tip/root loss correction to the blade forces.
+       if ((tipRootLossCorrType != 'none') && (tipRootLossCorrField == "force'))
+       {
+           computeTipRootLossCorrectedForce(i);
+       }
 
        // Get tower force points.
        forAll(towerPointForce[i],j)
@@ -2094,6 +2102,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::sampleBladePointWindVectors()
         }
     }
 
+    
     // Perform a parallel gather of this local list to the master processor and
     // and then parallel scatter the list back out to all the processors.
     Pstream::gather(bladeWindVectorsLocal,sumOp<List<vector> >());
@@ -2119,10 +2128,115 @@ void horizontalAxisWindTurbinesALMOpenFAST::sampleBladePointWindVectors()
             }
         }
     }
-
+    
+    
+    // Apply a tip/root loss correction to the blade sampled velocities.
+    forAll(bladeWindVectorsCartesian, i)
+    {
+        Info << "bladeWindVectorsCartesian (before tip/root loss correction):" <<
+                 bladeWindVectorsCartesian[i] << endl;
+        if ((tipRootLossCorrType != 'none') && (tipRootLossCorrField == "velocity'))
+        {
+            computeTipRootLossCorrectedForce(i);
+        }
+        Info << "bladeWindVectorsCartesian (after tip/root loss correction):" <<
+                 bladeWindVectorsCartesian[i] << endl;
+    }
+    
+    
     /*
     Info << "bladeWindVectorsCartesian = " << bladeWindVectorsCartesian << endl;
     */
+}
+
+
+void horizontalAxisWindTurbinesALMOpenFAST::computeTipRootLossCorrectedVelocity(int turbineNumber)
+{
+    int i = turbineNumber;
+    forAll(bladeWindVectors[i], j)
+    {
+        // Get the current radius of the root and tip of the blade.  Because the
+        // force points start at root and tip (as opposed to element centers),
+        // we get the radii from the force points and not the velocity sampling
+        // points.
+        scalar rootRadius = bladePointRadius[i][j][0];
+        scalar tipRadius = bladePointRadius[i][j][numBladePoints[i]-1];
+            
+        forAll(bladeWindVectors[i][j], k)
+        {
+            // Transform the velocity vector to blade-local Cartesian coordinates.
+            vector vCart = bladeWindVectorsCartesian[i][j][k];
+            vector xP = bladeAlignedVectorsSample[i][j][k].x();
+            vector yP = bladeAlignedVectorsSample[i][j][k].y();
+            vector zP = bladeAlignedVectorsSample[i][j][k].z();
+            vector v = tranformGlobalCartToLocalCart(vCart,xP,yP,zP);
+                
+            // Compute the wind angle relative the the blade.
+            vector vRel = bladeWindVectors[i][j][k];
+            scalar windAng = Foam::atan2(vRel.x(),vRel.y())/degRad;
+                
+            // Compute the correction factor.
+            scalar F = 1.0;
+            if (tipRootLossCorrType[i] == "Glauert")
+            {
+                scalar g = 1.0;
+
+                scalar ftip  = (tipRadius - bladeSamplePointRadius[i][j][k])/(bladeSamplePointRadius[i][j][k] * sin(mag(windAng)*degRad));
+                scalar Ftip  = (2.0/(Foam::constant::mathematical::pi)) * acos(min(1.0, exp(-g * (NumBl[i] / 2.0) * ftip)));
+
+                scalar froot = (bladeSamplePointRadius[i][j][k] - rootRadius)/(bladeSamplePointRadius[i][j][k] * sin(mag(windAng)*degRad));
+                scalar Froot = (2.0/(Foam::constant::mathematical::pi)) * acos(min(1.0, exp(-g * (NumBl[i] / 2.0) * froot)));
+
+                F = Ftip * Froot;
+            }
+                
+            // Multiply only the axial velocity by the correction factor, and then rotate back
+            // global Cartesian coordinates.
+            v.x() *= F;
+            vCart = transformLocalCartToGlobalCart(v,xP,yP,zP);
+            bladeWindVectorsCartesian[i][j][k] = vCart;
+        }
+    }
+}
+
+
+void horizontalAxisWindTurbinesALMOpenFAST::computeTipRootLossCorrectedForce(int turbineNumber)
+{
+    int i = turbineNumber;
+    forAll(bladeWindVectors[i], j)
+    {
+        // Get the current radius of the root and tip of the blade.  Because the
+        // force points start at root and tip (as opposed to element centers),
+        // we get the radii from the force points and not the velocity sampling
+        // points.
+        scalar rootRadius = bladePointRadius[i][j][0];
+        scalar tipRadius = bladePointRadius[i][j][numBladePoints[i]-1];
+            
+        forAll(bladeWindVectors[i][j], k)
+        {
+            // Compute the wind angle relative the the blade.
+            vector vRel = bladeWindVectors[i][j][k];
+            scalar windAng = Foam::atan2(vRel.x(),vRel.y())/degRad;
+                
+            // Compute the correction factor.
+            scalar F = 1.0;
+            if (tipRootLossCorrType[i] == "Glauert")
+            {
+                scalar g = 1.0;
+
+                scalar ftip  = (tipRadius - bladePointRadius[i][j][k])/(bladePointRadius[i][j][k] * sin(mag(windAng)*degRad));
+                scalar Ftip  = (2.0/(Foam::constant::mathematical::pi)) * acos(min(1.0, exp(-g * (NumBl[i] / 2.0) * ftip)));
+
+                scalar froot = (bladePointRadius[i][j][k] - rootRadius)/(bladePointRadius[i][j][k] * sin(mag(windAng)*degRad));
+                scalar Froot = (2.0/(Foam::constant::mathematical::pi)) * acos(min(1.0, exp(-g * (NumBl[i] / 2.0) * froot)));
+
+                F = Ftip * Froot;
+            }
+                
+            // Multiply the force vector by the correction factor.
+            bladePointForce[i][j][k] *= F;
+        }
+    }
 }
 
 
@@ -3497,9 +3611,9 @@ vector horizontalAxisWindTurbinesALMOpenFAST::transformCylToCart(vector c)
 
 
 
-vector horizontalAxisWindTurbinesALMOpenFAST::transformGlobalCartToRotorLocalCyl(vector v, int turbineNumber)
+vector horizontalAxisWindTurbinesALMOpenFAST::transformGlobalCartToRotorLocalCart(vector v, int turbineNumber)
 {
-    // Transform a point from global Cartesian coordinates to rotor local cyclindrical coordinates.
+    // Transform a point from global Cartesian coordinates to rotor local Cartesian coordinates.
 
     // Get the vector relative to the rotor apex.
     vector pCartGlobal = v - rotorApex[turbineNumber];
@@ -3519,6 +3633,18 @@ vector horizontalAxisWindTurbinesALMOpenFAST::transformGlobalCartToRotorLocalCyl
 
     // Transform to the local Cartesian system.
     vector pCartLocal = transformGlobalCartToLocalCart(pCartGlobal,xP,yP,zP);
+
+    return pCartLocal;
+}
+
+
+
+vector horizontalAxisWindTurbinesALMOpenFAST::transformGlobalCartToRotorLocalCyl(vector v, int turbineNumber)
+{
+    // Transform a point from global Cartesian coordinates to rotor local cyclindrical coordinates.
+    
+    // Transform from global Cartesian to rotor local Cartesian.
+    vector pCartLocal = tranformGlobalCartToRotorLocalCart(v,turbineNumber);
 
     // Transform to the local cylindrical system.
     vector pCylLocal = transformCartToCyl(pCartLocal);
