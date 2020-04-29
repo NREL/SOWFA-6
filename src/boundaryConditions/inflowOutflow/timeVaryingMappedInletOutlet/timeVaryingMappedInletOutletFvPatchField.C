@@ -759,6 +759,8 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::write
 
     this->writeEntryIfDifferent(os, "setAverage", Switch(false), setAverage_);
 
+    this->writeEntryIfDifferent(os, "fixesValue", Switch(false), fixesValue_);
+
     this->writeEntryIfDifferent(os, "perturb", scalar(1e-5), perturb_);
 
     this->writeEntryIfDifferent
