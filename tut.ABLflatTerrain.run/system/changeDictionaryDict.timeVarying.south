@@ -27,46 +27,35 @@ dictionaryReplacement
     // - all fvPatchFields originating from meshing
     // - all fvPatchFields originating from mesh-redistribution
 
+
     boundary
     {
         north
         {
-            type            cyclic;
+            type            patch;
         }
         south
         {
-            type            cyclic;
-        }
-        west
-        {
-            type            cyclic;
-        }
-        east
-        {
-            type            cyclic;
+            type            patch;
         }
     }
-
 
     T
     {
         boundaryField
         {
-            west
-            {
-                type            cyclic;
-            }
-            east
-            {
-                type            cyclic;
-            }
             south
             {
-                type            cyclic;
+                type            timeVaryingMappedFixedValue;
+                setAverage      0;
+                peturb          1e-05;
+                offset          0;
+                value           uniform 300;
             }
             north
             {
-                type            cyclic;
+                type            zeroGradient;
+                value           uniform 300;
             }
         }
     }
@@ -74,109 +63,70 @@ dictionaryReplacement
     {
         boundaryField
         {
-            west
-            {
-                type            cyclic;
-            }
-            east
-            {
-                type            cyclic;
-            }
             south
             {
-                type            cyclic;
+                type            timeVaryingMappedFixedValue;
+                setAverage      0;
+                peturb          1e-05;
+                offset          (0 0 0);
+                value           uniform (0 0 0);
             }
             north
-            {
-                type            cyclic;
+            {   
+                type            inletOutlet;
+                inletValue      uniform (0 0 0);
+                value           uniform (0 0 0);
             }
-       }
+        }
     }
     k
     {
         boundaryField
         {
-            west
-            {
-                type            cyclic;
-            }
-            east
-            {
-                type            cyclic;
-            }
             south
             {
-                type            cyclic;
+                type            timeVaryingMappedFixedValue;
+                setAverage      0;
+                peturb          1e-05;
+                offset          0;
+                value           uniform 0.1;
             }
             north
             {
-                type            cyclic;
+                type            zeroGradient;
+                value           uniform 0.1;
             }
-       }
+        }
     }
     kappat
     {
         boundaryField
         {
-            west
-            {
-                type            cyclic;
-            }
-            east
-            {
-                type            cyclic;
-            }
             south
             {
-                type            cyclic;
+                type            zeroGradient;
+                value           uniform 0.0;
             }
             north
             {
-                type            cyclic;
+                type            zeroGradient;
+                value           uniform 0.0;
             }
-       }
-    }
-    nuSgs
-    {
-        boundaryField
-        {
-            west
-            {
-                type            cyclic;
-            }
-            east
-            {
-                type            cyclic;
-            }
-            south
-            {
-                type            cyclic;
-            }
-            north
-            {
-                type            cyclic;
-            }
-       }
+        }
     }
     p_rgh
     {
         boundaryField
         {
-            west
-            {
-                type            cyclic;
-            }
-            east
-            {
-                type            cyclic;
-            }
             south
             {
-                type            cyclic;
+                type            fixedFluxPressure;
+                value           uniform 0.0;
             }
             north
             {
-                type            cyclic;
+                type            zeroGradient;
+                value           uniform 0.0;
             }
             lower
             {
@@ -194,21 +144,15 @@ dictionaryReplacement
     {
         boundaryField
         {
-            west
-            {
-                type            cyclic;
-            }
-            east
-            {
-                type            cyclic;
-            }
             south
             {
-                type            cyclic;
+                type            fixedValue;
+                value           uniform (0 0 0);
             }
             north
             {
-                type            cyclic;
+                type            fixedValue;
+                value           uniform (0 0 0);
             }
             lower
             {
@@ -226,21 +170,15 @@ dictionaryReplacement
     {
         boundaryField
         {
-            west
-            {
-                type            cyclic;
-            }
-            east
-            {
-                type            cyclic;
-            }
             south
             {
-                type            cyclic;
+                type            fixedValue;
+                value           uniform (0 0 0 0 0 0);
             }
             north
             {
-                type            cyclic;
+                type            fixedValue;
+                value           uniform (0 0 0 0 0 0);
             }
             lower
             {

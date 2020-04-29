@@ -27,24 +27,25 @@ dictionaryReplacement
     // - all fvPatchFields originating from meshing
     // - all fvPatchFields originating from mesh-redistribution
 
-
     boundary
     {
-        north
+        west
         {
             type            patch;
         }
-        south
+        east
         {
             type            patch;
         }
     }
 
+
+
     T
     {
         boundaryField
         {
-            south
+            east
             {
                 type            timeVaryingMappedFixedValue;
                 setAverage      0;
@@ -52,7 +53,7 @@ dictionaryReplacement
                 offset          0;
                 value           uniform 300;
             }
-            north
+            west
             {
                 type            zeroGradient;
                 value           uniform 300;
@@ -63,7 +64,7 @@ dictionaryReplacement
     {
         boundaryField
         {
-            south
+            east
             {
                 type            timeVaryingMappedFixedValue;
                 setAverage      0;
@@ -71,7 +72,7 @@ dictionaryReplacement
                 offset          (0 0 0);
                 value           uniform (0 0 0);
             }
-            north
+            west
             {   
                 type            inletOutlet;
                 inletValue      uniform (0 0 0);
@@ -83,7 +84,7 @@ dictionaryReplacement
     {
         boundaryField
         {
-            south
+            east
             {
                 type            timeVaryingMappedFixedValue;
                 setAverage      0;
@@ -91,7 +92,7 @@ dictionaryReplacement
                 offset          0;
                 value           uniform 0.1;
             }
-            north
+            west
             {
                 type            zeroGradient;
                 value           uniform 0.1;
@@ -102,28 +103,12 @@ dictionaryReplacement
     {
         boundaryField
         {
-            south
+            east
             {
                 type            zeroGradient;
                 value           uniform 0.0;
             }
-            north
-            {
-                type            zeroGradient;
-                value           uniform 0.0;
-            }
-        }
-    }
-    nuSgs
-    {
-        boundaryField
-        {
-            south
-            {
-                type            zeroGradient;
-                value           uniform 0.0;
-            }
-            north
+            west
             {
                 type            zeroGradient;
                 value           uniform 0.0;
@@ -134,12 +119,12 @@ dictionaryReplacement
     {
         boundaryField
         {
-            south
+            east
             {
                 type            fixedFluxPressure;
                 value           uniform 0.0;
             }
-            north
+            west
             {
                 type            zeroGradient;
                 value           uniform 0.0;
@@ -160,12 +145,12 @@ dictionaryReplacement
     {
         boundaryField
         {
-            south
+            east
             {
                 type            fixedValue;
                 value           uniform (0 0 0);
             }
-            north
+            west
             {
                 type            fixedValue;
                 value           uniform (0 0 0);
@@ -186,12 +171,12 @@ dictionaryReplacement
     {
         boundaryField
         {
-            south
+            east
             {
                 type            fixedValue;
                 value           uniform (0 0 0 0 0 0);
             }
-            north
+            west
             {
                 type            fixedValue;
                 value           uniform (0 0 0 0 0 0);

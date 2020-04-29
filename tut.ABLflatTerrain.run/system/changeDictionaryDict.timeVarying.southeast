@@ -27,8 +27,17 @@ dictionaryReplacement
     // - all fvPatchFields originating from meshing
     // - all fvPatchFields originating from mesh-redistribution
 
+
     boundary
     {
+        north
+        {
+            type            patch;
+        }
+        south
+        {
+            type            patch;
+        }
         west
         {
             type            patch;
@@ -40,11 +49,23 @@ dictionaryReplacement
     }
 
 
-
     T
     {
         boundaryField
         {
+            south
+            {
+                type            timeVaryingMappedFixedValue;
+                setAverage      0;
+                peturb          1e-05;
+                offset          0;
+                value           uniform 300;
+            }
+            north
+            {
+                type            zeroGradient;
+                value           uniform 300;
+            }
             east
             {
                 type            timeVaryingMappedFixedValue;
@@ -64,6 +85,20 @@ dictionaryReplacement
     {
         boundaryField
         {
+            south
+            {
+                type            timeVaryingMappedFixedValue;
+                setAverage      0;
+                peturb          1e-05;
+                offset          (0 0 0);
+                value           uniform (0 0 0);
+            }
+            north
+            {   
+                type            inletOutlet;
+                inletValue      uniform (0 0 0);
+                value           uniform (0 0 0);
+            }
             east
             {
                 type            timeVaryingMappedFixedValue;
@@ -84,6 +119,19 @@ dictionaryReplacement
     {
         boundaryField
         {
+            south
+            {
+                type            timeVaryingMappedFixedValue;
+                setAverage      0;
+                peturb          1e-05;
+                offset          0;
+                value           uniform 0.1;
+            }
+            north
+            {
+                type            zeroGradient;
+                value           uniform 0.1;
+            }
             east
             {
                 type            timeVaryingMappedFixedValue;
@@ -103,22 +151,16 @@ dictionaryReplacement
     {
         boundaryField
         {
-            east
+            south
             {
                 type            zeroGradient;
                 value           uniform 0.0;
             }
-            west
+            north
             {
                 type            zeroGradient;
                 value           uniform 0.0;
             }
-        }
-    }
-    nuSgs
-    {
-        boundaryField
-        {
             east
             {
                 type            zeroGradient;
@@ -135,6 +177,16 @@ dictionaryReplacement
     {
         boundaryField
         {
+            south
+            {
+                type            fixedFluxPressure;
+                value           uniform 0.0;
+            }
+            north
+            {
+                type            zeroGradient;
+                value           uniform 0.0;
+            }
             east
             {
                 type            fixedFluxPressure;
@@ -161,6 +213,16 @@ dictionaryReplacement
     {
         boundaryField
         {
+            south
+            {
+                type            fixedValue;
+                value           uniform (0 0 0);
+            }
+            north
+            {
+                type            fixedValue;
+                value           uniform (0 0 0);
+            }
             east
             {
                 type            fixedValue;
@@ -187,6 +249,16 @@ dictionaryReplacement
     {
         boundaryField
         {
+            south
+            {
+                type            fixedValue;
+                value           uniform (0 0 0 0 0 0);
+            }
+            north
+            {
+                type            fixedValue;
+                value           uniform (0 0 0 0 0 0);
+            }
             east
             {
                 type            fixedValue;

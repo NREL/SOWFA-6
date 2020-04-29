@@ -16,10 +16,7 @@ FoamFile
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-
 #include "../setUp";
-
-
 
 dictionaryReplacement
 {
@@ -40,7 +37,16 @@ dictionaryReplacement
         {
             type            patch;
         }
+        west
+        {
+            type            patch;
+        }
+        east
+        {
+            type            patch;
+        }
     }
+
 
     T
     {
@@ -55,6 +61,19 @@ dictionaryReplacement
                 value           uniform 300;
             }
             south
+            {
+                type            zeroGradient;
+                value           uniform 300;
+            }
+            west
+            {
+                type            timeVaryingMappedFixedValue;
+                setAverage      0;
+                peturb          1e-05;
+                offset          0;
+                value           uniform 300;
+            }
+            east
             {
                 type            zeroGradient;
                 value           uniform 300;
@@ -79,6 +98,20 @@ dictionaryReplacement
                 inletValue      uniform (0 0 0);
                 value           uniform (0 0 0);
             }
+            west
+            {
+                type            timeVaryingMappedFixedValue;
+                setAverage      0;
+                peturb          1e-05;
+                offset          (0 0 0);
+                value           uniform (0 0 0);
+            }
+            east
+            {   
+                type            inletOutlet;
+                inletValue      uniform (0 0 0);
+                value           uniform (0 0 0);
+            }
         }
     }
     k
@@ -94,6 +127,19 @@ dictionaryReplacement
                 value           uniform 0.1;
             }
             south
+            {
+                type            zeroGradient;
+                value           uniform 0.1;
+            }
+            west
+            {
+                type            timeVaryingMappedFixedValue;
+                setAverage      0;
+                peturb          1e-05;
+                offset          0;
+                value           uniform 0.1;
+            }
+            east
             {
                 type            zeroGradient;
                 value           uniform 0.1;
@@ -114,18 +160,12 @@ dictionaryReplacement
                 type            zeroGradient;
                 value           uniform 0.0;
             }
-        }
-    }
-    nuSgs
-    {
-        boundaryField
-        {
-            north
+            west
             {
                 type            zeroGradient;
                 value           uniform 0.0;
             }
-            south
+            east
             {
                 type            zeroGradient;
                 value           uniform 0.0;
@@ -142,6 +182,16 @@ dictionaryReplacement
                 value           uniform 0.0;
             }
             south
+            {
+                type            zeroGradient;
+                value           uniform 0.0;
+            }
+            west
+            {
+                type            fixedFluxPressure;
+                value           uniform 0.0;
+            }
+            east
             {
                 type            zeroGradient;
                 value           uniform 0.0;
@@ -172,6 +222,16 @@ dictionaryReplacement
                 type            fixedValue;
                 value           uniform (0 0 0);
             }
+            west
+            {
+                type            fixedValue;
+                value           uniform (0 0 0);
+            }
+            east
+            {
+                type            fixedValue;
+                value           uniform (0 0 0);
+            }
             lower
             {
                 type            fixedValue;
@@ -194,6 +254,16 @@ dictionaryReplacement
                 value           uniform (0 0 0 0 0 0);
             }
             south
+            {
+                type            fixedValue;
+                value           uniform (0 0 0 0 0 0);
+            }
+            west
+            {
+                type            fixedValue;
+                value           uniform (0 0 0 0 0 0);
+            }
+            east
             {
                 type            fixedValue;
                 value           uniform (0 0 0 0 0 0);

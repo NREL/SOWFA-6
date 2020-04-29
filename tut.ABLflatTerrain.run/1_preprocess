@@ -103,7 +103,7 @@ cp -rf $precursorDir/system/blockMeshDict system
 ln -s $precursorDir/postProcessing/boundaryData constant/boundaryData
 
 # Change the boundary conditions from cyclic to boundaryData based on inflowDir
-changeDictionary -dict system/changeDictionaryDict.updateBCs.$inflowDir -time $startTime -enableFunctionEntries > log.1.changeDictionary.1.updateBCs.$inflowDir 2>&1
+changeDictionary -dict system/changeDictionaryDict.timeVarying.$inflowDir -time $startTime -enableFunctionEntries -subDict dictionaryReplacement > log.1.changeDictionary.1.$inflowDir 2>&1
 
 # Do serial local refinement
 refineMeshLocal $nLocalRefs
@@ -116,8 +116,8 @@ refineMeshGlobal $nGlobalRefs
 
 # The mesh got globally refined, but the solution file did not, so the boundary fields may not have the correct number of entries.
 # Use the changeDictionary utility to overwrite the spatially varying boundary data to a uniform single value.
-if [ $nGlobalRefs > 0 ]; then
-   srun -n $cores changeDictionary -dict system/changeDictionaryDict.updateBCs.$inflowDir -time $startTime -enableFunctionEntries -parallel > log.1.changeDictionary.2.updateBCs.$inflowDir 2>&1
+if [ $nGlobalRefs -gt 0 ]; then
+   srun -n $cores changeDictionary -dict system/changeDictionaryDict.timeVarying.$inflowDir -time $startTime -enableFunctionEntries -subDict dictionaryReplacement -parallel > log.1.changeDictionary.2.$inflowDir 2>&1
 fi
 
 # Renumber the mesh for better matrix solver performance.

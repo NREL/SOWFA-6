@@ -114,22 +114,6 @@ dictionaryReplacement
             }
         }
     }
-    nuSgs
-    {
-        boundaryField
-        {
-            west
-            {
-                type            zeroGradient;
-                value           uniform 0.0;
-            }
-            east
-            {
-                type            zeroGradient;
-                value           uniform 0.0;
-            }
-        }
-    }
     p_rgh
     {
         boundaryField

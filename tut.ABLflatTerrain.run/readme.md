@@ -8,6 +8,7 @@
 
 # To-do
 
+- Change `changeDictionrary` calls to `foamDictionary`. `changeDictionary` is deprecated. See use in post #18 of https://www.cfd-online.com/Forums/openfoam-solving/114435-restarting-simulations-openfoam-updated-boundary-conditions.html
 - Incorporate Eliot's check whether or not run was successful
 
 # bug
