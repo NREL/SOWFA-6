@@ -756,8 +756,8 @@ private:
         scalar getPointOnRotorSurface(int turbineNumber, scalar r, scalar theta);
     
         //- Tip/root loss correction functions.
-        scalar computeTipRootLossCorrectedVelocity(int turbineNumber);
-        scalar computeTipRootLossCorrectedForce(int turbineNumber);
+        void computeTipRootLossCorrectedVelocity(int turbineNumber);
+        void computeTipRootLossCorrectedForce(int turbineNumber);
 
         //- Rotates a point/vector about a rotation axis and rotation point by the specified
         //  angle in radians.
