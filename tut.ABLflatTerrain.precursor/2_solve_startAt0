@@ -17,6 +17,7 @@ echo "using" $cores "core(s)"
 # ******************************************** USER INPUT ******************************************** #
 OpenFOAM-6-gcc-dev              # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
 startTime=0                     # Start time
+timeBdData=5000                 # Time executed further after endTime. Also saves averages
 stabState=neutral               # neutral, stable, unstable
 solver=superDeliciousVanilla
 initializer=setFieldsABL
@@ -28,10 +29,27 @@ if [ ! -f system/controlDict.$solver.startAt$startTime ];               then ech
 if [ $initializer = setFieldsABL ] && [ ! -f system/setFieldsABLDict ]; then echo "Job killed (3)."; scancel $SLURM_JOBID; fi
 if [ ! -f setUp ];                                                      then echo "Job killed (4)."; scancel $SLURM_JOBID; fi
 if [ $(foamDictionary -entry "nCores" -value setUp) -ne $cores ];       then echo "Job killed (5)."; scancel $SLURM_JOBID; fi
+
+endTime=$(foamDictionary -entry "endTime" -value system/controlDict.$solver.startAt$startTime)
+writeInterval=$(foamDictionary -entry "writeInterval" -value system/controlDict.$solver.startAt$startTime)
+if [ $(echo "$endTime%$writeInterval" | bc) -ne 0 ]; then echo "Job killed (6)"; scancel $SLURM_JOBID; fi
 # **************************************************************************************************** #
 
 # ************************************ COPYING APPROPRIATE FILES ************************************* #
 cp system/controlDict.$solver.startAt$startTime        system/controlDict
+
+case $(foamDictionary -entry "windDir" -value setUp) in
+  0|360)                    inflowDir=north;;
+  [1-9]|[1-8][0-9])         inflowDir=northeast;;
+  90)                       inflowDir=east;;
+  9[1-9]|1[0-7][0-9])       inflowDir=southeast;;
+  180)                      inflowDir=south;;
+  1[8-9][0-9]|2[0-6][0-9])  inflowDir=southwest;;
+  270)                      inflowDir=west;;
+  2[7-9][0-9]|3[0-5][0-9])  inflowDir=northwest;;
+  *)                        echo "Job killed (5)"; scancel $SLURM_JOBID;;
+esac
+cp system/sampling/boundaryData.$inflowDir   system/sampling/boundaryData
 # **************************************************************************************************** #
 
 # Run decomposePar if domain not yet decomposed
@@ -40,12 +58,34 @@ if [ ! -d "processor0" ]; then
 fi
 
 # Run the flow field initializer
-if [ ! -f log.2.$initializer ];  then
+if [ $initializer = setFieldsABL ] && [ ! -f log.2.$initializer ];  then
    srun -n $cores --cpu_bind=cores $initializer -parallel > log.2.$initializer 2>&1
 fi
 
-# Run the solver
+# Split run to get to quasi-steady stage
+foamDictionary -entry "fieldAverages.enabled" -set "false" system/sampling/fieldAverages
+foamDictionary -entry "boundaryData.enabled" -set "false" system/sampling/boundaryData
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$startTime 2>&1
+
+# Split run to save boundaryData and averages
+foamDictionary -entry "fieldAverages.timeStart" -set $endTime system/sampling/fieldAverages
+foamDictionary -entry "boundaryData.enabled" -set "true" system/sampling/boundaryData
+foamDictionary -entry "startTime" -set $endTime -disableFunctionEntries system/controlDict
+foamDictionary -entry "endTime" -set $(($endTime+$timeBdData)) -disableFunctionEntries system/controlDict
+srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.saveBdData.startAt$endTime 2>&1
+
+# Get some quantities from the logfile
+grep -e "maximum"  -e "^Time =" log.2.$solver.startAt$startTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $2}' > log.maxlocalerror
+grep -e "maximum"  -e "^Time =" log.2.$solver.saveBdData.startAt$endTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $2}' >> log.maxlocalerror
+grep -e "total - flux"  -e "^Time =" log.2.$solver.startAt$startTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $4}' > log.totalboundaryflux
+grep -e "total - flux"  -e "^Time =" log.2.$solver.saveBdData.startAt$endTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $4}' >> log.totalboundaryflux
+
+# Make the precursor data ready for future mapping
+if [ $endTime -eq $(foamListTimes -processor -latestTime | tail -1) ]; then
+    reconstructPar -latestTime > log.3.reconstructPar 2>&1
+else
+    echo "Case not reconstructed. Check endTime and latestTime."
+fi
 
 echo "Ending OpenFOAM job at: " $(date)
 
