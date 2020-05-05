@@ -42,6 +42,7 @@ scaleVelocityWithHeight   false;
 // Specify how to initialze the base velocity and temperature profile.
 //velocityInitType          "table";
 //velocityInitType          "log";
+//velocityInitType          "scaleGiven";
 velocityInitType          "geostrophic";
 //temperatureInitType       "table";
 temperatureInitType       "simple";

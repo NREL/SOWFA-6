@@ -201,6 +201,13 @@ List<List<scalar> > profileTable(setFieldsABLDict.lookup("profileTable"));
 bool updateInternalFields(setFieldsABLDict.lookupOrDefault<bool>("updateInternalFields",true));
 bool updateBoundaryFields(setFieldsABLDict.lookupOrDefault<bool>("updateBoundaryFields",true));
 
+// If velocity is only to be scaled, set wallDist and scaleVelocityWithHeight to true
+if ( velocityInitType == "scaleGiven" )
+{
+    useWallDistZ = true;
+    scaleVelocityWithHeight = true;
+}
+
 // Change the table profiles from scalar lists to scalar fields
 scalarField zProfile(profileTable.size(),0.0);
 scalarField UProfile(profileTable.size(),0.0);
@@ -316,8 +323,17 @@ if (updateInternalFields)
                 U[cellI].y() = velScalar*interpolateXY(z,zProfile,VProfile);
             }
         }
+        else if (velocityInitType == "scaleGiven")
+        {
+            Info << "Scaling the given velocity field. Considering `useWallDisk` and `scaleVelocityWithHeight` as `true`." << endl;
+            U[cellI].x() = velScalar*U[cellI].x();
+            U[cellI].y() = velScalar*U[cellI].y();
+        }
 
-        U[cellI] += UPrime;
+        if( velocityInitType != "scaleGiven")
+        {
+            U[cellI] += UPrime;
+        }
     }
 
     // Potential temperature.
