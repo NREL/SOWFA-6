@@ -22,7 +22,7 @@ FoamFile
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#include        "../15000/include/initialConditions"
+#include        "../setUp"
 
 // Extents of the domain.
 xMin                         0.0;
@@ -45,6 +45,7 @@ scaleVelocityWithHeight   false;
 //velocityInitType          "scaleGiven";
 velocityInitType          "geostrophic";
 //temperatureInitType       "table";
+//temperatureInitType      "none";
 temperatureInitType       "simple";
 
 // Maximum perturbation of streamwise/spanwise flow near surface.
@@ -219,6 +220,6 @@ profileTable
 updateInternalFields      true;
 
 // Update boundary field.
-updateBoundaryFields      true;
+updateBoundaryFields      false;
 
 // ************************************************************************* //
