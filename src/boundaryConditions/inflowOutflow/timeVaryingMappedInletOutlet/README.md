@@ -31,7 +31,11 @@
   reference values from constant/boundaryData. _This may have been avoided in the past by always
   specifying the value keyword._
 
-- `valueFraction` is calculated as 1 - pos0(phi), where pos0 is 1 if >= 0 and 0 otherwise.
+- Separate updateCoeffs into separate, self-explanatory `updateFixedValue()` and
+  `updateInletOutlet()` functions.
+
+- `valueFraction` is calculated as 1 - pos0(phi), where pos0 is 1 if >= 0 and 0 otherwise, instead
+  of 1 - pos(phi) (OpenFOAM-6 change).
 
 - `evaluate()` is now overridden to provide statistics about valueFraction.
 
@@ -40,16 +44,10 @@
   operator= and operator== should be consistent. 
 
 
-## Minor changes
+## Minor changes affecting usage
 
 - Added `format` keyword (either "ascii" or "binary") to allow input points and sample files to
   be in uncompressed/compressed ascii/binary format.
 - `AverageIOField` has been replaced in OpenFOAM-6 by `AverageField`, which is no longer derived 
   from the `regIOobject` class. The "FoamFile" header dictionary should therefore be omitted.
-
-## Other
-
 - Added optional keywords "dataDir", "points", and "sample" in OpenFOAM-6.
-- Separate updateCoeffs into separate, self-explanatory `updateFixedValue()` and
-  `updateInletOutlet()` functions.
-
