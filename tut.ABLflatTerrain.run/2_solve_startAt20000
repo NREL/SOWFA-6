@@ -10,6 +10,7 @@ cores=$SLURM_NTASKS
 
 echo "Working directory is" $SLURM_SUBMIT_DIR
 echo "Job name is" $SLURM_JOB_NAME
+echo "Submit time is" $(squeue -u $USER -o '%30j %20V' | grep -e $SLURM_JOB_NAME | awk '{print $2}')
 echo "Starting OpenFOAM job at: " $(date)
 echo "using" $cores "core(s)"
 
