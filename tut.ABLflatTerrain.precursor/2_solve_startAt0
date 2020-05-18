@@ -11,6 +11,7 @@ cores=$SLURM_NTASKS
 
 echo "Working directory is" $SLURM_SUBMIT_DIR
 echo "Job name is" $SLURM_JOB_NAME
+echo "Submit time is" $(squeue -u $USER -o '%30j %20V' | grep -e $SLURM_JOB_NAME | awk '{print $2}')
 echo "Starting OpenFOAM job at: " $(date)
 echo "using" $cores "core(s)"
 
@@ -37,19 +38,6 @@ if [ $(echo "$endTime%$writeInterval" | bc) -ne 0 ]; then echo "Job killed (6)";
 
 # ************************************ COPYING APPROPRIATE FILES ************************************* #
 cp system/controlDict.$solver.startAt$startTime        system/controlDict
-
-case $(foamDictionary -entry "windDir" -value setUp) in
-  0|360)                    inflowDir=north;;
-  [1-9]|[1-8][0-9])         inflowDir=northeast;;
-  90)                       inflowDir=east;;
-  9[1-9]|1[0-7][0-9])       inflowDir=southeast;;
-  180)                      inflowDir=south;;
-  1[8-9][0-9]|2[0-6][0-9])  inflowDir=southwest;;
-  270)                      inflowDir=west;;
-  2[7-9][0-9]|3[0-5][0-9])  inflowDir=northwest;;
-  *)                        echo "Job killed (5)"; scancel $SLURM_JOBID;;
-esac
-cp system/sampling/boundaryData.$inflowDir   system/sampling/boundaryData
 # **************************************************************************************************** #
 
 # Run decomposePar if domain not yet decomposed
@@ -71,7 +59,7 @@ srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$startT
 foamDictionary -entry "fieldAverages.timeStart" -set $endTime system/sampling/fieldAverages
 foamDictionary -entry "boundaryData.enabled" -set "true" system/sampling/boundaryData
 foamDictionary -entry "startTime" -set $endTime -disableFunctionEntries system/controlDict
-foamDictionary -entry "endTime" -set $(($endTime+$timeBdData)) -disableFunctionEntries system/controlDict
+foamDictionary -entry "endTime" -set $(echo $endTime+$timeBdData | bc) -disableFunctionEntries system/controlDict
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.saveBdData.startAt$endTime 2>&1
 
 # Get some quantities from the logfile
@@ -80,11 +68,14 @@ grep -e "maximum"  -e "^Time =" log.2.$solver.saveBdData.startAt$endTime | awk '
 grep -e "total - flux"  -e "^Time =" log.2.$solver.startAt$startTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $4}' > log.totalboundaryflux
 grep -e "total - flux"  -e "^Time =" log.2.$solver.saveBdData.startAt$endTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $4}' >> log.totalboundaryflux
 
-# Make the precursor data ready for future mapping
-if [ $endTime -eq $(foamListTimes -processor -latestTime | tail -1) ]; then
-    reconstructPar -latestTime > log.3.reconstructPar 2>&1
+# Make the precursor data ready for future mapping and adjust the initial time of boundaryData
+if [ -d processor0/$endTime ]; then
+    reconstructPar -time $endTime > log.3.reconstructPar 2>&1
+    for dir in north south east west; do
+        ln -sf $(ls postProcessing/boundaryData/$dir | head -1) postProcessing/boundaryData/$dir/$endTime
+    done
 else
-    echo "Case not reconstructed. Check endTime and latestTime."
+    echo "Case not reconstructed and first time of boundaryData not fixed. Check if endTime dir exists."
 fi
 
 echo "Ending OpenFOAM job at: " $(date)
