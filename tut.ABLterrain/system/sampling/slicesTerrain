@@ -86,6 +86,17 @@ slicesTerrain
             }
             interpolate true;
         }
+        yNormal.1000
+        {
+            type cuttingPlane;
+            planeType pointAndNormal;
+            pointAndNormalDict
+            {
+                basePoint (0 1000 0);
+                normalVector (0 1 0);
+            }
+            interpolate true;
+        }
         yNormal.5000
         {
             type cuttingPlane;
@@ -139,6 +150,17 @@ slicesTerrain
             {
                 basePoint (0 0 0);
                 normalVector (1 0 0);
+            }
+            interpolate true;
+        }
+        xNormal.1000
+        {
+            type cuttingPlane;
+            planeType pointAndNormal;
+            pointAndNormalDict
+            {
+                basePoint (0 0 0);
+                normalVector (1000 0 0);
             }
             interpolate true;
         }
