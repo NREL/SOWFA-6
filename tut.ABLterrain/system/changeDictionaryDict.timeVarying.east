@@ -56,7 +56,6 @@ dictionaryReplacement
             west
             {
                 type            zeroGradient;
-                value           uniform 300;
             }
         }
     }
@@ -95,7 +94,6 @@ dictionaryReplacement
             west
             {
                 type            zeroGradient;
-                value           uniform 0.1;
             }
         }
     }
@@ -106,28 +104,24 @@ dictionaryReplacement
             east
             {
                 type            zeroGradient;
-                value           uniform 0.0;
             }
             west
             {
                 type            zeroGradient;
-                value           uniform 0.0;
             }
         }
     }
-    nuSgs
+    nut
     {
         boundaryField
         {
             east
             {
                 type            zeroGradient;
-                value           uniform 0.0;
             }
             west
             {
                 type            zeroGradient;
-                value           uniform 0.0;
             }
         }
     }
@@ -143,7 +137,6 @@ dictionaryReplacement
             west
             {
                 type            zeroGradient;
-                value           uniform 0.0;
             }
             lower
             {

@@ -63,7 +63,6 @@ dictionaryReplacement
             south
             {
                 type            zeroGradient;
-                value           uniform 300;
             }
             east
             {
@@ -76,7 +75,6 @@ dictionaryReplacement
             west
             {
                 type            zeroGradient;
-                value           uniform 300;
             }
         }
     }
@@ -129,7 +127,6 @@ dictionaryReplacement
             south
             {
                 type            zeroGradient;
-                value           uniform 0.1;
             }
             east
             {
@@ -142,7 +139,6 @@ dictionaryReplacement
             west
             {
                 type            zeroGradient;
-                value           uniform 0.1;
             }
         }
     }
@@ -153,48 +149,40 @@ dictionaryReplacement
             north
             {
                 type            zeroGradient;
-                value           uniform 0.0;
             }
             south
             {
                 type            zeroGradient;
-                value           uniform 0.0;
             }
             east
             {
                 type            zeroGradient;
-                value           uniform 0.0;
             }
             west
             {
                 type            zeroGradient;
-                value           uniform 0.0;
             }
         }
     }
-    nuSgs
+    nut
     {
         boundaryField
         {
             north
             {
                 type            zeroGradient;
-                value           uniform 0.0;
             }
             south
             {
                 type            zeroGradient;
-                value           uniform 0.0;
             }
             east
             {
                 type            zeroGradient;
-                value           uniform 0.0;
             }
             west
             {
                 type            zeroGradient;
-                value           uniform 0.0;
             }
         }
     }
@@ -210,7 +198,6 @@ dictionaryReplacement
             south
             {
                 type            zeroGradient;
-                value           uniform 0.0;
             }
             east
             {
@@ -220,7 +207,6 @@ dictionaryReplacement
             west
             {
                 type            zeroGradient;
-                value           uniform 0.0;
             }
             lower
             {

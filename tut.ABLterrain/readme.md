@@ -1,21 +1,23 @@
 # Instructions and general case notes
 
 - First script requests more cores than `$nCores` for RAM workaround for `moveDynamicMesh` call. This is necessary if the `stl` file is large.
-- For restarted runs: copy script `2_solve_startAt0` into `2_solve_startAt<time>` and modify `startTime`; similarly for `controlDict`
-- Uniform-inflow cyclic and inflow-outflow boundary conditions are not realistic
-- `0.original/T` has custom strong inversion boundary conditions
+- For precursor-mapped runs, any `coded` boundary condition gets overwritten by `changeDictionary` call to set  timeVarying-type of BC
+- `0.original/T.<type>` has custom boundary conditions. Copy that as appropriate
 - Terrain `stl` file not included
-- The terrain vertical bounding box should be below `zMin`. Use `surfaceTransformPoints` to translate stl if needed. See `readme` file inside `constant/triSurface`
+- Old usage: The terrain vertical bounding box should be below `zMin`. Use `surfaceTransformPoints` to translate stl if needed. See `readme` file inside `constant/triSurface`
+- New terrain handling: use `~/utilities/shiftFlatBlendToz0.sh` to shift the terrain. The script works by calling `shiftFlatBlendToz0 terrainFile.stl -1000 0`, where the numbers are the $x$ and $y$ of the inlet plane, which we want to be flush at $z=0$
 - Final mesh is assumed to be in the last saved time step from the `moveDynamicMesh` execution
-- `setFieldsABLDict` contains `useWallDist` as `true` by defaul. Adjust the `temperatureInitType` as needed
+- `setFieldsABLDict` contains `useWallDist` as `true` by default. Adjust the `temperatureInitType` as needed
+- For the mesh to conform to the terrain, the boundaries cannot be cyclic
 
 # To-do
 
-- Add `map` to the initializer so that a solution is mapped from the precursor
+- if stable/unstable, be mindful of the qwall in the change dictionaries. 
+- remove the cyclic patches on decomposepardict if running non-cyclic
+- Make sure the restarted script will go through fine because of the time averaging `startTimeAvg`. Fix it.
 - Put the default BC as inflow/outflow and update second script (set fields ABL)
 - See if `$Rwall` and `$qwall` need to be included in the `changeDictionaryDict`s
 - Allow different wind directions
 - Allow different stability states
-- Finish making the `bc` variable general
 - Incorporate Eliot's check whether or not run was successful
 
