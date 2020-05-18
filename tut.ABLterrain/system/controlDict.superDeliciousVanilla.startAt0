@@ -58,7 +58,7 @@ functions
     #includeFunc vorticity
     #include "sampling/fieldAverages"
     #include "sampling/slicesTerrain"
-    #include "sampling/slicesBump"
+//  #include "sampling/slicesBump"
 }
 
 
