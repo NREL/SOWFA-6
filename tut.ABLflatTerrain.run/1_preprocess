@@ -1,0 +1,131 @@
+#!/bin/bash
+#SBATCH --job-name=setupTutFarm
+#SBATCH --output foam1setup.log
+#SBATCH --partition=debug
+#SBATCH --ntasks=1
+#SBATCH --time=1:00:00
+#SBATCH --account=mmc
+
+source $HOME/.bash_profile
+cores=$SLURM_NTASKS
+
+echo "Working directory is" $SLURM_SUBMIT_DIR
+echo "Job name is" $SLURM_JOB_NAME
+echo "Starting OpenFOAM job at: " $(date)
+echo "using" $cores "core(s)"
+
+# ******************************************** USER INPUT ******************************************** #
+OpenFOAM-6-gcc-dev              # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
+precursorDir=~/OpenFOAM/rthedin-6/run/SOWFA-setups/tut.ABLflatTerrain.precursor
+startTime=20000                 # Start time
+nLocalRefs=2                    # Number of local refinements (serial)
+nGlobalRefs=0                   # Number of global refinements (parallel) 
+solver=superDeliciousVanilla
+refLoc=floating                 # floating, ground. If ground, change wallModelType
+wallModelType=planarAverage     # planarAverage, local
+# **************************************************************************************************** #
+
+# **************************************** PERFORM SOME CHECKS *************************************** #
+if [ ! -f system/controlDict.$solver.startAt$startTime ];                              then echo "Job killed (1)."; scancel $SLURM_JOBID; fi
+if [ $nLocalRefs -gt 0 ] && [ ! -f system/topoSetDict.$refLoc.$nLocalRefs ];            then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
+if [ ! -f $precursorDir/setUp ];                                                       then echo "Job killed (3)."; scancel $SLURM_JOBID; fi
+if [ ! -d $precursorDir/postProcessing/boundaryData ];                                 then echo "Job killed (4)."; scancel $SLURM_JOBID; fi
+if ! { [ -d $precursorDir/processor0/$starTime ] || [ -d $precursorDir/$starTime ]; }; then echo "Job killed (5)."; scancel $SLURM_JOBID; fi  
+# **************************************************************************************************** #
+
+# ************************************ COPYING APPROPRIATE FILES ************************************* #
+cp system/controlDict.$solver.startAt$startTime        system/controlDict
+cp $precursorDir/setUp                                 setUp
+foamDictionary -entry "nCores" -set $cores setUp
+foamDictionary -entry "wallModelAverageType" -set $wallModelType setUp
+
+case $(foamDictionary -entry "windDir" -value setUp) in
+  0|360)                    inflowDir=north;;
+  [1-9]|[1-8][0-9])         inflowDir=northeast;;
+  90)                       inflowDir=east;;
+  9[1-9]|1[0-7][0-9])       inflowDir=southeast;;
+  180)                      inflowDir=south;;
+  1[8-9][0-9]|2[0-6][0-9])  inflowDir=southwest;;
+  270)                      inflowDir=west;;
+  2[7-9][0-9]|3[0-5][0-9])  inflowDir=northwest;;
+  *)                        echo "Job killed (6)"; scancel $SLURM_JOBID;;
+esac
+# **************************************************************************************************** #
+
+# *************************************** REFINEMENT FUNCTIONS *************************************** #
+refineMeshLocal()
+{
+   i=1
+   while [ $i -le $1 ]; do
+      # Select cells, refine them, and check the new mesh. refineHexMesh refines mesh and solution
+      topoSet -dict system/topoSetDict.$refLoc.$i -noFunctionObjects > log.1.toposet.$refLoc.$i 2>&1
+      refineHexMesh -region $refLoc -overwrite > log.1.refineHexMesh.$refLoc.$i 2>&1
+      checkMesh -noFunctionObjects > log.1.checkMesh.local.$i 2>&1
+      let i=i+1
+   done
+}
+
+refineMeshGlobal()
+{
+   i=1
+   while [ $i -le $1 ]
+   do
+      # Refine all cells and check the new mesh. refineMesh only refines mesh
+      srun -n $cores refineMesh -all -parallel -overwrite -noFunctionObjects > log.1.refineMesh.global.$i 2>&1
+      srun -n $cores checkMesh  -parallel -noFunctionObjects > log.1.checkMesh.global.$i 2>&1
+      let i=i+1
+   done
+}
+# **************************************************************************************************** #
+
+# Clean up case before start 
+rm -rf $startTime*
+rm -rf constant/polyMesh
+rm -rf constant/boundaryData
+
+# If the precursor hasn't been reconstructed yet, do it now
+if [ ! -d $precursorDir/$startTime ]; then
+   cd $precursorDir
+   reconstructPar -time $startTime > log.4.reconstructPar.precursor 2>&1
+   cd $SLURM_SUBMIT_DIR
+fi
+
+# Copy the startTime solution dir from precursor
+cp -rf $precursorDir/$startTime $startTime.fromPrec
+rm -rf $startTime.fromPrec/{cellDist,uniform}
+cp -rf $startTime.fromPrec $startTime
+
+# Copy the mesh from precursor
+cp -rf $precursorDir/constant/polyMesh constant
+cp -rf $precursorDir/system/blockMeshDict system
+
+# Make the link to the boundary data
+ln -s $precursorDir/postProcessing/boundaryData constant/boundaryData
+
+# Change the boundary conditions from cyclic to boundaryData based on inflowDir
+changeDictionary -dict system/changeDictionaryDict.timeVarying.$inflowDir -time $startTime -enableFunctionEntries -subDict dictionaryReplacement > log.1.changeDictionary.1.$inflowDir 2>&1
+
+# Do serial local refinement
+refineMeshLocal $nLocalRefs
+
+# Decompose the mesh and solution files
+decomposePar -cellDist -force > log.1.decomposePar 2>&1
+
+# Perform global refinements after decomposePar, avoiding load unbalance
+refineMeshGlobal $nGlobalRefs
+
+# The mesh got globally refined, but the solution file did not, so the boundary fields may not have the correct number of entries.
+# Use the changeDictionary utility to overwrite the spatially varying boundary data to a uniform single value.
+if [ $nGlobalRefs -gt 0 ]; then
+   srun -n $cores changeDictionary -dict system/changeDictionaryDict.timeVarying.$inflowDir -time $startTime -enableFunctionEntries -subDict dictionaryReplacement -parallel > log.1.changeDictionary.2.$inflowDir 2>&1
+fi
+
+# Renumber the mesh for better matrix solver performance.
+srun -n $cores renumberMesh -parallel -overwrite > log.1.renumberMesh 2>&1
+
+# Do a final check on the mesh.
+srun -n $cores checkMesh -parallel -allGeometry -allTopology > log.1.checkMesh.full 2>&1
+
+echo "Ending OpenFOAM job at: " $(date)
+
+# **************************************************************************************************** #

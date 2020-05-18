@@ -1,0 +1,211 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  6
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      changeDictionaryDict;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#include "../setUp";
+
+
+dictionaryReplacement
+{
+
+    // Specify
+    // - all fvPatchFields with potential non-uniform values
+    // - all fvPatchFields originating from meshing
+    // - all fvPatchFields originating from mesh-redistribution
+
+    boundary
+    {
+        west
+        {
+            type            patch;
+        }
+        east
+        {
+            type            patch;
+        }
+    }
+
+
+    T
+    {
+        boundaryField
+        {
+            west
+            {
+                 type            codedFixedValue;
+                 value           uniform 0;
+                 redirectType    strongInversion;
+                 code
+                 #{
+                     scalar TBottom = 300.0;
+                     scalar TTop = 305;
+                     scalar dTdz = 0.003;
+                     scalar dTdz_zi = 0.05;
+                     scalar ziBottom = 700;
+                     scalar ziTop = 800;
+                     scalar zMin = 0.0;
+                     const fvPatch& boundaryPatch = patch();
+                     const vectorField& Cf = boundaryPatch.Cf();
+                     scalarField& field = *this;
+                     forAll(Cf, faceI)
+                     {
+                         scalar z = Cf[faceI].z();
+                         if (z<ziBottom)
+                             field[faceI] = TBottom;
+                         else if (z<ziTop)
+                             field[faceI] = TBottom + dTdz_zi * (z-ziBottom-zMin);
+                         else
+                             field[faceI] = TTop + dTdz * (z-ziTop-zMin);
+                     }
+                 #};
+            }
+            east
+            {
+                type            zeroGradient;
+            }
+        }
+    }
+    U
+    {
+        boundaryField
+        {
+            west
+            {
+                type            fixedValue;
+                value           uniform ($windSpeed 0 0);
+            }
+            east
+            {   
+                type            inletOutlet;
+                inletValue      uniform (0 0 0);
+                value           uniform (0 0 0);
+            }
+        }
+    }
+    k
+    {
+        boundaryField
+        {
+            west
+            {
+                type            fixedValue;
+                value           uniform $k0;
+            }
+            east
+            {
+                type            zeroGradient;
+                value           uniform 0.1;
+            }
+        }
+    }
+    kappat
+    {
+        boundaryField
+        {
+            west
+            {
+                type            zeroGradient;
+            }
+            east
+            {
+                type            zeroGradient;
+            }
+        }
+    }
+    p_rgh
+    {
+        boundaryField
+        {
+            west
+            {
+                type            fixedFluxPressure;
+            }
+            east
+            {
+                type            zeroGradient;
+            }
+            lower
+            {
+                type            fixedFluxPressure;
+                value           uniform 0.0;
+            }
+            upper
+            {
+                type            fixedFluxPressure;
+                value           uniform 0.0;
+            }
+        }
+    }
+    qwall
+    {
+        boundaryField
+        {
+            west
+            {
+                type            fixedValue;
+                value           uniform (0 0 0);
+            }
+            east
+            {
+                type            fixedValue;
+                value           uniform (0 0 0);
+            }
+            lower
+            {
+                type            fixedValue;
+                value           uniform $qwall;
+            }
+            upper
+            {
+                type            fixedValue;
+                value           uniform (0 0 0);
+            }
+        }
+    }
+    Rwall
+    {
+        boundaryField
+        {
+            west
+            {
+                type            fixedValue;
+                value           uniform (0 0 0 0 0 0);
+            }
+            east
+            {
+                type            fixedValue;
+                value           uniform (0 0 0 0 0 0);
+            }
+            lower
+            {
+                type            SchumannGrotzbach;
+                kappa           $kappa;
+                z0              uniform $z0;
+                betaM           $betaM;
+                gammaM          $gammaM;
+                averageType     $wallModelAverageType;
+                value           uniform $Rwall;
+            }
+            upper
+            {
+                type            fixedValue;
+                value           uniform (0 0 0 0 0 0);
+            }
+        }
+    }
+}
+// ************************************************************************* //

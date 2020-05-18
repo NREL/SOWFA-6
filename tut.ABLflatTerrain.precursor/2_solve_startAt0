@@ -1,0 +1,52 @@
+#!/bin/bash
+#SBATCH --job-name=runTutPrec
+#SBATCH --output foam2solve_startAt0.log
+#SBATCH --ntasks=288         # Change on setUp as well
+#SBATCH --time=2-00
+#SBATCH --account=car
+#SBATCH --qos=high
+
+source $HOME/.bash_profile
+cores=$SLURM_NTASKS
+
+echo "Working directory is" $SLURM_SUBMIT_DIR
+echo "Job name is" $SLURM_JOB_NAME
+echo "Starting OpenFOAM job at: " $(date)
+echo "using" $cores "core(s)"
+
+# ******************************************** USER INPUT ******************************************** #
+OpenFOAM-6-gcc-dev              # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
+startTime=0                     # Start time
+stabState=neutral               # neutral, stable, unstable
+solver=superDeliciousVanilla
+initializer=setFieldsABL
+# **************************************************************************************************** #
+
+# **************************************** PERFORM SOME CHECKS *************************************** #
+if [ ! -f foam1preprocess.log ];                                        then echo "Job killed (1)."; scancel $SLURM_JOBID; fi
+if [ ! -f system/controlDict.$solver.startAt$startTime ];               then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
+if [ $initializer = setFieldsABL ] && [ ! -f system/setFieldsABLDict ]; then echo "Job killed (3)."; scancel $SLURM_JOBID; fi
+if [ ! -f setUp ];                                                      then echo "Job killed (4)."; scancel $SLURM_JOBID; fi
+if [ $(foamDictionary -entry "nCores" -value setUp) -ne $cores ];       then echo "Job killed (5)."; scancel $SLURM_JOBID; fi
+# **************************************************************************************************** #
+
+# ************************************ COPYING APPROPRIATE FILES ************************************* #
+cp system/controlDict.$solver.startAt$startTime        system/controlDict
+# **************************************************************************************************** #
+
+# Run decomposePar if domain not yet decomposed
+if [ ! -d "processor0" ]; then
+	decomposePar -cellDist -force > log.2.decomposePar 2>&1
+fi
+
+# Run the flow field initializer
+if [ ! -f log.2.$initializer ];  then
+   srun -n $cores --cpu_bind=cores $initializer -parallel > log.2.$initializer 2>&1
+fi
+
+# Run the solver
+srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$startTime 2>&1
+
+echo "Ending OpenFOAM job at: " $(date)
+
+# **************************************************************************************************** #
