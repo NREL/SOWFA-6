@@ -11,12 +11,14 @@ cores=$SLURM_NTASKS
 
 echo "Working directory is" $SLURM_SUBMIT_DIR
 echo "Job name is" $SLURM_JOB_NAME
+echo "Submit time is" $(squeue -u $USER -o '%30j %20V' | grep -e $SLURM_JOB_NAME | awk '{print $2}')
 echo "Starting OpenFOAM job at: " $(date)
 echo "using" $cores "core(s)"
 
 # ******************************************** USER INPUT ******************************************** #
 OpenFOAM-6-gcc-dev              # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
 startTime=0                     # Start time
+timeBdData=5000                 # Time executed further after endTime. Also saves averages
 stabState=neutral               # neutral, stable, unstable
 solver=superDeliciousVanilla
 initializer=setFieldsABL
@@ -28,6 +30,11 @@ if [ ! -f system/controlDict.$solver.startAt$startTime ];               then ech
 if [ $initializer = setFieldsABL ] && [ ! -f system/setFieldsABLDict ]; then echo "Job killed (3)."; scancel $SLURM_JOBID; fi
 if [ ! -f setUp ];                                                      then echo "Job killed (4)."; scancel $SLURM_JOBID; fi
 if [ $(foamDictionary -entry "nCores" -value setUp) -ne $cores ];       then echo "Job killed (5)."; scancel $SLURM_JOBID; fi
+if [ ! -f system/sampling/boundaryData ];                               then echo "Job killed (6)."; scancel $SLURM_JOBID; fi
+
+endTime=$(foamDictionary -entry "endTime" -value system/controlDict.$solver.startAt$startTime)
+writeInterval=$(foamDictionary -entry "writeInterval" -value system/controlDict.$solver.startAt$startTime)
+if [ $(echo "$endTime%$writeInterval" | bc) -ne 0 ]; then echo "Job killed (7)"; scancel $SLURM_JOBID; fi
 # **************************************************************************************************** #
 
 # ************************************ COPYING APPROPRIATE FILES ************************************* #
@@ -40,12 +47,37 @@ if [ ! -d "processor0" ]; then
 fi
 
 # Run the flow field initializer
-if [ ! -f log.2.$initializer ];  then
+if [ $initializer = setFieldsABL ] && [ ! -f log.2.$initializer ];  then
    srun -n $cores --cpu_bind=cores $initializer -parallel > log.2.$initializer 2>&1
 fi
 
-# Run the solver
+# Split run to get to quasi-steady stage
+foamDictionary -entry "fieldAverages.enabled" -set "false" system/sampling/fieldAverages
+foamDictionary -entry "boundaryData.enabled" -set "false" system/sampling/boundaryData
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$startTime 2>&1
+
+# Split run to save boundaryData and averages
+foamDictionary -entry "fieldAverages.timeStart" -set $endTime system/sampling/fieldAverages
+foamDictionary -entry "boundaryData.enabled" -set "true" system/sampling/boundaryData
+foamDictionary -entry "startTime" -set $endTime -disableFunctionEntries system/controlDict
+foamDictionary -entry "endTime" -set $(echo $endTime+$timeBdData | bc) -disableFunctionEntries system/controlDict
+srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.saveBdData.startAt$endTime 2>&1
+
+# Get some quantities from the logfile
+grep -e "maximum"  -e "^Time =" log.2.$solver.startAt$startTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $2}' > log.maxlocalerror
+grep -e "maximum"  -e "^Time =" log.2.$solver.saveBdData.startAt$endTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $2}' >> log.maxlocalerror
+grep -e "total - flux"  -e "^Time =" log.2.$solver.startAt$startTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $4}' > log.totalboundaryflux
+grep -e "total - flux"  -e "^Time =" log.2.$solver.saveBdData.startAt$endTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $4}' >> log.totalboundaryflux
+
+# Make the precursor data ready for future mapping and adjust the initial time of boundaryData
+if [ -d processor0/$endTime ]; then
+    reconstructPar -time $endTime > log.3.reconstructPar 2>&1
+    for dir in north south east west; do
+        ln -sf $(ls postProcessing/boundaryData/$dir | head -1) postProcessing/boundaryData/$dir/$endTime
+    done
+else
+    echo "Case not reconstructed and first time of boundaryData not fixed. Check if endTime dir exists."
+fi
 
 echo "Ending OpenFOAM job at: " $(date)
 

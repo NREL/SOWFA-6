@@ -38,15 +38,18 @@ zRef                      $zMax;
 
 // Specify if distance from wall should be used as z.
 useWallDistZ              true;
-scaleVelocityWithHeight   false;
+scaleVelocityWithHeight   true;
 
 
 // Specify how to initialze the base velocity and temperature profile.
 //velocityInitType          "table";
 //velocityInitType          "log";
-velocityInitType          "geostrophic";
-//temperatureInitType       "table";
-temperatureInitType       "simple";
+velocityInitType          "scaleGiven";
+//velocityInitType          "geostrophic";
+
+//temperatureInitType     "table";
+temperatureInitType     "none";
+//temperatureInitType       "simple";
 
 // Maximum perturbation of streamwise/spanwise flow near surface.
 deltaU                    0.25;

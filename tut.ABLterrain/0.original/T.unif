@@ -10,51 +10,48 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       dictionary;
-    location    "system";
-    object      fvSchemes;
+    class       volScalarField;
+    location    "0";
+    object      T ;
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-ddtSchemes
+#include        "../setUp"
+
+ 
+dimensions      [0 0 0 1 0 0 0];
+ 
+internalField   uniform $T0;
+
+boundaryField
 {
-    default         Euler;
+    lower
+    {
+        type            zeroGradient;
+    }
+    upper
+    {
+        type            zeroGradient;
+    }
+    west
+    {
+        type            fixedValue;
+        value           uniform $T0;
+    }
+    east
+    {
+        type            zeroGradient;
+    }
+    south
+    {
+        type            zeroGradient;
+    }
+    north
+    {
+        type            zeroGradient;
+    }
 }
 
-gradSchemes
-{
-    default         Gauss linear;
-}
-
-divSchemes
-{
-    default         none;
-    div(phi,U)      Gauss linear;
-}
-
-laplacianSchemes
-{
-    default         Gauss linear corrected;
-}
-
-interpolationSchemes
-{
-    default         linear;
-}
-
-snGradSchemes
-{
-    default         corrected;
-}
-
-wallDist
-{
-    method meshWave;
-
-    // Optional entry enabling the calculation
-    // of the normal-to-wall field
-    nRequired false;
-}
 
 // ************************************************************************* //
