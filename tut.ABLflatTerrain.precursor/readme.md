@@ -7,8 +7,7 @@
 
 # To-do
 
-- add a preprocessing step of copying boundaryData from, say, 20000.15432 to 20000
-- Make the setup mesh general (using the four blocks). It makes it easier for mapping flat-terrain into complex-terrain cases. Update the blockmeshdict with the appropriate patches, and not cyclic. Test it.
+- `boundaryData` file that needs to used is manual as of now
 - Put (0,0) in the middle. Adjust terrainSlices accordingly
 - Restarted runs may not work as currently is
 - Incorporate Eliot's check whether or not run was successful

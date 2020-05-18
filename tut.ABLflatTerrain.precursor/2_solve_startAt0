@@ -30,10 +30,11 @@ if [ ! -f system/controlDict.$solver.startAt$startTime ];               then ech
 if [ $initializer = setFieldsABL ] && [ ! -f system/setFieldsABLDict ]; then echo "Job killed (3)."; scancel $SLURM_JOBID; fi
 if [ ! -f setUp ];                                                      then echo "Job killed (4)."; scancel $SLURM_JOBID; fi
 if [ $(foamDictionary -entry "nCores" -value setUp) -ne $cores ];       then echo "Job killed (5)."; scancel $SLURM_JOBID; fi
+if [ ! -f system/sampling/boundaryData ];                               then echo "Job killed (6)."; scancel $SLURM_JOBID; fi
 
 endTime=$(foamDictionary -entry "endTime" -value system/controlDict.$solver.startAt$startTime)
 writeInterval=$(foamDictionary -entry "writeInterval" -value system/controlDict.$solver.startAt$startTime)
-if [ $(echo "$endTime%$writeInterval" | bc) -ne 0 ]; then echo "Job killed (6)"; scancel $SLURM_JOBID; fi
+if [ $(echo "$endTime%$writeInterval" | bc) -ne 0 ]; then echo "Job killed (7)"; scancel $SLURM_JOBID; fi
 # **************************************************************************************************** #
 
 # ************************************ COPYING APPROPRIATE FILES ************************************* #
