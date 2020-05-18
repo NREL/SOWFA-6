@@ -16,7 +16,7 @@ FoamFile
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#include "../setUp";
+#include "../setUp"
 
 
 dictionaryReplacement
@@ -38,6 +38,14 @@ dictionaryReplacement
         {
             type            patch;
         }
+        west
+        {
+            type            patch;
+        }
+        east
+        {
+            type            patch;
+        }
     }
 
     T
@@ -46,15 +54,31 @@ dictionaryReplacement
         {
             south
             {
-                type            timeVaryingMappedFixedValue;
-                setAverage      0;
-                peturb          1e-05;
-                offset          0;
-                value           uniform 300;
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform 0;
+                value           uniform 0;
             }
             north
             {
-                type            zeroGradient;
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform 0;
+                value           uniform 0;
+            }
+            west
+            {
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform 0;
+                value           uniform 0;
+            }
+            east
+            {
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform 0;
+                value           uniform 0;
             }
         }
     }
@@ -64,16 +88,30 @@ dictionaryReplacement
         {
             south
             {
-                type            timeVaryingMappedFixedValue;
-                setAverage      0;
-                peturb          1e-05;
-                offset          (0 0 0);
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform (0 0 0);
                 value           uniform (0 0 0);
             }
             north
-            {   
-                type            inletOutlet;
-                inletValue      uniform (0 0 0);
+            {
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform (0 0 0);
+                value           uniform (0 0 0);
+            }
+            west
+            {
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform (0 0 0);
+                value           uniform (0 0 0);
+            }
+            east
+            {
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform (0 0 0);
                 value           uniform (0 0 0);
             }
         }
@@ -84,15 +122,31 @@ dictionaryReplacement
         {
             south
             {
-                type            timeVaryingMappedFixedValue;
-                setAverage      0;
-                peturb          1e-05;
-                offset          0;
-                value           uniform 0.1;
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform 0;
+                value           uniform 0;
             }
             north
             {
-                type            zeroGradient;
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform 0;
+                value           uniform 0;
+            }
+            west
+            {
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform 0;
+                value           uniform 0;
+            }
+            east
+            {
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform 0;
+                value           uniform 0;
             }
         }
     }
@@ -105,6 +159,14 @@ dictionaryReplacement
                 type            zeroGradient;
             }
             north
+            {
+                type            zeroGradient;
+            }
+            west
+            {
+                type            zeroGradient;
+            }
+            east
             {
                 type            zeroGradient;
             }
@@ -122,6 +184,14 @@ dictionaryReplacement
             {
                 type            zeroGradient;
             }
+            west
+            {
+                type            zeroGradient;
+            }
+            east
+            {
+                type            zeroGradient;
+            }
         }
     }
     p_rgh
@@ -135,7 +205,20 @@ dictionaryReplacement
             }
             north
             {
-                type            zeroGradient;
+               // type            zeroGradient;
+                type            fixedFluxPressure;
+                value           uniform 0.0;
+            }
+            west
+            {
+                type            fixedFluxPressure;
+                value           uniform 0.0;
+            }
+            east
+            {
+               // type            zeroGradient;
+                type            fixedFluxPressure;
+                value           uniform 0.0;
             }
             lower
             {
@@ -163,6 +246,16 @@ dictionaryReplacement
                 type            fixedValue;
                 value           uniform (0 0 0);
             }
+            west
+            {
+                type            fixedValue;
+                value           uniform (0 0 0);
+            }
+            east
+            {
+                type            fixedValue;
+                value           uniform (0 0 0);
+            }
             lower
             {
                 type            fixedValue;
@@ -185,6 +278,16 @@ dictionaryReplacement
                 value           uniform (0 0 0 0 0 0);
             }
             north
+            {
+                type            fixedValue;
+                value           uniform (0 0 0 0 0 0);
+            }
+            west
+            {
+                type            fixedValue;
+                value           uniform (0 0 0 0 0 0);
+            }
+            east
             {
                 type            fixedValue;
                 value           uniform (0 0 0 0 0 0);

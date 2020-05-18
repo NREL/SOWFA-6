@@ -1,8 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=setupTerrain
+#SBATCH --job-name=sTerrain
 #SBATCH --output foam1preprocess.log
 #SBATCH --ntasks=792
 #SBATCH --time=2:00:00
+# #SBATCH --mem=180G
 #SBATCH --account=car
 #SBATCH --qos=high
 
@@ -12,6 +13,7 @@ cores=576
 
 echo "Working directory is" $SLURM_SUBMIT_DIR
 echo "Job name is" $SLURM_JOB_NAME
+echo "Submit time is" $(squeue -u $USER -o '%30j %20V' | grep -e $SLURM_JOB_NAME | awk '{print $2}')
 echo "Starting OpenFOAM job at: " $(date)
 echo "using" $cores "core(s)"
 
@@ -19,53 +21,113 @@ echo "using" $cores "core(s)"
 OpenFOAM-6-gcc-dev      # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
 startTime=0               # Start time
 stabState=neutral         # neutral, stable, unstable
-meshSolver=moveDynamicMesh
+#inflowDir=west  # not necessary for first script?
+wallModelType=local 
 terrainSTL=biglow_xm15001to16009_ym5005to15485_blendFlatNSEW_shifted.stl
+initializer=precursor                # precursor, setFieldsABL, none. If precursor, set precursorDir, mapTime
+    precursorDir=~/OpenFOAM/rthedin-6/run/precursor/neutral.W.5at80.5dTInv.0p05z
+    mapTime=20000
+    # change diffusivity on dynamicMeshDict depending on geometry (no quadratic for bump)
 # **************************************************************************************************** #
 
 # **************************************** PERFORM SOME CHECKS *************************************** #
-if [ ! -f system/controlDict.$meshSolver.startAt$startTime ]; then echo "Job killed (1)."; scancel $SLURM_JOBID; fi
-if [ ! -f setUp.$stabState ];                                 then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
-if [ ! -f 0.original/qwall.$stabState ];                      then echo "Job killed (3)."; scancel $SLURM_JOBID; fi
-if [ ! -f 0.original/pointDisplacement ];                     then echo "Job killed (4)."; scancel $SLURM_JOBID; fi
-if [ ! -f constant/dynamicMeshDict ];                         then echo "Job killed (5)."; scancel $SLURM_JOBID; fi
-if [ ! -f constant/triSurface/$terrainSTL ] ;                 then echo "Job killed (6)."; scancel $SLURM_JOBID; fi
+if [ ! -f system/controlDict.moveDynamicMesh ];                  then echo "Job killed (1)."; scancel $SLURM_JOBID; fi
+if ! { [ -f setUp.$stabState ] || [ -f $precursorDir/setUp ]; }; then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
+if [ ! -f 0.original/qwall.$stabState ];                         then echo "Job killed (3)."; scancel $SLURM_JOBID; fi
+if [ ! -f 0.original/pointDisplacement ];                        then echo "Job killed (4)."; scancel $SLURM_JOBID; fi
+if [ ! -f constant/dynamicMeshDict ];                            then echo "Job killed (5)."; scancel $SLURM_JOBID; fi
+if [ ! -f constant/triSurface/$terrainSTL ] ;                    then echo "Job killed (6)."; scancel $SLURM_JOBID; fi
 if [ $(foamDictionary -entry "nCores" -value setUp.$stabState) -ne $cores ]; then echo "Job killed (7)."; scancel $SLURM_JOBID; fi
-stlbb=$(surfaceCheck constant/triSurface/$terrainSTL | grep -e "Bounding" | awk '{print $9}' | awk -F "[.)]" '{print $1}')
-if [[ $stlbb -ge $(foamDictionary -entry "zMin" -value setUp.$stabState) ]]; then echo "Job killed (8)."; scancel $SLURM_JOBID; fi
+#stlbb=$(surfaceCheck constant/triSurface/$terrainSTL | grep -e "Bounding" | awk '{print $9}' | awk -F "[.)]" '{print $1}')
+#if [[ $stlbb -ge $(foamDictionary -entry "zMin" -value setUp.$stabState) ]]; then echo "Job killed (8)."; scancel $SLURM_JOBID; fi
+if [ $initializer = precursor ] && [ ! -d $precursorDir/postProcessing/boundaryData ]; then echo "Job killed (8)."; scancel $SLURM_JOBID; fi
+if [ $initializer = precursor ] && [ ! -d $precursorDir/$starTime ];                   then echo "Job killed (9)."; scancel $SLURM_JOBID; fi
 # **************************************************************************************************** #
 
-# ************************************ COPYING APPROPRIATE FILES ************************************* #
-rm problemFaces
+# ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
+rm -f problemFaces
 cd constant/triSurface  &&  ln -sf $terrainSTL    terrain.stl  &&  cd ../..
-cp system/controlDict.$meshSolver.startAt$startTime    system/controlDict
+cp system/controlDict.moveDynamicMesh                  system/controlDict
 cp setUp.$stabState                                    setUp
 cp system/fvSolution.mesh                              system/fvSolution
 cp system/fvSchemes.mesh                               system/fvSchemes
+rm -rf constant/polyMesh
+rm -rf constant/boundaryData
+rm -rf $startTime $mapTime
 # **************************************************************************************************** #
 
-# Copy the "clean" .original initial fields to a working copy
-rm -rf $startTime
-cp -rf $startTime.original $startTime
-cp     $startTime/qwall.$stabState   $startTime/qwall  &&  rm $startTime/qwall.*
+if [ $initializer = precursor ]; then
+    startTime=$(( $mapTime > $startTime ? $mapTime : $startTime ))
 
-# Build the mesh
-blockMesh -noFunctionObjects > log.1.blockMesh 2>&1
+    # Get information from the precursor
+    cp $precursorDir/setUp                                 setUp
+    foamDictionary -entry "nCores" -set $cores setUp
+    foamDictionary -entry "wallModelAverageType" -set $wallModelType setUp
+
+    # Copy the startTime solution dir from precursor 
+    cp -rf $precursorDir/$startTime $startTime.fromPrec
+    rm -rf $startTime.fromPrec/{cellDist,uniform,CeField,k_0,p,phi,phi_0,sourceMomentum,sourceTemperature,T_0,TBlendingFactor,U_0,UBlendingFactor}
+    cp -rf $startTime.fromPrec $startTime
+    cp 0.original/pointDisplacement $startTime/
+
+    # Make the link to the boundary data
+    ln -s $precursorDir/postProcessing/boundaryData constant/boundaryData
+
+    # Copy the mesh from precursor
+    cp -rf $precursorDir/constant/polyMesh constant/
+
+    # Data from precursor has cyclic boundaries. Change that because of the nature of moveDynamicMesh
+    inflowDir=southwest
+    changeDictionary -dict system/changeDictionaryDict.timeVarying.$inflowDir -time $startTime -enableFunctionEntries -subDict dictionaryReplacement > log.1.changeDictionary 2>&1
+   # changeBoundaryCyclicToPatch $inflowDir  # not necessary when there's no other boundary file
+
+else
+    # Copy the "clean" .original initial fields to a working copy
+    cp -rf $startTime.original $startTime
+    cp     $startTime/qwall.$stabState   $startTime/qwall  &&  rm $startTime/qwall.*
+    rm     $startTime/T.*
+
+    # Build the mesh
+    blockMesh -noFunctionObjects > log.1.blockMesh 2>&1
+fi
 
 # Decompose the mesh
-decomposePar -cellDist -force > log.1.decomposePar 2>&1
+decomposePar -cellDist -force -time $startTime > log.1.decomposePar 2>&1
 
 # Check the mesh
 srun -n $cores checkMesh -noFunctionObjects -parallel > log.1.checkMesh.background 2>&1
 
 # Make the mesh conform to the terrain boundary
-srun -n $cores $meshSolver -noFunctionObjects -parallel > log.1.$meshSolver 2>&1
+foamDictionary -entry "startTime" -set $startTime        system/controlDict
+foamDictionary -entry "endTime" -set $(($startTime+100)) system/controlDict
+srun -n $cores moveDynamicMesh -noFunctionObjects -parallel > log.1.moveDynamicMesh 2>&1
 
 # Check the final mesh
 srun -n $cores checkMesh -latestTime -noFunctionObjects -parallel > log.1.checkMesh.final 2>&1
 
-# Extract the volume over time from the moveDynamicMesh output
-grep -e "Total volume" -e "^Time" log.1.moveDynamicMesh | awk 'NR%2 {print $12} !(NR%2) {printf $3 "\t"}' > log.1.volumeMeshHistory 2>&1
+# Extract volume information  over time from the moveDynamicMesh output
+printf 'time \t min cell vol \t max cell vol \t total vol' > log.1.volumeMeshHistory
+grep -e "Total volume" -e "^Time" log.1.moveDynamicMesh | awk 'NR%2 {print $4 "\t" $8 "\t" $12} !(NR%2) {printf $3 "\t"}' >> log.1.volumeMeshHistory 2>&1
+
+# Make the last directory from moveDynamicMesh be the startTime dir
+endTimeMesh=$(foamListTimes -processor -latestTime | tail -1)
+for (( c=0; c<$cores; c++)); do
+    if [ ! -d processor$c/$startTime/polyMesh ]; then mkdir -p processor$c/$startTime/polyMesh; fi
+    mv processor$c/$endTimeMesh/polyMesh processor$c/$startTime/
+    mv processor$c/$startTime processor$c/temp
+    find processor$c -mindepth 1 -type d -not -path "*constant*" -not -path "*temp*" -exec rm -rf {} +
+    mv processor$c/temp processor$c/$startTime
+done
+
+# Fix/Initialize the internalFields
+if [ $initializer != none ] && [ ! -f log.2.setFieldsABL.$initializer ]; then
+    if [ $initializer = setFieldsABL ];  then
+        cp system/setFieldsABLDict.Ugeo.Tsimple  system/setFieldsABLDict
+    elif [ $initializer = precursor ]; then
+        cp system/setFieldsABLDict.Uscale.Tnone  system/setFieldsABLDict
+    fi
+    srun -n $cores --cpu_bind=cores setFieldsABL -parallel > log.1.setFieldsABL.$initializer 2>&1
+fi
 
 echo "Ending OpenFOAM job at: " $(date)
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=runTerrain
+#SBATCH --job-name=rTerrain
 #SBATCH --output foam2run_startAt0.log
 #SBATCH --ntasks=576        # Change on setUp as well
 #SBATCH --time=1-00
@@ -18,21 +18,26 @@ echo "using" $cores "core(s)"
 # ******************************************** USER INPUT ******************************************** #
 OpenFOAM-6-gcc-dev 	        # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
 startTime=0                     # Start time (cp script for restarted runs)
-startTimeAvg=200                # Start time for computing averages
+startTimeAvg=5000                # Start time for computing averages
                                 # The writeInterval should be a multiple of startTimeAvg
 # h=40                            # 100,40.  For bump cases.
 # cp system/sampling/slicesBump.h$h                      system/sampling/slicesBump
 stabState=neutral               # neutral, stable, unstable
 solver=superDeliciousVanilla
-initializer=none                # setFieldsABL, none
-bc=inflowOutflow                # inflowOutflow, boundaryData, cyclic, wrf
+#bc=inflowOutflow                # inflowOutflow, boundaryData, cyclic, wrf
 interp=midpoint                 # midpoint, linearupwind. divSchemes midpoint needed for gravity waves
+
+#initializer=none                # precursor, setFieldsABL, none. If precursor, set precursorDir, mapTime
+#precursorDir=~/OpenFOAM/rthedin-6/run/SOWFA-setups/tut.ABLflatTerrain.precursor
+#mapTime=20000                   # set if initializer=precursor
+# if initializer=precursor, startTime=mapTime
+
 # **************************************************************************************************** #
 
 # **************************************** PERFORM SOME CHECKS *************************************** #
 if [ ! -f foam1preprocess.log ];                                        then echo "Job killed (1)."; scancel $SLURM_JOBID; fi
 if [ ! -f system/controlDict.$solver.startAt$startTime ];               then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
-if [ $initializer = setFieldsABL ] && [ ! -f system/setFieldsABLDict ]; then echo "Job killed (4)."; scancel $SLURM_JOBID; fi
+#if [ $initializer = setFieldsABL ] && [ ! -f system/setFieldsABLDict ]; then echo "Job killed (4)."; scancel $SLURM_JOBID; fi
 if [ ! -f setUp ];                                                      then echo "Job killed (5)."; scancel $SLURM_JOBID; fi
 if [ $startTimeAvg -le $startTime ];                                    then echo "Job killed (6)."; scancel $SLURM_JOBID; fi
 
@@ -43,54 +48,40 @@ if [ $writeInterval -gt $startTimeAvg ];                  then echo "Job killed 
 if [ $(echo "$startTimeAvg%$writeInterval" | bc) -ne 0 ]; then echo "Job killed (9)"; scancel $SLURM_JOBID; fi
 # **************************************************************************************************** #
 
-# ************************************ COPYING APPROPRIATE FILES ************************************* #
+# ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
 cp system/controlDict.$solver.startAt$startTime        system/controlDict
 cp system/fvSolution.flow                              system/fvSolution
 cp system/fvSchemes.flow.$interp                       system/fvSchemes
-endTimeMesh=$(foamListTimes -processor -latestTime | tail -1)
+#endTimeMesh=$(foamListTimes -processor -latestTime | tail -1)
 
-case $(foamDictionary -entry "windDir" -value setUp) in
-  0|360)                    inflowDir=north;;
-  [1-9]|[1-8][0-9])         inflowDir=northeast;;
-  90)                       inflowDir=east;;
-  9[1-9]|1[0-7][0-9])       inflowDir=southeast;;
-  180)                      inflowDir=south;;
-  1[8-9][0-9]|2[0-6][0-9])  inflowDir=southwest;;
-  270)                      inflowDir=west;;
-  2[7-9][0-9]|3[0-5][0-9])  inflowDir=northwest;;
-  *)                        echo "Job killed (5)"; scancel $SLURM_JOBID;;
-esac
+# case $(foamDictionary -entry "windDir" -value setUp) in
+#   0|360)                    inflowDir=north;;
+#   [1-9]|[1-8][0-9])         inflowDir=northeast;;
+#   90)                       inflowDir=east;;
+#   9[1-9]|1[0-7][0-9])       inflowDir=southeast;;
+#   180)                      inflowDir=south;;
+#   1[8-9][0-9]|2[0-6][0-9])  inflowDir=southwest;;
+#   270)                      inflowDir=west;;
+#   2[7-9][0-9]|3[0-5][0-9])  inflowDir=northwest;;
+#   *)                        echo "Job killed (5)"; scancel $SLURM_JOBID;;
+# esac
 # **************************************************************************************************** #
 
-# If not a restarted run, adjust the starting time to be $startTime, and not $endTimeMesh
-if [ ! -f log.2.$solver.startAt0 ]; then
-    for (( c=0; c<$cores; c++)); do
-         mv processor$c/$endTimeMesh/polyMesh processor$c/$startTime/
-         mv processor$c/$startTime processor$c/temp
-         find processor$c -mindepth 1 -type d -not -path "*constant*" -not -path "*temp*" -exec rm -rf {} +
-         mv processor$c/temp processor$c/$startTime
-    done	
-fi
+# done on the first script
+# # Change BCs depending on the inflowDir and BC type
+# if [ $bc = boundaryData ] || [ $bc = wrf ]; then
+#     srun -n $cores changeDictionary -dict system/changeDictionaryDict.timeVarying.$inflowDir -time $startTime -enableFunctionEntries -parallel -subDict dictionaryReplacement > log.2.changeDictionary.timeVarying.$inflowDir 2>&1
+# elif [ $bc = inflowOutflow ]; then
+#     srun -n $cores changeDictionary -dict system/changeDictionaryDict.inflowOutflow.$inflowDir -time $startTime -enableFunctionEntries -parallel -subDict dictionaryReplacement > log.2.changeDictionary.inflowOutflow.$inflowDir 2>&1
+# fi
 
-# Run the flow field initializer
-if [ $initializer = setFieldsABL ] && [ ! -f log.2.$initializer ];  then
-   srun -n $cores --cpu_bind=cores $initializer -parallel > log.2.$initializer 2>&1
-fi
-
-# Change BCs depending on the inflowDir and BC type
-if [ $bc = boundaryData ] || [ $bc = wrf ]; then
-    srun -n $cores changeDictionary -dict system/changeDictionaryDict.timeVarying.$inflowDir -time $startTime -enableFunctionEntries -parallel > log.2.changeDictionary.timeVarying.$inflowDir 2>&1
-elif [ $bc = cyclic ]; then
-    srun -n $cores changeDictionary -dict system/changeDictionaryDict.cyclic -time $startTime -enableFunctionEntries -parallel > log.2.changeDictionary.cyclic 2>&1
-elif [ $bc = inflowOutflow ]; then
-    srun -n $cores changeDictionary -dict system/changeDictionaryDict.inflowOutflow.$inflowDir -time $startTime -enableFunctionEntries -parallel > log.2.changeDictionary.inflowOutflow.$inflowDir 2>&1
-fi 
 
 # if non neutral, change the bottom BC too
-if [ $stabState = unstable ] || [ $stabState = stable ]; then
-   # srun -n $cores changeDictionary -dic system/changeDictionary.updateBC.lower.$stabState -time $startTime -enableFunctionEntries -parallel > log.2.changeDictionary.lower 2>&1
-   echo "Not implemented yet"
-fi
+# if [ $stabState = unstable ] || [ $stabState = stable ]; then
+    # srun -n $cores changeDictionary -dic system/changeDictionary.updateBC.lower.$stabState -time $startTime -enableFunctionEntries -parallel -subDict dictionaryReplacement > log.2.changeDictionary.lower 2>&1
+#    echo "Not implemented yet"
+#fi
+# - this would come from the precursor (if initializer=precursor) or setup file (if initializer=something else)
 
 # Split run to get to developed-flow stage
 foamDictionary -entry "fieldAverages.enabled" -set "false" system/sampling/fieldAverages
