@@ -57,8 +57,12 @@ FoamFile
 
   functions
   {
-      #include "sampling/planarAveraging"
-      #include "sampling/slicesPrecursor"
+    #includeFunc Q
+    #includeFunc vorticity
+    #include "sampling/planarAveraging"
+    #include "sampling/boundaryData"
+    #include "sampling/fieldAverages"
+    #include "sampling/slicesPrecursor"
   }
 
 // ************************************************************************* //

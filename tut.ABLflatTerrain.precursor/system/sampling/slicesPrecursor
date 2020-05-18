@@ -9,6 +9,8 @@ slicesPrecursor
       U
       T
       p_rgh
+      UMean
+      UPrime2Mean
     );
     interpolationScheme cell;      // cell, cellPoint, cellPointCell
     surfaceFormat           vtk;
