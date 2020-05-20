@@ -53,21 +53,25 @@ fi
 
 # Split run to get to quasi-steady stage
 foamDictionary -entry "fieldAverages.enabled" -set "false" system/sampling/fieldAverages
+foamDictionary -entry "temporalAverages.enabled" -set "false" system/sampling/temporalAverages
 foamDictionary -entry "boundaryData.enabled" -set "false" system/sampling/boundaryData
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$startTime 2>&1
 
 # Split run to save boundaryData and averages
 foamDictionary -entry "fieldAverages.timeStart" -set $endTime system/sampling/fieldAverages
+foamDictionary -entry "fieldAverages.enabled" -set "true" system/sampling/fieldAverages
+foamDictionary -entry "temporalAverages.timeStart" -set $endTime system/sampling/temporalAverages
+foamDictionary -entry "temporalAverages.enabled" -set "true" system/sampling/temporalAverages
 foamDictionary -entry "boundaryData.enabled" -set "true" system/sampling/boundaryData
 foamDictionary -entry "startTime" -set $endTime -disableFunctionEntries system/controlDict
 foamDictionary -entry "endTime" -set $(echo $endTime+$timeBdData | bc) -disableFunctionEntries system/controlDict
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.saveBdData.startAt$endTime 2>&1
 
-# Get some quantities from the logfile
-grep -e "maximum"  -e "^Time =" log.2.$solver.startAt$startTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $2}' > log.maxlocalerror
-grep -e "maximum"  -e "^Time =" log.2.$solver.saveBdData.startAt$endTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $2}' >> log.maxlocalerror
-grep -e "total - flux"  -e "^Time =" log.2.$solver.startAt$startTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $4}' > log.totalboundaryflux
-grep -e "total - flux"  -e "^Time =" log.2.$solver.saveBdData.startAt$endTime | awk ' NR%2 {printf "%.4f    \t", $3}  !(NR%2) {printf "%.4e \n", $4}' >> log.totalboundaryflux
+# get some quantities from the logfile
+grep -e "maximum"  -e "^time =" log.2.$solver.startat$starttime | awk ' nr%2 {printf "%.4f    \t", $3}  !(nr%2) {printf "%.4e \n", $2}' > log.maxlocalerror
+grep -e "maximum"  -e "^time =" log.2.$solver.savebddata.startat$endtime | awk ' nr%2 {printf "%.4f    \t", $3}  !(nr%2) {printf "%.4e \n", $2}' >> log.maxlocalerror
+grep -e "total - flux"  -e "^time =" log.2.$solver.startat$starttime | awk ' nr%2 {printf "%.4f    \t", $3}  !(nr%2) {printf "%.4e \n", $4}' > log.totalboundaryflux
+grep -e "total - flux"  -e "^time =" log.2.$solver.savebddata.startat$endtime | awk ' nr%2 {printf "%.4f    \t", $3}  !(nr%2) {printf "%.4e \n", $4}' >> log.totalboundaryflux
 
 # Make the precursor data ready for future mapping and adjust the initial time of boundaryData
 if [ -d processor0/$endTime ]; then

@@ -75,22 +75,17 @@ cp system/fvSchemes.flow.$interp                       system/fvSchemes
 #     srun -n $cores changeDictionary -dict system/changeDictionaryDict.inflowOutflow.$inflowDir -time $startTime -enableFunctionEntries -parallel -subDict dictionaryReplacement > log.2.changeDictionary.inflowOutflow.$inflowDir 2>&1
 # fi
 
-
-# if non neutral, change the bottom BC too
-# if [ $stabState = unstable ] || [ $stabState = stable ]; then
-    # srun -n $cores changeDictionary -dic system/changeDictionary.updateBC.lower.$stabState -time $startTime -enableFunctionEntries -parallel -subDict dictionaryReplacement > log.2.changeDictionary.lower 2>&1
-#    echo "Not implemented yet"
-#fi
-# - this would come from the precursor (if initializer=precursor) or setup file (if initializer=something else)
-
 # Split run to get to developed-flow stage
 foamDictionary -entry "fieldAverages.enabled" -set "false" system/sampling/fieldAverages
+foamDictionary -entry "temporalAverages.enabled" -set "false" system/sampling/temporalAverages
 foamDictionary -entry "endTime" -set $startTimeAvg -disableFunctionEntries system/controlDict
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$startTime 2>&1
 
 # Split run to save averages
 foamDictionary -entry "fieldAverages.timeStart" -set $startTimeAvg system/sampling/fieldAverages
 foamDictionary -entry "fieldAverages.enabled" -set "true" system/sampling/fieldAverages
+foamDictionary -entry "temporalAverages.timeStart" -set $startTimeAvg system/sampling/temporalAverages
+foamDictionary -entry "temporalAverages.enabled" -set "true" system/sampling/temporalAverages
 foamDictionary -entry "startTime" -set $startTimeAvg -disableFunctionEntries system/controlDict
 foamDictionary -entry "endTime" -set $endTime -disableFunctionEntries system/controlDict 
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$startTimeAvg 2>&1

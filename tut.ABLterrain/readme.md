@@ -9,10 +9,13 @@
 - Final mesh is assumed to be in the last saved time step from the `moveDynamicMesh` execution
 - `setFieldsABLDict` contains `useWallDist` as `true` by default. Adjust the `temperatureInitType` as needed
 - For the mesh to conform to the terrain, the boundaries cannot be cyclic
+- There is no need o change the bottom BC for convective cases on the second script because if it is coming from a precursor, such information is already there in `$mapTime`, and if it is a run with `$initializer != precursor`, it will be on the `setUp` file
+- Uses temporalAveraging from SOWFA's libs for averaging
 
 # To-do
 
 - if stable/unstable, be mindful of the qwall in the change dictionaries. 
+- if initializer!= precursor, a change of BC is still needed. Right now it's hardcoded for West cases
 - remove the cyclic patches on decomposepardict if running non-cyclic
 - Make sure the restarted script will go through fine because of the time averaging `startTimeAvg`. Fix it.
 - Put the default BC as inflow/outflow and update second script (set fields ABL)

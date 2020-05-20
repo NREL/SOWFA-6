@@ -62,6 +62,7 @@ FoamFile
     #include "sampling/planarAveraging"
     #include "sampling/boundaryData"
     #include "sampling/fieldAverages"
+    #include "sampling/temporalAverages"
     #include "sampling/slicesPrecursor"
   }
 

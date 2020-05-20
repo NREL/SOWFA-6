@@ -35,7 +35,15 @@ cp system/controlDict.$solver.startAt$startTime        system/controlDict
 # **************************************************************************************************** #
 
 # Run the solver (parallel)
+foamDictionary -entry "fieldAverages.timeStart" -set $startTime system/sampling/fieldAverages
+foamDictionary -entry "fieldAverages.enabled" -set "true" system/sampling/fieldAverages
+foamDictionary -entry "temporalAverages.timeStart" -set $startTime system/sampling/temporalAverages
+foamDictionary -entry "temporalAverages.enabled" -set "true" system/sampling/temporalAverages
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$startTime 2>&1
+
+# Get some quantities from the logfile
+grep -e "maximum"  -e "^time =" log.2.$solver.startat$starttime | awk ' nr%2 {printf "%.4f    \t", $3}  !(nr%2) {printf "%.4e \n", $2}' > log.maxlocalerror
+grep -e "total - flux"  -e "^time =" log.2.$solver.startat$starttime | awk ' nr%2 {printf "%.4f    \t", $3}  !(nr%2) {printf "%.4e \n", $4}' > log.totalboundaryflux
 
 echo "Ending OpenFOAM job at: " $(date)
 
