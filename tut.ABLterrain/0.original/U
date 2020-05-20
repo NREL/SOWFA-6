@@ -50,11 +50,15 @@ boundaryField
     }
     south
     {
-        type            slip;
+        type            inletOutlet;
+        inletValue      uniform (0 0 0);
+        value           uniform (0 0 0);
     }
     north
     {
-        type            slip;
+        type            inletOutlet;
+        inletValue      uniform (0 0 0);
+        value           uniform (0 0 0);
     }
 }
 
