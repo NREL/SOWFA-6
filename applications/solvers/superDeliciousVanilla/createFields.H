@@ -83,6 +83,46 @@ drivingForce<vector> momentumSourceTerm("momentum",U);
 drivingForce<scalar> temperatureSourceTerm("temperature",T);
 
 
+
+
+// Create sponge layer objects
+Info << "Creating a sponge layer" << endl;
+//spongeLayer spongeLayerUpper("upperSponge",U);
+spongeLayer spongeLayerAll("namesponges",U);
+
+    
+//     // Define dictionary with input data
+//     IOdictionary ABLProperties
+//     (
+//         IOobject
+//         (
+//             "ABLProperties",
+//             runTime_.time().constant(),
+//             runTime_,
+//             IOobject::MUST_READ,
+//             IOobject::NO_WRITE
+//         )
+//     );
+
+// labelListIOList sponges
+// (
+//     IOobject
+//     (
+//         "sponges",
+//         runTime.time().constant(),  // Assuming your dictionary is in constant/
+//         mesh,
+//         IOobject::MUST_READ,
+//         IOobject::NO_WRITE
+//     ),
+// variable of type List<labelList>
+// );
+
+
+
+
+
+
+
 // Create and read the kinematic turbulent thermal conductivity [m2/s].
 Info << "Creating and reading turbulent thermal conductivity field, kappat" << endl;
 volScalarField kappat

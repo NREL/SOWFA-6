@@ -13,6 +13,7 @@
       + fvc::div(Rwall)
       - momentumSourceTerm.force()
       - Coriolis.force()
+   // - spongeLayerAll.force()
      ==
         fvOptions(U)
     );

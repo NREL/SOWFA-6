@@ -128,95 +128,114 @@ Foam::spongeLayer::spongeLayer
         )
     );
     
+    //const dictionary& spongeDict(ABLProperties.subOrEmptyDict(name_));
+    // the one above would get the `name_` from createFields upperSponge directly
+    //  This dict will be referred to as `spongeDict`
     const dictionary& spongeDict(ABLProperties.subOrEmptyDict(name_));
 
-    type_ = spongeDict.lookupOrDefault<word>("type","none");
+    Info << "spongeDict: " << spongeDict << endl;
+    // Info << "spongeDict.toc(): " << spongeDict.toc() << endl;
+    // Info << "spongeDict.keys(): " << spongeDict.keys() << endl;
+    // Info << "patterns: " << spongeDict.keys(true) << endl;
 
-    // Sponge layer start location
-    scalar startLocation = spongeDict.lookupOrDefault<scalar>("startLocation",0.0);
-
-    // Sponge layer width
-    scalar width = spongeDict.lookupOrDefault<scalar>("width",10000.0);
-
-    // Maximum viscosity
-    scalar viscosityMax = spongeDict.lookupOrDefault<scalar>("viscosityMax",0.0); 
+    const wordList spongesList = spongeDict.toc();
     
-    // Coordinate index
-    label coordIndex = spongeDict.lookupOrDefault<label>("coordIndex",2);
+    forAll(spongesList, s)
+    {
+        word currentSponge = spongesList[s];
+        Info << "Current sponge: " << currentSponge << endl;
 
-    // Step up or step down
-    word direction = spongeDict.lookupOrDefault<word>("direction","stepUp");
 
-    // Create sponge layer reference velocity
-    scalar Ux = spongeDict.lookupOrDefault<scalar>("Ux",0.0);
-    scalar Uy = spongeDict.lookupOrDefault<scalar>("Uy",0.0);
-    vector Uref;
-    Uref.x() = Ux;
-    Uref.y() = Uy;
-    Uref.z() = 0.0;
+    }
 
-    Uref_ = dimensionedVector("Uref", dimensionSet(0, 1, -1, 0, 0, 0, 0), Uref);
+
+    // type_ = spongeDict.lookupOrDefault<word>("type","none");
+
+    // // Sponge layer start location
+    // scalar startLocation = spongeDict.lookupOrDefault<scalar>("startLocation",0.0);
+
+    // // Sponge layer width
+    // scalar width = spongeDict.lookupOrDefault<scalar>("width",10000.0);
+
+    // // Maximum viscosity
+    // scalar viscosityMax = spongeDict.lookupOrDefault<scalar>("viscosityMax",0.0); 
     
-    if (type_ == "Rayleigh" || type_ == "viscous")
-    {
-        Info << "Adding " << name << " layer (" << type_ << " damping) in coordinate direction " << coordIndex;
-        Info << " between " << startLocation << " and " << startLocation+width << " (" << direction;
-        Info << ") with lambdaMax " << viscosityMax << endl;
-    }
+    // // Coordinate index
+    // label coordIndex = spongeDict.lookupOrDefault<label>("coordIndex",2);
 
-    // For a viscous type sponge layer, change the dimensions of the viscosity field from 1/s to m^2/s
-    if (type_ == "viscous")
-    {
-        viscosity_.dimensions().reset(dimensionSet(0, 2, -1, 0, 0, 0, 0));
-    }
+    // // Step up or step down
+    // word direction = spongeDict.lookupOrDefault<word>("direction","stepUp");
+
+    // // Create sponge layer reference velocity
+    // scalar Ux = spongeDict.lookupOrDefault<scalar>("Ux",0.0);
+    // scalar Uy = spongeDict.lookupOrDefault<scalar>("Uy",0.0);
+    // vector Uref;
+    // Uref.x() = Ux;
+    // Uref.y() = Uy;
+    // Uref.z() = 0.0;
+
+    // Uref_ = dimensionedVector("Uref", dimensionSet(0, 1, -1, 0, 0, 0, 0), Uref);
     
-    // Set viscosity to cosine profile between startLocation and startLocation+width,
-    // For step up:   zero below startLocation and one  above startLocation+width
-    // For step down: one  below startLocation and zero above startLocation+width
-    scalar fact = 1.0; //stepUp
-    if (direction == "stepDown")
-    {
-        fact = -1.0;
-    }
+    // if (type_ == "Rayleigh" || type_ == "viscous")
+    // {
+    //     Info << "Adding " << name << " layer (" << type_ << " damping) in coordinate direction " << coordIndex;
+    //     Info << " between " << startLocation << " and " << startLocation+width << " (" << direction;
+    //     Info << ") with lambdaMax " << viscosityMax << endl;
+    // }
 
-    forAll(mesh_.cells(),cellI)
-    {
-        scalar loc = mesh_.C()[cellI][coordIndex];
-        viscosity_[cellI]  = (loc<=startLocation) * (1.0 - fact);
-        viscosity_[cellI] += ((loc>startLocation) && (loc<startLocation+width)) *
-            (
-                1.0 - fact * Foam::cos
-                    (
-                        Foam::constant::mathematical::pi * (loc - startLocation)/width
-                    )
+    // // For a viscous type sponge layer, change the dimensions of the viscosity field from 1/s to m^2/s
+    // if (type_ == "viscous")
+    // {
+    //     viscosity_.dimensions().reset(dimensionSet(0, 2, -1, 0, 0, 0, 0));
+    // }
+    
+    // // Set viscosity to cosine profile between startLocation and startLocation+width,
+    // // For step up:   zero below startLocation and one  above startLocation+width
+    // // For step down: one  below startLocation and zero above startLocation+width
+    // scalar fact = 1.0; //stepUp
+    // if (direction == "stepDown")
+    // {
+    //     fact = -1.0;
+    // }
 
-            );
-        viscosity_[cellI] += (loc>=startLocation+width) * (1.0 + fact);
-        viscosity_[cellI] *= 0.5 * viscosityMax;
+    // forAll(mesh_.cells(),cellI)
+    // {
+    //     scalar loc = mesh_.C()[cellI][coordIndex];
+    //     viscosity_[cellI]  = (loc<=startLocation) * (1.0 - fact);
+    //     viscosity_[cellI] += ((loc>startLocation) && (loc<startLocation+width)) *
+    //         (
+    //             1.0 - fact * Foam::cos
+    //                 (
+    //                     Foam::constant::mathematical::pi * (loc - startLocation)/width
+    //                 )
 
-    }
+    //         );
+    //     viscosity_[cellI] += (loc>=startLocation+width) * (1.0 + fact);
+    //     viscosity_[cellI] *= 0.5 * viscosityMax;
 
-    forAll(viscosity_.boundaryField(),i)
-    {
-        if ( !mesh_.boundary()[i].coupled() )
-        {
-            forAll(viscosity_.boundaryField()[i],j)
-            {
-                scalar loc = mesh_.boundary()[i].Cf()[j][coordIndex];
-                viscosity_.boundaryFieldRef()[i][j]  = (loc<=startLocation) * (1.0 - fact);
-                viscosity_.boundaryFieldRef()[i][j] += ((loc>startLocation) && (loc<startLocation+width)) *
-                    (
-                        1.0 - fact * Foam::cos
-                            (
-                                Foam::constant::mathematical::pi * (loc - startLocation)/width
-                            )
+    // }
 
-                    );
-                viscosity_.boundaryFieldRef()[i][j] += (loc>=startLocation+width) * (1.0 + fact);
-                viscosity_.boundaryFieldRef()[i][j] *= 0.5 * viscosityMax;
-            }
-        }
-    }
+    // forAll(viscosity_.boundaryField(),i)
+    // {
+    //     if ( !mesh_.boundary()[i].coupled() )
+    //     {
+    //         forAll(viscosity_.boundaryField()[i],j)
+    //         {
+    //             scalar loc = mesh_.boundary()[i].Cf()[j][coordIndex];
+    //             viscosity_.boundaryFieldRef()[i][j]  = (loc<=startLocation) * (1.0 - fact);
+    //             viscosity_.boundaryFieldRef()[i][j] += ((loc>startLocation) && (loc<startLocation+width)) *
+    //                 (
+    //                     1.0 - fact * Foam::cos
+    //                         (
+    //                             Foam::constant::mathematical::pi * (loc - startLocation)/width
+    //                         )
+
+    //                 );
+    //             viscosity_.boundaryFieldRef()[i][j] += (loc>=startLocation+width) * (1.0 + fact);
+    //             viscosity_.boundaryFieldRef()[i][j] *= 0.5 * viscosityMax;
+    //         }
+    //     }
+    // }
 
 
 }
