@@ -19,6 +19,8 @@ FoamFile
 
   application       moveDynamicMesh;
 
+  li             ( "libSOWFAboundaryConditions.so" "libSOWFAincompressibleTurbulenceModels.so" );
+
   startFrom         startTime;
 
   startTime         0.0;
