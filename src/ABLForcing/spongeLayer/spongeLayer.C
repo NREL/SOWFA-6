@@ -107,7 +107,7 @@ Foam::spongeLayer::spongeLayer
             runTime_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::AUTO_WRITE //NO_WRITE
         ),
         mesh_,
         dimensionedVector("bodyForce",dimensionSet(0, 1, -2, 0, 0, 0, 0),vector::zero)
@@ -132,6 +132,11 @@ Foam::spongeLayer::spongeLayer
     //Info << "spongeDict: " << spongeDict << endl;
 
     const wordList spongesList = spongeDict.toc();
+
+    if ( spongesList.size() == 0 )
+    {
+        Info << "No sponge layers specified in ABLProperties. Skipping." << endl;
+    }
   
     // Loop over all sponge subdictionaries
     forAll(spongesList, s)
