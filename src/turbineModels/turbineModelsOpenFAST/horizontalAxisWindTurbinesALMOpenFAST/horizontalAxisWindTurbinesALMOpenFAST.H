@@ -291,6 +291,13 @@ private:
             //  spanwise direction, and the drage is pareallel to the local velocity vector.  The second
             //  option follows Spalart's formulation.
             DynamicList<word> bladeForceProjectionDirection;
+    
+            //- If the body force projection function is poorly resolved on the mesh, it may not integrate
+            //  back to the desired force.  The most desirable option is to increase mesh resolution, but
+            //  if this is not possible, then this provides an option to scale the body forces to match
+            //  the desired forces.
+            DynamicList<bool> includeBladeBodyForceScaling;
+            DynamicList<word> bladeBodyForceScalingQuantity;
 
             //- List of body force normalization parameter for each turbine (m). This controls
             //  the width of the Gaussian projection.  It should be tied to grid width.
@@ -737,7 +744,7 @@ private:
         void getChordLengths();
 
         //- Body force projection.
-        void updateBladeBodyForce(int turbineNumber);
+        vector updateBladeBodyForce(int turbineNumber, scalar projectionScaling, bool updateBodyForce);
         void updateNacelleBodyForce(int turbineNumber);
         void updateTowerBodyForce(int turbineNumber);
 

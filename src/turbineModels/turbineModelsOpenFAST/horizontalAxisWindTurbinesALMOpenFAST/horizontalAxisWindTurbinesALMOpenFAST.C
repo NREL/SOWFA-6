@@ -2461,7 +2461,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::computeBladeAlignedVelocity()
 
 
 
-void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumber)
+vector horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumber, scalar projectionScaling, bool updateBodyForce)
 {
     int i = turbineNumber;
 
@@ -2554,6 +2554,9 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
                             {
                                 spreading = computeBladeProjectionFunction(disVector,r0,i,j,k);
                             }
+                            
+                            // If the projection gets scaled, here is where that happens.
+                            spreading *= projectionScaling;
 
                             // Add this spreading to the overall force projection field.
                             gBlade[bladeInfluenceCells[i][m]] += spreading;
@@ -2605,11 +2608,11 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
                             }
                             else if (bladeForceProjectionDirection[i] == "sampledVelocityAligned")
                             {
-                                bodyForce[bladeInfluenceCells[i][m]] += bladePointForce[i][j][k] * spreading;
+                                bodyForce[bladeInfluenceCells[i][m]] += bladePointForce[i][j][k] * spreading * scalar(updateBodyForce);
                             }
                             else
                             {
-                                bodyForce[bladeInfluenceCells[i][m]] += bladePointForce[i][j][k] * spreading;
+                                bodyForce[bladeInfluenceCells[i][m]] += bladePointForce[i][j][k] * spreading * scalar(updateBodyForce);
                             }
 /*
                         }
@@ -2770,13 +2773,21 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
   //}
     reduce(rotorAxialForceBodySum,sumOp<scalar>());
     reduce(rotorTorqueBodySum,sumOp<scalar>());
+    
+    vector ratio = vector::zero;
+    ratio[0] = rotorTorqueBodySum/max(rotorTorque[i],1.0E-5);
+    ratio[1] = rotorAxialForceBodySum/rotorAxialForce[i];
+    return ratio;
 
 
     // Print information comparing the actual rotor thrust and torque to the integrated body force.
+    //if (updateBodyForce)
+    {
     Info << "Turbine " << i << tab << "Rotor Axial Force from Body Force = " << rotorAxialForceBodySum << tab << "Rotor Axial Force from Actuator = " << rotorAxialForce[i] << tab  
          << "Ratio = " << rotorAxialForceBodySum/rotorAxialForce[i] << endl;
     Info << "Turbine " << i << tab << "Rotor Torque from Body Force = " << rotorTorqueBodySum << tab << "Rotor Torque from Actuator = " << rotorTorque[i] << tab 
          << "Ratio = " << rotorTorqueBodySum/max(rotorTorque[i],1.0E-5) << endl;
+    }
 }
 
 
@@ -3933,6 +3944,10 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
     // Compute the actuator point forces.
     getForces();
 
+    
+    // Project the actuator forces as body forces.
+    
+    
     // Zero out the body forces and spreading function.
     bodyForce *= 0.0;
     gBlade *= 0.0;
@@ -3940,13 +3955,43 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
     // Project the actuator forces as body forces.
     forAll(turbineName,i)
     {
-        updateBladeBodyForce(i);
+        // for the blade forces, treat this specially because there is the option to scale body force
+        // projection based on how the well it integrates back to the desired value.
+        
+        // in the first pass, proceed as normal with no scaling, and compute the ratio of integrated
+        // body force to the desired force.  If scaling is going to be performed, do not update the
+        // body forces in this first pass, though.  If scaling is not performed, go ahead and update
+        // the body forces and be done.
+        scalar bodyForceScalar = 1.0;
+        
+        bool updateBodyForce = (includeBladeBodyForceScaling[i]) ? false : true;
+        
+        vector scaling = vector::zero;
+        scaling = updateBladeBodyForce(i, bodyForceScalar, updateBodyForce);
+        
+        // if scaling will be done, get the scaling based on thrust or torque, and update the body
+        // forces using this scaling and actually apply them this time.
+        if (includeBladeBodyForceScaling[i])
+        {
+            if (bladeBodyForceScalingQuantity == "thrust")
+            {
+                bodyForceScalar = scaling[0];
+            }
+            else if (bladeBodyForceScalingQuantity == "torque")
+            {
+                bodyForceScalar = scaling[1];
+            }
+            updateBodyForce = true;
+            scaling = updateBladeBodyForce(i, bodyForceScalar, updateBodyForce);
+        }
      
+        // if the nacelle is to be included, update body forces for it.
         if (includeNacelle[i])
         {
             updateNacelleBodyForce(i);
         }
      
+        // if the tower is to be included, update body forces for it.
         if (includeTower[i])
         {
             updateTowerBodyForce(i);
