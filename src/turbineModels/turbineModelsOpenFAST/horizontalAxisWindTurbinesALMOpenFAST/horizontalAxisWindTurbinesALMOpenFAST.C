@@ -374,8 +374,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::readInput()
 
         bladeForceProjectionDirection.append(word(turbineArrayProperties.subDict(turbineName[i]).lookup("bladeForceProjectionDirection")));
 
-        includeBladeBodyForceScaling.append(readBool(turbineArrayProperties.subDict(turbineName[i]).lookup("includeBladeBodyForceScaling")));
-        bladeBodyForceScalingQuantity.append(word(turbineArrayProperties.subDict(turbineName[i]).lookup("bladeBodyForceScalingQuantity")));
+        bladeBodyForceScaling.append(turbineArrayProperties.subDict(turbineName[i]).lookupOrDefault<word>("bladeBodyForceScaling","none"));
 
         bladeEpsilon.append(vector(turbineArrayProperties.subDict(turbineName[i]).lookup("bladeEpsilon")));
         nacelleEpsilon.append(vector(turbineArrayProperties.subDict(turbineName[i]).lookup("nacelleEpsilon")));
@@ -3966,26 +3965,26 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
         // body forces in this first pass, though.  If scaling is not performed, go ahead and update
         // the body forces and be done.
         scalar bodyForceScalar = 1.0;
-        bool updateBodyForce = !includeBladeBodyForceScaling[i];
+        bool updateBodyForce = (bladeBodyForceScaling[i] == "none");
 
         List<scalar> scaling = updateBladeBodyForce(i, bodyForceScalar, updateBodyForce);
 
         // if scaling will be done, get the scaling based on thrust or torque, and update the body
         // forces using this scaling and actually apply them this time.
-        if (includeBladeBodyForceScaling[i])
+        if (bladeBodyForceScaling[i] != "none")
         {
-            if (bladeBodyForceScalingQuantity[i] == "torque")
+            if (bladeBodyForceScaling[i] == "torque")
             {
                 bodyForceScalar = 1.0/scaling[0];
             }
-            else if (bladeBodyForceScalingQuantity[i] == "thrust")
+            else if (bladeBodyForceScaling[i] == "thrust")
             {
                 bodyForceScalar = 1.0/scaling[1];
             }
             else
             {
                 Info<< "WARNING: Unrecognized body force scaling quantity '"
-                    << bladeBodyForceScalingQuantity[i]
+                    << bladeBodyForceScaling[i]
                     << "' -- no scaling performed"
                     << endl;
             }
