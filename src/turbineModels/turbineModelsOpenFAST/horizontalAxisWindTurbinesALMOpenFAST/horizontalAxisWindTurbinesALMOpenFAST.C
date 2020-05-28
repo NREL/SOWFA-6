@@ -3982,6 +3982,13 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
             {
                 bodyForceScalar = 1.0/scaling[1];
             }
+            else
+            {
+                Info<< "WARNING: Unrecognized body force scaling quantity '"
+                    << bladeBodyForceScalingQuantity[i]
+                    << "' -- no scaling performed"
+                    << endl;
+            }
             updateBodyForce = true;
             scaling = updateBladeBodyForce(i, bodyForceScalar, updateBodyForce);
         }
