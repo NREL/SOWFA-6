@@ -2464,7 +2464,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::computeBladeAlignedVelocity()
 
 
 
-vector horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumber, scalar projectionScaling, bool updateBodyForce)
+List<scalar> horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumber, scalar projectionScaling, bool updateBodyForce)
 {
     int i = turbineNumber;
 
@@ -2777,7 +2777,7 @@ vector horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNu
     reduce(rotorAxialForceBodySum,sumOp<scalar>());
     reduce(rotorTorqueBodySum,sumOp<scalar>());
     
-    vector ratio = vector::zero;
+    List<scalar> ratio(2, 0.0);
     ratio[0] = rotorTorqueBodySum/max(rotorTorque[i],1.0E-5);
     ratio[1] = rotorAxialForceBodySum/rotorAxialForce[i];
 
@@ -3969,7 +3969,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
         
         bool updateBodyForce = (includeBladeBodyForceScaling[i]) ? false : true;
 
-        vector scaling = vector::zero;
+        List<scalar> scaling(2, 0.0);
         scaling = updateBladeBodyForce(i, bodyForceScalar, updateBodyForce);
 
         // if scaling will be done, get the scaling based on thrust or torque, and update the body

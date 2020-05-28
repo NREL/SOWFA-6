@@ -744,7 +744,7 @@ private:
         void getChordLengths();
 
         //- Body force projection.
-        vector updateBladeBodyForce(int turbineNumber, scalar projectionScaling, bool updateBodyForce);
+        List<scalar> updateBladeBodyForce(int turbineNumber, scalar projectionScaling, bool updateBodyForce);
         void updateNacelleBodyForce(int turbineNumber);
         void updateTowerBodyForce(int turbineNumber);
 
