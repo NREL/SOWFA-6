@@ -374,6 +374,9 @@ void horizontalAxisWindTurbinesALMOpenFAST::readInput()
 
         bladeForceProjectionDirection.append(word(turbineArrayProperties.subDict(turbineName[i]).lookup("bladeForceProjectionDirection")));
 
+        includeBladeBodyForceScaling.append(readBool(turbineArrayProperties.subDict(turbineName[i]).lookup("includeBladeBodyForceScaling")));
+        bladeBodyForceScalingQuantity.append(word(turbineArrayProperties.subDict(turbineName[i]).lookup("bladeBodyForceScalingQuantity")));
+
         bladeEpsilon.append(vector(turbineArrayProperties.subDict(turbineName[i]).lookup("bladeEpsilon")));
         nacelleEpsilon.append(vector(turbineArrayProperties.subDict(turbineName[i]).lookup("nacelleEpsilon")));
         towerEpsilon.append(vector(turbineArrayProperties.subDict(turbineName[i]).lookup("towerEpsilon")));
@@ -2777,17 +2780,17 @@ vector horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNu
     vector ratio = vector::zero;
     ratio[0] = rotorTorqueBodySum/max(rotorTorque[i],1.0E-5);
     ratio[1] = rotorAxialForceBodySum/rotorAxialForce[i];
-    return ratio;
-
 
     // Print information comparing the actual rotor thrust and torque to the integrated body force.
-    //if (updateBodyForce)
+    if (updateBodyForce)
     {
-    Info << "Turbine " << i << tab << "Rotor Axial Force from Body Force = " << rotorAxialForceBodySum << tab << "Rotor Axial Force from Actuator = " << rotorAxialForce[i] << tab  
-         << "Ratio = " << rotorAxialForceBodySum/rotorAxialForce[i] << endl;
-    Info << "Turbine " << i << tab << "Rotor Torque from Body Force = " << rotorTorqueBodySum << tab << "Rotor Torque from Actuator = " << rotorTorque[i] << tab 
-         << "Ratio = " << rotorTorqueBodySum/max(rotorTorque[i],1.0E-5) << endl;
+        Info << "Turbine " << i << tab << "Rotor Torque from Body Force = " << rotorTorqueBodySum << tab << "Rotor Torque from Actuator = " << rotorTorque[i] << tab 
+             << "Ratio = " << ratio[0] << endl;
+        Info << "Turbine " << i << tab << "Rotor Axial Force from Body Force = " << rotorAxialForceBodySum << tab << "Rotor Axial Force from Actuator = " << rotorAxialForce[i] << tab  
+             << "Ratio = " << ratio[1] << endl;
     }
+
+    return ratio;
 }
 
 
@@ -3965,21 +3968,21 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
         scalar bodyForceScalar = 1.0;
         
         bool updateBodyForce = (includeBladeBodyForceScaling[i]) ? false : true;
-        
+
         vector scaling = vector::zero;
         scaling = updateBladeBodyForce(i, bodyForceScalar, updateBodyForce);
-        
+
         // if scaling will be done, get the scaling based on thrust or torque, and update the body
         // forces using this scaling and actually apply them this time.
         if (includeBladeBodyForceScaling[i])
         {
-            if (bladeBodyForceScalingQuantity == "thrust")
+            if (bladeBodyForceScalingQuantity[i] == "torque")
             {
-                bodyForceScalar = scaling[0];
+                bodyForceScalar = 1.0/scaling[0];
             }
-            else if (bladeBodyForceScalingQuantity == "torque")
+            else if (bladeBodyForceScalingQuantity[i] == "thrust")
             {
-                bodyForceScalar = scaling[1];
+                bodyForceScalar = 1.0/scaling[1];
             }
             updateBodyForce = true;
             scaling = updateBladeBodyForce(i, bodyForceScalar, updateBodyForce);
