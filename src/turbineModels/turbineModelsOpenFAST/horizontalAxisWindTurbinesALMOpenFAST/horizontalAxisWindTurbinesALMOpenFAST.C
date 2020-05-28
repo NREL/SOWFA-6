@@ -3966,11 +3966,9 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
         // body forces in this first pass, though.  If scaling is not performed, go ahead and update
         // the body forces and be done.
         scalar bodyForceScalar = 1.0;
-        
-        bool updateBodyForce = (includeBladeBodyForceScaling[i]) ? false : true;
+        bool updateBodyForce = !includeBladeBodyForceScaling[i];
 
-        List<scalar> scaling(2, 0.0);
-        scaling = updateBladeBodyForce(i, bodyForceScalar, updateBodyForce);
+        List<scalar> scaling = updateBladeBodyForce(i, bodyForceScalar, updateBodyForce);
 
         // if scaling will be done, get the scaling based on thrust or torque, and update the body
         // forces using this scaling and actually apply them this time.
