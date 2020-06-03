@@ -41,7 +41,7 @@ if [ $(foamDictionary -entry "nCores" -value setUp.$stabState) -ne $cores ]; the
 #stlbb=$(surfaceCheck constant/triSurface/$terrainSTL | grep -e "Bounding" | awk '{print $9}' | awk -F "[.)]" '{print $1}')
 #if [[ $stlbb -ge $(foamDictionary -entry "zMin" -value setUp.$stabState) ]]; then echo "Job killed (8)."; scancel $SLURM_JOBID; fi
 if [ $initializer = precursor ] && [ ! -d $precursorDir/postProcessing/boundaryData ]; then echo "Job killed (8)."; scancel $SLURM_JOBID; fi
-if [ $initializer = precursor ] && [ ! -d $precursorDir/$starTime ];                   then echo "Job killed (9)."; scancel $SLURM_JOBID; fi
+if [ $initializer = precursor ] && [ ! -d $precursorDir/$startTime ];                  then echo "Job killed (9)."; scancel $SLURM_JOBID; fi
 # **************************************************************************************************** #
 
 # ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
@@ -66,7 +66,7 @@ if [ $initializer = precursor ]; then
 
     # Copy the startTime solution dir from precursor 
     cp -rf $precursorDir/$startTime $startTime.fromPrec
-    rm -rf $startTime.fromPrec/{cellDist,uniform,CeField,k_0,p,phi,phi_0,sourceMomentum,sourceTemperature,T_0,TBlendingFactor,U_0,UBlendingFactor}
+    rm -rf $startTime.fromPrec/{cellDist,uniform,CeField,U_0,T_0,k_0,p,phi*,sourc*,*BlendingFactor}
     cp -rf $startTime.fromPrec $startTime
     cp 0.original/pointDisplacement $startTime/
 
