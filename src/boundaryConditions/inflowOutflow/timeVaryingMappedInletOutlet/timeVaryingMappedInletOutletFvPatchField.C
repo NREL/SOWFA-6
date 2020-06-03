@@ -728,6 +728,18 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::evaluate(
     //   valueFraction*refValue
     // + (1 - valueFraction)*(patchInternalField + refGrad*delta)
     Foam::mixedFvPatchField<Type>::evaluate(commsType);
+//    fvPatchField<Type>::operator==
+//    (
+//        this->valueFraction()*this->refValue()
+//      +
+//        (1.0 - this->valueFraction())*
+//        (
+//            this->patchInternalField()
+//        //+ this->refGrad()/this->patch().deltaCoeffs()
+//        )
+//    );
+//
+//    fvPatchField<Type>::evaluate();
 }
 
 
@@ -791,5 +803,34 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::write
     this->writeEntry("value", os);
 }
 
+
+// * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //
+
+template<class Type>
+void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::operator=
+(
+    const fvPatchField<Type>& ptf
+)
+{
+    // Notes:
+    // ------
+    // - When bound() is called for a volScalarField, e.g., when solving for
+    //   k, boundary values are not updated if this operator= is not defined
+    // - bound() is only defined for volScalarField, i.e., a 
+    //     GeometricField<scalar, fvPatchField, volMesh>
+    //   defined in
+    //     finiteVolume/fields/volFields/volFieldsFwd.H
+    // - The default GeometricBoundaryField operator= calls the FieldField
+    //   operator= and is defined in 
+    //     OpenFOAM/fields/GeometricFields/GeometricField/GeometricBoundaryField.C
+    //   for which a "FieldField" corresponds to a field of fields, i.e., a
+    //   field (list of tensor classes--in this case, boundary patches) of
+    //   fields (boundary faces that make up the patch). The operator loops over
+    //   fields (boundaries) and performs an assignment, as defined in
+    //     OpenFOAM/fields/FieldFields/FieldField/FieldField.C
+
+    //Info<< "[TVMIO] Called operator=" << endl;
+    fvPatchField<Type>::operator=(ptf);
+}
 
 // ************************************************************************* //
