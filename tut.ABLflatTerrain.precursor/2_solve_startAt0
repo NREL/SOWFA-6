@@ -68,9 +68,9 @@ foamDictionary -entry "endTime" -set $(echo $endTime+$timeBdData | bc) -disableF
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.saveBdData.startAt$endTime 2>&1
 
 # get some quantities from the logfile
-grep -e "maximum"  -e "^time =" log.2.$solver.startat$starttime | awk ' nr%2 {printf "%.4f    \t", $3}  !(nr%2) {printf "%.4e \n", $2}' > log.maxlocalerror
+grep -e "maximum"  -e "^time =" log.2.$solver.startat$starttime | awk ' nr%2 {printf "%.4f    \t", $3}  !(nr%2) {printf "%.4e \n", $2}' >> log.maxlocalerror
 grep -e "maximum"  -e "^time =" log.2.$solver.savebddata.startat$endtime | awk ' nr%2 {printf "%.4f    \t", $3}  !(nr%2) {printf "%.4e \n", $2}' >> log.maxlocalerror
-grep -e "total - flux"  -e "^time =" log.2.$solver.startat$starttime | awk ' nr%2 {printf "%.4f    \t", $3}  !(nr%2) {printf "%.4e \n", $4}' > log.totalboundaryflux
+grep -e "total - flux"  -e "^time =" log.2.$solver.startat$starttime | awk ' nr%2 {printf "%.4f    \t", $3}  !(nr%2) {printf "%.4e \n", $4}' >> log.totalboundaryflux
 grep -e "total - flux"  -e "^time =" log.2.$solver.savebddata.startat$endtime | awk ' nr%2 {printf "%.4f    \t", $3}  !(nr%2) {printf "%.4e \n", $4}' >> log.totalboundaryflux
 
 # Make the precursor data ready for future mapping and adjust the initial time of boundaryData
