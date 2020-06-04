@@ -39,9 +39,9 @@
 
 - `evaluate()` is now overridden to provide statistics about valueFraction.
 
-- `operator=` is no longer overridden; this was a redefinition of the more general operator= but
-  without the "refGradient" term. In our case, refGradient is always set to zero and the inherited
-  operator= and operator== should be consistent. 
+- `operator=` is no longer overridden; this was a redefinition of the more general calculation in
+  evaluate(), but without the "refGradient" term. In our case, refGradient is always set to zero 
+  and the inherited operator= and operator== should be consistent. 
 
 
 ## Minor changes affecting usage
