@@ -159,8 +159,8 @@ slicesTerrain
             planeType pointAndNormal;
             pointAndNormalDict
             {
-                basePoint (0 0 0);
-                normalVector (1000 0 0);
+                basePoint (1000 0 0);
+                normalVector (1 0 0);
             }
             interpolate true;
         }
