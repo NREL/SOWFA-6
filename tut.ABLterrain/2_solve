@@ -1,0 +1,74 @@
+#!/bin/bash
+#SBATCH --job-name=rTerrain
+#SBATCH --output foam2run_%a.log
+#SBATCH --ntasks=576        # Change on setUp as well
+#SBATCH --time=1-00
+#SBATCH --account=car
+#SBATCH --qos=high
+
+source $HOME/.bash_profile
+cores=$SLURM_NTASKS
+
+echo "Working directory is" $SLURM_SUBMIT_DIR
+echo "Job name is" $SLURM_JOB_NAME
+echo "Submit time is" $(squeue -u $USER -o '%30j %20V' | grep -e $SLURM_JOB_NAME | awk '{print $2}')
+echo "Starting OpenFOAM job at: " $(date)
+echo "using" $cores "core(s)"
+
+# ******************************************** USER INPUT ******************************************** #
+OpenFOAM-6-gcc-dev 	            # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
+startTime=0                     # Start time (DO NOT change for restarted runs) 
+compAvgDelay=5000               # Delay after startTime for computing averages
+# h=40                            # 100,40.  For bump cases.
+# cp system/sampling/slicesBump.h$h                      system/sampling/slicesBump
+stabState=neutral               # neutral, stable, unstable
+solver=superDeliciousVanilla
+interp=midpoint                 # midpoint, linearupwind. divSchemes midpoint needed for gravity waves
+# **************************************************************************************************** #
+
+# **************************************** PERFORM SOME CHECKS *************************************** #
+if [ ! -f foam1preprocess.log ];                             then echo "Job killed (1)"; scancel $SLURM_JOBID; fi
+if [ ! -f system/controlDict.$solver.startAt$startTime ];    then echo "Job killed (2)"; scancel $SLURM_JOBID; fi
+if [ ! -f setUp ];                                           then echo "Job killed (5)"; scancel $SLURM_JOBID; fi
+
+endTime=$(foamDictionary -entry "endTime" -value system/controlDict.$solver.startAt$startTime)
+writeInterval=$(foamDictionary -entry "writeInterval" -value system/controlDict.$solver.startAt$startTime)
+saveAvgTime=$(($startTime+$compAvgDelay))
+latestTime=$(FoamListTimes -processor -latestTime | tail -1)
+
+if [ $saveAvgTime -ge $endTime ];                            then touch "WARNING (7)"; fi
+if [ $writeInterval -gt $saveAvgTime ];                      then touch "WARNING (8)"; fi 
+if [ $(echo "$saveAvgTime%$writeInterval" | bc) -ne 0 ];     then touch "WARNING (9)"; fi
+# **************************************************************************************************** #
+
+# ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
+cp system/controlDict.$solver.startAt$startTime        system/controlDict
+cp system/fvSolution.flow                              system/fvSolution
+cp system/fvSchemes.flow.$interp                       system/fvSchemes
+
+ln -f foam2run_${SLURM_JOBID}.log foam2run_startAt$latestTime
+# **************************************************************************************************** #
+
+# Split run to get to developed-flow stage
+if [ $compAvgDelay -ne 0 ] && [ $latestTime -lt $saveAvgTime ]; then
+    foamDictionary -entry "fieldAverages.enabled" -set "false" system/sampling/fieldAverages
+    foamDictionary -entry "temporalAverages.enabled" -set "false" system/sampling/temporalAverages
+    foamDictionary -entry "endTime" -set $saveAvgTime -disableFunctionEntries system/controlDict
+    srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$latestTime 2>&1
+fi
+
+# Split run to save averages
+continueTime=$(( $latestTime > $saveAvgTime ? $latestTime : $saveAvgTime ))
+foamDictionary -entry "fieldAverages.timeStart" -set $saveAvgTime ystem/sampling/fieldAverages
+foamDictionary -entry "fieldAverages.enabled" -set "true" system/sampling/fieldAverages
+foamDictionary -entry "temporalAverages.timeStart" -set $saveAvgTime system/sampling/temporalAverages
+foamDictionary -entry "temporalAverages.enabled" -set "true" system/sampling/temporalAverages
+foamDictionary -entry "startTime" -set $continueTime -disableFunctionEntries system/controlDict
+foamDictionary -entry "endTime" -set $endTime -disableFunctionEntries system/controlDict 
+srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$continueTime 2>&1
+
+echo "Ending OpenFOAM job at: " $(date)
+
+rm foam2run_${SLURM_JOBID}.log
+
+# **************************************************************************************************** #
