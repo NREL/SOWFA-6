@@ -38,22 +38,18 @@ boundaryField
     west 
     {
         type            cyclic;
-        value           $internalField;
     }
     east 
     {
         type            cyclic;
-        value           $internalField;
     }
     north 
     {
         type            cyclic;
-        value           $internalField;
     }
     south
     {
         type            cyclic;
-        value           $internalField;
     }
 }
 
