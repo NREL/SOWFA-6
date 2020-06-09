@@ -28,33 +28,27 @@ boundaryField
 {
     lower
     {
-        type            fixedValue;
-        value           uniform 0.0;
+        type            zeroGradient;
     }
     upper
     {
-        type            fixedValue;
-        value           uniform 0.0;
+        type            zeroGradient;
     }
     west
     {
-        type            fixedValue;
-        value           uniform 0.0;
+        type            zeroGradient;
     }
     east
     {
-        type            fixedValue;
-        value           uniform 0.0;
+        type            zeroGradient;
     }
     north
     {
-        type            fixedValue;
-        value           uniform 0.0;
+        type            zeroGradient;
     }
     south
     {
-        type            fixedValue;
-        value           uniform 0.0;
+        type            zeroGradient;
     }
 }
 
