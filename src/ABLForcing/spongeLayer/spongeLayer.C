@@ -92,19 +92,16 @@ void Foam::spongeLayer::update()
     }
 
     // "Rayleigh" and "vertical"
-    bodyForce_ = - tauV_ * Unew; //(force=0:~0.08, which is 0.01*$windspeed)
+    bodyForce_ = - tauV_ * Unew;
 
     // "Rayleigh" and "horizontal"
-    bodyForce_ += tauH_ * (Uref_ - U_); //(force=0:~0.08, which is 0.01*$windspeed)
+    bodyForce_ += tauH_ * (Uref_ - U_);
 
     // "viscous" and "vertical"
     bodyForce_ += fvc::laplacian(viscosityV_,Unew);
 
     // "viscous" and "horizontal"
     bodyForce_ += fvc::laplacian(viscosityH_,U_);
-    // The lines below work (force=0:~0.08)
-    //viscosityH_.dimensions().reset(dimensionSet(0, 0, -1, 0, 0, 0, 0));
-    //bodyForce_ += viscosityH_ * (Uref_ - U_);
 
 }
 
