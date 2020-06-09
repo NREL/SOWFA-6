@@ -18,16 +18,15 @@ echo "Starting OpenFOAM job at: " $(date)
 echo "using" $cores "core(s)"
 
 # ******************************************** USER INPUT ******************************************** #
-OpenFOAM-6-gcc-dev      # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
+OpenFOAM-6-gcc-dev        # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
 startTime=0               # Start time
 stabState=neutral         # neutral, stable, unstable
-#inflowDir=west  # not necessary for first script?
 wallModelType=local 
 terrainSTL=biglow_xm15001to16009_ym5005to15485_blendFlatNSEW_shifted.stl
-initializer=precursor                # precursor, setFieldsABL, none. If precursor, set precursorDir, mapTime
+initializer=precursor     # precursor, setFieldsABL, none. If precursor, set precursorDir, mapTime
     precursorDir=~/OpenFOAM/rthedin-6/run/precursor/neutral.W.5at80.5dTInv.0p05z
     mapTime=20000
-    # change diffusivity on dynamicMeshDict depending on geometry (no quadratic for bump)
+    # Change diffusivity on dynamicMeshDict depending on geometry (no quadratic for bump)
 # **************************************************************************************************** #
 
 # **************************************** PERFORM SOME CHECKS *************************************** #
@@ -54,6 +53,17 @@ cp system/fvSchemes.mesh                               system/fvSchemes
 rm -rf constant/polyMesh
 rm -rf constant/boundaryData
 rm -rf $startTime $mapTime
+
+windDir=$(foamDictionary -entry "windDir" -value setUp)
+if   (($windDir==0 || $windDir==360));   then inflowDir=north;
+elif ((0<$windDir&& $windDir<90));       then inflowDir=northeast;
+elif (($windDir==90));                   then inflowDir=east;
+elif ((90<$windDir&& $windDir<180));     then inflowDir=southeast;
+elif (($windDir==180));                  then inflowDir=south;
+elif ((180<$windDir&& $windDir<270));    then inflowDir=southwest;
+elif (($windDir==270));                  then inflowDir=west;
+elif ((270<$windDir&& $windDir<360));    then inflowDir=northwest;
+else touch "WARNING (1)"; fi
 # **************************************************************************************************** #
 
 if [ $initializer = precursor ]; then
@@ -77,9 +87,7 @@ if [ $initializer = precursor ]; then
     cp -rf $precursorDir/constant/polyMesh constant/
 
     # Data from precursor has cyclic boundaries. Change that because of the nature of moveDynamicMesh
-    inflowDir=southwest
-    changeDictionary -dict system/changeDictionaryDict.timeVarying.$inflowDir -time $startTime -enableFunctionEntries -subDict dictionaryReplacement > log.1.changeDictionary 2>&1
-   # changeBoundaryCyclicToPatch $inflowDir  # not necessary when there's no other boundary file
+    changeDictionary -dict system/changeDictionaryDict.TVMIO -time $startTime -enableFunctionEntries -subDict dictionaryReplacement > log.1.changeDictionary.TVMIO 2>&1
 
 else
     # Copy the "clean" .original initial fields to a working copy
@@ -89,6 +97,9 @@ else
 
     # Build the mesh
     blockMesh -noFunctionObjects > log.1.blockMesh 2>&1
+
+    # Change the BC depending on the inflowDir
+    changeDictionary -dict system/changeDictionary.inflowOutflow.$inflowDir -time $startTime -enableFunctionEntries -subDict dictionaryReplacement > log.1.changeDictionary.inflowOutflow.$inflowDir 2>&1
 fi
 
 # Decompose the mesh

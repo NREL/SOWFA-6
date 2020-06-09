@@ -28,14 +28,6 @@ dictionaryReplacement
         {
             south
             {
-                type            zeroGradient;
-            }
-            north
-            {
-                type            zeroGradient;
-            }
-            west
-            {
                 type            codedFixedValue;
                 value           uniform 0;
                 redirectType    strongInversion;
@@ -63,6 +55,14 @@ dictionaryReplacement
                     }
                 #};
             }
+            north
+            {
+                type            zeroGradient;
+            }
+            west
+            {
+                type            zeroGradient;
+            }
             east
             {
                 type            zeroGradient;
@@ -75,9 +75,8 @@ dictionaryReplacement
         {
             south
             {
-                type            inletOutlet;
-                inletValue      uniform (0 0 0);
-                value           uniform (0 0 0);
+                type            fixedValue;
+                value           uniform $U0;
             }
             north
             {
@@ -87,8 +86,9 @@ dictionaryReplacement
             }
             west
             {
-                type            fixedValue;
-                value           uniform $U0;
+                type            inletOutlet;
+                inletValue      uniform (0 0 0);
+                value           uniform (0 0 0);
             }
             east
             {   
@@ -104,7 +104,8 @@ dictionaryReplacement
         {
             south
             {
-                type            zeroGradient;
+                type            fixedValue;
+                value           uniform $k0;
             }
             north
             {
@@ -112,8 +113,7 @@ dictionaryReplacement
             }
             west
             {
-                type            fixedValue;
-                value           uniform $k0;
+                type            zeroGradient;
             }
             east
             {

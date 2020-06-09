@@ -21,7 +21,6 @@ startTime=0                     # Start time (DO NOT change for restarted runs)
 compAvgDelay=5000               # Delay after startTime for computing averages
 # h=40                            # 100,40.  For bump cases.
 # cp system/sampling/slicesBump.h$h                      system/sampling/slicesBump
-stabState=neutral               # neutral, stable, unstable
 solver=superDeliciousVanilla
 interp=midpoint                 # midpoint, linearupwind. divSchemes midpoint needed for gravity waves
 # **************************************************************************************************** #

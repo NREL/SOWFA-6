@@ -32,9 +32,38 @@ dictionaryReplacement
             }
             north
             {
-                type            zeroGradient;
+                type            codedFixedValue;
+                value           uniform 0;
+                redirectType    strongInversion;
+                code
+                #{
+                    scalar TBottom = 300.0;
+                    scalar TTop = 305;
+                    scalar dTdz = 0.003;
+                    scalar dTdz_zi = 0.05;
+                    scalar ziBottom = 700;
+                    scalar ziTop = 800;
+                    scalar zMin = 0.0;
+                    const fvPatch& boundaryPatch = patch();
+                    const vectorField& Cf = boundaryPatch.Cf();
+                    scalarField& field = *this;
+                    forAll(Cf, faceI)
+                    {
+                        scalar z = Cf[faceI].z();
+                        if (z<ziBottom)
+                            field[faceI] = TBottom;
+                        else if (z<ziTop)
+                            field[faceI] = TBottom + dTdz_zi * (z-ziBottom-zMin);
+                        else
+                            field[faceI] = TTop + dTdz * (z-ziTop-zMin);
+                    }
+                #};
             }
             west
+            {
+                type            zeroGradient;
+            }
+            east
             {
                 type            codedFixedValue;
                 value           uniform 0;
@@ -63,10 +92,6 @@ dictionaryReplacement
                     }
                 #};
             }
-            east
-            {
-                type            zeroGradient;
-            }
         }
     }
     U
@@ -81,20 +106,19 @@ dictionaryReplacement
             }
             north
             {
-                type            inletOutlet;
-                inletValue      uniform (0 0 0);
-                value           uniform (0 0 0);
-            }
-            west
-            {
                 type            fixedValue;
                 value           uniform $U0;
             }
-            east
-            {   
+            west
+            {
                 type            inletOutlet;
                 inletValue      uniform (0 0 0);
                 value           uniform (0 0 0);
+            }
+            east
+            {   
+                type            fixedValue;
+                value           uniform $U0;
             }
         }
     }
@@ -108,16 +132,17 @@ dictionaryReplacement
             }
             north
             {
-                type            zeroGradient;
-            }
-            west
-            {
                 type            fixedValue;
                 value           uniform $k0;
             }
-            east
+            west
             {
                 type            zeroGradient;
+            }
+            east
+            {
+                type            fixedValue;
+                value           uniform $k0;
             }
         }
     }

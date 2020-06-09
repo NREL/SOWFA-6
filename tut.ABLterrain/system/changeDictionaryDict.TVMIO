@@ -201,34 +201,26 @@ dictionaryReplacement
             south
             {
                 type            fixedFluxPressure;
-                value           uniform 0.0;
             }
             north
             {
-               // type            zeroGradient;
                 type            fixedFluxPressure;
-                value           uniform 0.0;
             }
             west
             {
                 type            fixedFluxPressure;
-                value           uniform 0.0;
             }
             east
             {
-               // type            zeroGradient;
                 type            fixedFluxPressure;
-                value           uniform 0.0;
             }
             lower
             {
                 type            fixedFluxPressure;
-                value           uniform 0.0;
             }
             upper
             {
                 type            fixedFluxPressure;
-                value           uniform 0.0;
             }
         }
     }
@@ -256,12 +248,12 @@ dictionaryReplacement
                 type            fixedValue;
                 value           uniform (0 0 0);
             }
-            lower
-            {
-                type            fixedValue;
-                value           uniform (0 0 0);
-            }
-            upper
+            //lower
+            //{
+            //    type            fixedValue;
+            //    value           uniform (0 0 0);
+            //}
+            //upper
             {
                 type            fixedValue;
                 value           uniform (0 0 0);
@@ -292,16 +284,16 @@ dictionaryReplacement
                 type            fixedValue;
                 value           uniform (0 0 0 0 0 0);
             }
-            lower
-            {
-                type            SchumannGrotzbach;
-                kappa           $kappa;
-                z0              uniform $z0;
-                betaM           $betaM;
-                gammaM          $gammaM;
-                averageType     $wallModelAverageType;
-                value           uniform (0 0 0 0 0 0);
-            }
+            //lower
+            //{
+            //    type            SchumannGrotzbach;
+            //    kappa           $kappa;
+            //    z0              uniform $z0;
+            //    betaM           $betaM;
+            //    gammaM          $gammaM;
+            //    averageType     $wallModelAverageType;
+            //    value           uniform (0 0 0 0 0 0);
+            //}
             upper
             {
                 type            fixedValue;

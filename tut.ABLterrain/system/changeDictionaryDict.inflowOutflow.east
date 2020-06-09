@@ -36,6 +36,10 @@ dictionaryReplacement
             }
             west
             {
+                type            zeroGradient;
+            }
+            east
+            {
                 type            codedFixedValue;
                 value           uniform 0;
                 redirectType    strongInversion;
@@ -63,10 +67,6 @@ dictionaryReplacement
                     }
                 #};
             }
-            east
-            {
-                type            zeroGradient;
-            }
         }
     }
     U
@@ -87,14 +87,14 @@ dictionaryReplacement
             }
             west
             {
-                type            fixedValue;
-                value           uniform $U0;
-            }
-            east
-            {   
                 type            inletOutlet;
                 inletValue      uniform (0 0 0);
                 value           uniform (0 0 0);
+            }
+            east
+            {   
+                type            fixedValue;
+                value           uniform $U0;
             }
         }
     }
@@ -112,12 +112,12 @@ dictionaryReplacement
             }
             west
             {
-                type            fixedValue;
-                value           uniform $k0;
+                type            zeroGradient;
             }
             east
             {
-                type            zeroGradient;
+                type            fixedValue;
+                value           uniform $k0;
             }
         }
     }
