@@ -118,8 +118,8 @@ spongeList
                                                     // specified coordinate direction, "stepDown" decreases in the coordinate direction.
         dampingDir       "horizontal";              // Components to be damped: "horizontal" for x and y, or "vertical" for z
                                                     //    if "horizontal" and "Rayleigh", Ux and Uy need to be specified  
-        Ux               10.0;                      // Sponge layer reference velocity (only for Rayleigh) in x direction (m/s).
-        Uy               0.0;                       // Sponge layer reference velocity (only for Rayleigh) in y direction (m/s).
+        Ux               10.0;                      // Sponge layer reference velocity in x direction (m/s).
+        Uy               0.0;                       // Sponge layer reference velocity in y direction (m/s).
     }
     eastSponge
     {
@@ -131,6 +131,7 @@ spongeList
         viscosityMax     0.01;      
         coordIndex       0;         
         direction        "stepUp";  
+        dampingDir       "vertical";
     }
 }
 
