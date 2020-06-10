@@ -23,8 +23,8 @@ solver=superDeliciousVanilla
 # **************************************************************************************************** #
 
 # **************************************** PERFORM SOME CHECKS *************************************** #
-if [ ! -f system/controlDict.$solver.startAt$startTime ]; then echo "Job killed (1)."; scancel $SLURM_JOBID; fi
-if [ ! -f setUp.$stabState ];                             then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
+if [ ! -f system/controlDict.$solver.startAt$startTime ]; then echo "Job killed (1)"; scancel $SLURM_JOBID; fi
+if [ ! -f setUp.$stabState ];                             then echo "Job killed (2)"; scancel $SLURM_JOBID; fi
 # **************************************************************************************************** #
 
 # ************************************ COPYING APPROPRIATE FILES ************************************* #

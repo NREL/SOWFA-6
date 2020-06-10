@@ -41,6 +41,7 @@ if [ $(echo "$endTime%$writeInterval" | bc) -ne 0 ]; then touch  "WARNING (1)"; 
 
 # ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
 cp system/controlDict.$solver.startAt$startTime        system/controlDict
+
 ln -f foam2run_${SLURM_JOBID}.log foam2run_startAt$latestTime
 # **************************************************************************************************** #
 
@@ -84,8 +85,8 @@ else
     echo "Case not reconstructed and first time of boundaryData not fixed. Check if endTime dir exists."
 fi
 
-rm foam2run_${SLURM_JOBID}.log
-
 echo "Ending OpenFOAM job at: " $(date)
+
+rm foam2run_${SLURM_JOBID}.log
 
 # **************************************************************************************************** #

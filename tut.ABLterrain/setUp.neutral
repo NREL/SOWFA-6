@@ -68,8 +68,10 @@ decompOrder          (24 24 1);                     // Order of the decompositio
 // Planar averaging and source term statistics options.
 // * Used by the planarAveraging function object in 'system/sampling/planarAveraging'
 
-statisticsFrequency  5;                           // Frequency in time steps of statistics gathering.
-
+writeSource                 true;
+writeSourceInterval         1;
+writePlanarAverage          true;
+writePlanarAverageInterval  1;
 
 
 
