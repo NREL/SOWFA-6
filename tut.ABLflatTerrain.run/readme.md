@@ -4,14 +4,11 @@
 - Case relies on an appropriate precursor
 - No turbine files included
 - Adjust the refinement regions as needed. The idea of the `ground` one is that the the refinement is near the `lower` patch and consequently the `wallModelAverageType` changes
+- For a crashed/restarted run, just re-submit 2_solve. No changing of the script is necessary whatsoever
 
 
 # To-do
 
-- Add the split run to save averages (could start averages from the beginning which is fine for now, but with turbines this is not ideal)
-- Change `changeDictionrary` calls to `foamDictionary`. `changeDictionary` is deprecated. See use in post #18 of https://www.cfd-online.com/Forums/openfoam-solving/114435-restarting-simulations-openfoam-updated-boundary-conditions.html
-- Incorporate Eliot's check whether or not run was successful
-
-# bug
-
-- changedictionary doesn't seem to be working. The blockmesh dict needs to have patch as opposed to cyclic?
+- If the flow is aligned (N, S, E, W), then cyclic can still be used on the aligned boundaries. Right now everything is being changed to TVMIO.
+- Add the statistics and statistics frequency back to ABLProperties
+- Include source term handling from the precursor

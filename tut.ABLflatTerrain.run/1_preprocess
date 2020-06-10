@@ -104,7 +104,7 @@ decomposePar -cellDist -force > log.1.decomposePar 2>&1
 # Perform global refinements after decomposePar, avoiding load unbalance
 refineMeshGlobal $nGlobalRefs
 
-# Change the boundary conditions from cyclic everywhere to TVMIO
+# Change the boundary conditions from cyclic everywhere to TVMIO. See readme file
 srun -n $cores changeDictionary -dict system/changeDictionaryDict.TVMIO -time $startTime -enableFunctionEntries -subDict dictionaryReplacement -parallel > log.1.changeDictionary.TVMIO 2>&1
 
 # Renumber the mesh for better matrix solver performance.
