@@ -75,7 +75,7 @@ foamDictionary -entry "endTime" -set $(echo $endTime+$timeBdData | bc) -disableF
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.saveBdData.startAt$continueTime 2>&1
 
 # Make the precursor data ready for future mapping and adjust the initial time of boundaryData
-if [ -d processor0/$endTime ]; then
+if [ -d processor0/$endTime ] && [ ! -f log.3.reconstructPar ]; then
     reconstructPar -time $endTime > log.3.reconstructPar 2>&1
     for dir in north south east west; do
         ln -sf $(ls postProcessing/boundaryData/$dir | head -1) postProcessing/boundaryData/$dir/$endTime
