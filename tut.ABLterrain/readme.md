@@ -13,6 +13,8 @@
 - There is no need to change the bottom BC for convective cases on the second script because if it is coming from a precursor, such information is already there in `$mapTime`, and if it is a run with `$initializer != precursor`, it will be on the `qwall.<state>` and `setUp` files
 - Uses temporalAveraging from SOWFA's libs for averaging
 - The `lower` boundary condition for `Rwall` and `qwall` are no longer modified by changeDictionary
+- For restarted runs, simply re-submit the second script, without changing
+
 
 # To-do / WIP
 

@@ -30,17 +30,17 @@ initializer=precursor     # precursor, setFieldsABL, none. If precursor, set pre
 # **************************************************************************************************** #
 
 # **************************************** PERFORM SOME CHECKS *************************************** #
-if [ ! -f system/controlDict.moveDynamicMesh ];                  then echo "Job killed (1)."; scancel $SLURM_JOBID; fi
-if ! { [ -f setUp.$stabState ] || [ -f $precursorDir/setUp ]; }; then echo "Job killed (2)."; scancel $SLURM_JOBID; fi
-if [ ! -f 0.original/qwall.$stabState ];                         then echo "Job killed (3)."; scancel $SLURM_JOBID; fi
-if [ ! -f 0.original/pointDisplacement ];                        then echo "Job killed (4)."; scancel $SLURM_JOBID; fi
-if [ ! -f constant/dynamicMeshDict ];                            then echo "Job killed (5)."; scancel $SLURM_JOBID; fi
-if [ ! -f constant/triSurface/$terrainSTL ] ;                    then echo "Job killed (6)."; scancel $SLURM_JOBID; fi
-if [ $(foamDictionary -entry "nCores" -value setUp.$stabState) -ne $cores ]; then echo "Job killed (7)."; scancel $SLURM_JOBID; fi
+if [ ! -f system/controlDict.moveDynamicMesh ];                  then echo "Job killed (1)"; scancel $SLURM_JOBID; fi
+if ! { [ -f setUp.$stabState ] || [ -f $precursorDir/setUp ]; }; then echo "Job killed (2)"; scancel $SLURM_JOBID; fi
+if [ ! -f 0.original/qwall.$stabState ];                         then echo "Job killed (3)"; scancel $SLURM_JOBID; fi
+if [ ! -f 0.original/pointDisplacement ];                        then echo "Job killed (4)"; scancel $SLURM_JOBID; fi
+if [ ! -f constant/dynamicMeshDict ];                            then echo "Job killed (5)"; scancel $SLURM_JOBID; fi
+if [ ! -f constant/triSurface/$terrainSTL ] ;                    then echo "Job killed (6)"; scancel $SLURM_JOBID; fi
+if [ $(foamDictionary -entry "nCores" -value setUp.$stabState) -ne $cores ]; then echo "Job killed (7)"; scancel $SLURM_JOBID; fi
 #stlbb=$(surfaceCheck constant/triSurface/$terrainSTL | grep -e "Bounding" | awk '{print $9}' | awk -F "[.)]" '{print $1}')
 #if [[ $stlbb -ge $(foamDictionary -entry "zMin" -value setUp.$stabState) ]]; then echo "Job killed (8)."; scancel $SLURM_JOBID; fi
-if [ $initializer = precursor ] && [ ! -d $precursorDir/postProcessing/boundaryData ]; then echo "Job killed (8)."; scancel $SLURM_JOBID; fi
-if [ $initializer = precursor ] && [ ! -d $precursorDir/$startTime ];                  then echo "Job killed (9)."; scancel $SLURM_JOBID; fi
+if [ $initializer = precursor ] && [ ! -d $precursorDir/postProcessing/boundaryData ]; then echo "Job killed (8)"; scancel $SLURM_JOBID; fi
+if [ $initializer = precursor ] && [ ! -d $precursorDir/$startTime ];                  then echo "Job killed (9)"; scancel $SLURM_JOBID; fi
 # **************************************************************************************************** #
 
 # ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
@@ -71,6 +71,7 @@ if [ $initializer = precursor ]; then
 
     # Get information from the precursor
     cp $precursorDir/setUp                                 setUp
+    rm setUp.*
     foamDictionary -entry "nCores" -set $cores setUp
     foamDictionary -entry "wallModelAverageType" -set $wallModelType setUp
 

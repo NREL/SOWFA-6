@@ -9,6 +9,7 @@
 
 # To-do
 
+- Add change of bottom wall model depending on the refinement region placement (4th item above)
 - If the flow is aligned (N, S, E, W), then cyclic can still be used on the aligned boundaries. Right now everything is being changed to TVMIO.
 - Add the statistics and statistics frequency back to ABLProperties
 - Include source term handling from the precursor

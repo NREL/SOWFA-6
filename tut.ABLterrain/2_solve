@@ -28,16 +28,18 @@ interp=midpoint                 # midpoint, linearupwind. divSchemes midpoint ne
 # **************************************** PERFORM SOME CHECKS *************************************** #
 if [ ! -f foam1preprocess.log ];                             then echo "Job killed (1)"; scancel $SLURM_JOBID; fi
 if [ ! -f system/controlDict.$solver.startAt$startTime ];    then echo "Job killed (2)"; scancel $SLURM_JOBID; fi
-if [ ! -f setUp ];                                           then echo "Job killed (5)"; scancel $SLURM_JOBID; fi
+if [ ! -f setUp ];                                           then echo "Job killed (3)"; scancel $SLURM_JOBID; fi
 
+lastBdData=$(ls $(ls -d constant/boundaryData/* | head -1) | tail -2 | head -1)
 endTime=$(foamDictionary -entry "endTime" -value system/controlDict.$solver.startAt$startTime)
 writeInterval=$(foamDictionary -entry "writeInterval" -value system/controlDict.$solver.startAt$startTime)
 saveAvgTime=$(($startTime+$compAvgDelay))
 latestTime=$(FoamListTimes -processor -latestTime | tail -1)
 
-if [ $saveAvgTime -ge $endTime ];                            then touch "WARNING (7)"; fi
-if [ $writeInterval -gt $saveAvgTime ];                      then touch "WARNING (8)"; fi 
-if [ $(echo "$saveAvgTime%$writeInterval" | bc) -ne 0 ];     then touch "WARNING (9)"; fi
+if [ $saveAvgTime -ge $endTime ];                            then touch "WARNING (1)"; fi
+if [ $writeInterval -gt $saveAvgTime ];                      then touch "WARNING (2)"; fi 
+if [ $(echo "$saveAvgTime%$writeInterval" | bc) -ne 0 ];     then touch "WARNING (3)"; fi
+if [ $(echo "$lastBdData <= $endTime" | bc) ];               then touch "WARNING (4)"; fi
 # **************************************************************************************************** #
 
 # ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
@@ -58,10 +60,10 @@ fi
 
 # Split run to save averages
 continueTime=$(( $latestTime > $saveAvgTime ? $latestTime : $saveAvgTime ))
-foamDictionary -entry "fieldAverages.timeStart" -set $saveAvgTime ystem/sampling/fieldAverages
-foamDictionary -entry "fieldAverages.enabled" -set "true" system/sampling/fieldAverages
+foamDictionary -entry "fieldAverages.timeStart"    -set $saveAvgTime system/sampling/fieldAverages
 foamDictionary -entry "temporalAverages.timeStart" -set $saveAvgTime system/sampling/temporalAverages
-foamDictionary -entry "temporalAverages.enabled" -set "true" system/sampling/temporalAverages
+foamDictionary -entry "fieldAverages.enabled"      -set "true" system/sampling/fieldAverages
+foamDictionary -entry "temporalAverages.enabled"   -set "true" system/sampling/temporalAverages
 foamDictionary -entry "startTime" -set $continueTime -disableFunctionEntries system/controlDict
 foamDictionary -entry "endTime" -set $endTime -disableFunctionEntries system/controlDict 
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$continueTime 2>&1
