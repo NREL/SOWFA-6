@@ -33,7 +33,7 @@ FoamFile
 
   writeControl      adjustableRunTime;
 
-  writeInterval     1000.0; 
+  writeInterval     2000.0; 
 
   purgeWrite        0;
 
