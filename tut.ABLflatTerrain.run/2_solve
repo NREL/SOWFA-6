@@ -31,7 +31,7 @@ lastBdData=$(ls $(ls -d constant/boundaryData/* | head -1) | tail -2 | head -1)
 endTime=$(foamDictionary -entry "endTime" -value system/controlDict.$solver.startAt$startTime)
 writeInterval=$(foamDictionary -entry "writeInterval" -value system/controlDict.$solver.startAt$startTime)
 saveAvgTime=$(($startTime+$compAvgDelay))
-latestTime=$(FoamListTimes -processor -latestTime | tail -1)
+latestTime=$(foamListTimes -processor -latestTime -withZero | tail -1)
 
 if [ $saveAvgTime -ge $endTime ];                            then touch "WARNING (1)"; fi
 if [ $writeInterval -gt $saveAvgTime ];                      then touch "WARNING (2)"; fi

@@ -34,7 +34,7 @@ if [ ! -f system/sampling/boundaryData ];                               then ech
 
 endTime=$(foamDictionary -entry "endTime" -value system/controlDict.$solver.startAt$startTime)
 writeInterval=$(foamDictionary -entry "writeInterval" -value system/controlDict.$solver.startAt$startTime)
-latestTime=$(FoamListTimes -processor -latestTime | tail -1)
+latestTime=$(foamListTimes -processor -latestTime -withZero | tail -1)
 
 if [ $(echo "$endTime%$writeInterval" | bc) -ne 0 ]; then touch  "WARNING (1)"; fi
 # **************************************************************************************************** #
