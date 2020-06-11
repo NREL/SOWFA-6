@@ -94,13 +94,13 @@ else
     # Copy the "clean" .original initial fields to a working copy
     cp -rf $startTime.original $startTime
     cp     $startTime/qwall.$stabState   $startTime/qwall  &&  rm $startTime/qwall.*
-    rm     $startTime/T.*
+    rm -f  $startTime/{T.*,U.*}
 
     # Build the mesh
     blockMesh -noFunctionObjects > log.1.blockMesh 2>&1
 
     # Change the BC depending on the inflowDir
-    changeDictionary -dict system/changeDictionary.inflowOutflow.$inflowDir -time $startTime -enableFunctionEntries -subDict dictionaryReplacement > log.1.changeDictionary.inflowOutflow.$inflowDir 2>&1
+    changeDictionary -dict system/changeDictionaryDict.inflowOutflow.$inflowDir -time $startTime -enableFunctionEntries -subDict dictionaryReplacement > log.1.changeDictionary.inflowOutflow.$inflowDir 2>&1
 fi
 
 # Decompose the mesh
