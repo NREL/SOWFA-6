@@ -106,14 +106,14 @@ dictionaryReplacement
             north
             {
                 type            inletOutlet;
-                inletValue      uniform (0 0 0);
-                value           uniform (0 0 0);
+                inletValue      uniform $U0; 
+                value           uniform $U0;
             }
             west
             {
                 type            inletOutlet;
-                inletValue      uniform (0 0 0);
-                value           uniform (0 0 0);
+                inletValue      uniform $U0; 
+                value           uniform $U0;
             }
             east
             {   

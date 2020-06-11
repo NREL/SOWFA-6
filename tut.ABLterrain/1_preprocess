@@ -2,7 +2,7 @@
 #SBATCH --job-name=sTerrain
 #SBATCH --output foam1preprocess.log
 #SBATCH --ntasks=792
-#SBATCH --time=2:00:00
+#SBATCH --time=3:00:00
 # #SBATCH --mem=180G
 #SBATCH --account=car
 #SBATCH --qos=high

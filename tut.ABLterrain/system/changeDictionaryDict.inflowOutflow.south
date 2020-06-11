@@ -43,7 +43,7 @@ dictionaryReplacement
                     const fvPatch& boundaryPatch = patch();
                     const vectorField& Cf = boundaryPatch.Cf();
                     scalarField& field = *this;
-                    forAll(Cf, faceI)
+                    forA $U0;l
                     {
                         scalar z = Cf[faceI].z();
                         if (z<ziBottom)
@@ -81,20 +81,20 @@ dictionaryReplacement
             north
             {
                 type            inletOutlet;
-                inletValue      uniform (0 0 0);
-                value           uniform (0 0 0);
+                inletValue      uniform $U0; 
+                value           uniform $U0;
             }
             west
             {
                 type            inletOutlet;
-                inletValue      uniform (0 0 0);
-                value           uniform (0 0 0);
+                inletValue      uniform $U0; 
+                value           uniform $U0;
             }
             east
             {   
                 type            inletOutlet;
-                inletValue      uniform (0 0 0);
-                value           uniform (0 0 0);
+                inletValue      uniform $U0; 
+                value           uniform $U0;
             }
         }
     }
