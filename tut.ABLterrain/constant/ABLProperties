@@ -90,7 +90,7 @@ spongeList
         coordIndex       2;                         // Coordinate index: 0, 1 or 2 corresponding to yz, xz or xy slab.
         direction        "stepUp";                  // Shape of damping function: "stepUp" increases smoothly from 0 to 1 in the
                                                     // specified coordinate direction, "stepDown" decreases in the coordinate direction.
-        dampingDir       "horizontal";              // Components to be damped: "horizontal" for x and y, or "vertical" for z
+        dampingComp      "horizontal";              // Components to be damped: "horizontal" for x and y, or "vertical" for z
                                                     //    if "horizontal" and "Rayleigh", Ux and Uy need to be specified  
         Ux               10.0;                      // Sponge layer reference velocity in x direction (m/s).
         Uy               0.0;                       // Sponge layer reference velocity in y direction (m/s).
