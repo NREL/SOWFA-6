@@ -81,4 +81,9 @@ temperatureSource
 planetaryRotationPeriod   $EarthPeriod;
 latitude                  $latitude;
 
+// Write out postProcessing/sourceHistory
+writeSource            $writeSource;
+writeSourceInterval    $writeSourceInterval;
+
+
 // ************************************************************************* //

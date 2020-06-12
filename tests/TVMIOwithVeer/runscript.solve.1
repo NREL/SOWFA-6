@@ -1,0 +1,44 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --time=1:00:00
+#SBATCH --account=mmc
+#SBATCH --mail-user=your.email@nrel.gov
+#SBATCH --mail-type=BEGIN,END,FAIL
+
+source $HOME/.bash_profile
+OpenFOAM-6-intel-central
+
+cores=4
+
+initializer=setFieldsABL
+solver=superDeliciousVanilla
+runNumber=1
+startTime=0
+
+
+
+
+
+echo "Starting OpenFOAM job at: " $(date)
+echo "using " $cores " cores"
+echo "with modules:"
+module list
+
+
+
+
+cp system/controlDict.$runNumber system/controlDict
+
+##### # Run the flow field initializer (parallel)
+##### if [ $runNumber -eq 1 ]
+#####    then
+#####    srun -n $cores --cpu_bind=cores $initializer -parallel > log.$runNumber.$initializer 2>&1
+##### fi
+
+# Run the solver (parallel)
+srun -n $cores --cpu_bind=cores $solver -parallel > log.$runNumber.$solver 2>&1
+
+
+
+
+echo "Ending OpenFOAM job at: " $(date)

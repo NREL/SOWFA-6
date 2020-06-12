@@ -201,6 +201,14 @@ List<List<scalar> > profileTable(setFieldsABLDict.lookup("profileTable"));
 bool updateInternalFields(setFieldsABLDict.lookupOrDefault<bool>("updateInternalFields",true));
 bool updateBoundaryFields(setFieldsABLDict.lookupOrDefault<bool>("updateBoundaryFields",true));
 
+// If velocity is only to be scaled, set wallDist and scaleVelocityWithHeight to true
+if ( velocityInitType == "scaleGiven" )
+{
+    useWallDistZ = true;
+    scaleVelocityWithHeight = true;
+    temperatureInitType = "none";
+}
+
 // Change the table profiles from scalar lists to scalar fields
 scalarField zProfile(profileTable.size(),0.0);
 scalarField UProfile(profileTable.size(),0.0);
@@ -316,58 +324,72 @@ if (updateInternalFields)
                 U[cellI].y() = velScalar*interpolateXY(z,zProfile,VProfile);
             }
         }
+        else if (velocityInitType == "scaleGiven")
+        {
+            U[cellI].x() = velScalar*U[cellI].x();
+            U[cellI].y() = velScalar*U[cellI].y();
+        }
 
-        U[cellI] += UPrime;
+        if( velocityInitType != "scaleGiven")
+        {
+            U[cellI] += UPrime;
+        }
     }
 
     // Potential temperature.
     Info << "Updating internal T field..." << endl;
     Random TRandom(label(0));
-    forAll(T,cellI)
+    if ( temperatureInitType != "none" )
     {
-        scalar TPrime = TPrimeScale * (TRandom.sample01<scalar>() - 0.5);
-        scalar z = 0.0;
-        if (useWallDistZ)
+        forAll(T,cellI)
         {
-            z = d[cellI];
-        }
-        else
-        {
-            z = mesh.C()[cellI].z() - zMin;
-        }
-
-        T[cellI] = Tbottom;
-        if ((z >= zInversion - 0.5*widthInversion) && (z <= zInversion + 0.5*widthInversion) && (temperatureInitType == "simple"))
-        {
-            T[cellI] = Tbottom + ((Ttop - Tbottom)/Foam::max(widthInversion,1.0E-10)) * (z -(zInversion - 0.5*widthInversion));
-        }
-        else if ((z > zInversion + 0.5 * widthInversion) && (temperatureInitType == "simple"))
-        {
-            T[cellI] = Ttop + dTdz * (z - (zInversion + 0.5*widthInversion));
-        }
-        else if (temperatureInitType == "table")
-        {
-            if (tableInterpTypeT == "cubic")
+            scalar TPrime = TPrimeScale * (TRandom.sample01<scalar>() - 0.5);
+            scalar z = 0.0;
+            if (useWallDistZ)
             {
-                T[cellI] = interpolateSplineXY(z,zProfile,TProfile);
+                z = d[cellI];
             }
             else
             {
-                T[cellI] = interpolateXY(z,zProfile,TProfile);
+                z = mesh.C()[cellI].z() - zMin;
             }
-        }
 
-        if (z/zMax < zPeak)
-        {
-            T[cellI] += TPrime;
+            T[cellI] = Tbottom;
+            if ((z >= zInversion - 0.5*widthInversion) && (z <= zInversion + 0.5*widthInversion) && (temperatureInitType == "simple"))
+            {
+                T[cellI] = Tbottom + ((Ttop - Tbottom)/Foam::max(widthInversion,1.0E-10)) * (z -(zInversion - 0.5*widthInversion));
+            }
+            else if ((z > zInversion + 0.5 * widthInversion) && (temperatureInitType == "simple"))
+            {
+                T[cellI] = Ttop + dTdz * (z - (zInversion + 0.5*widthInversion));
+            }
+            else if (temperatureInitType == "table")
+            {
+                if (tableInterpTypeT == "cubic")
+                {
+                    T[cellI] = interpolateSplineXY(z,zProfile,TProfile);
+                }
+                else
+                {
+                    T[cellI] = interpolateXY(z,zProfile,TProfile);
+                }
+            }
+
+            if (z/zMax < zPeak)
+            {
+                T[cellI] += TPrime;
+            }
         }
     }
 
     // Modified pressure.
     Info << "Updating internal p_rgh field..." << endl;
-    forAll(p_rgh,cellI)
+    if ( velocityInitType != "scaleGiven" )
     {
-        p_rgh[cellI] = 0.0;
+        forAll(p_rgh,cellI)
+        {
+            p_rgh[cellI] = 0.0;
+        }
     }
 }
 
