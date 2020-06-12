@@ -215,7 +215,7 @@ class drivingForce
 
 
         //- Read input data from ABLProperties dictionary
-        void readInputData_();
+        void readInputData_(const IOdictionary& ABLProperties);
 
 
         //- Read source tables (componentwise)
@@ -290,6 +290,7 @@ public:
     // Constructors
     drivingForce
     (
+        const IOdictionary& dict,
         const word& name,
         const volFieldType& field
     );
