@@ -94,9 +94,7 @@ cp -rf $startTime.original $startTime
 
 
 # Build the mesh.
-if [ -d "constant/polyMesh" ]; then
-    rm -rf constant/polyMesh
-fi
+rm -rf constant/polyMesh
 blockMesh > log.blockMesh 2>&1
 
 

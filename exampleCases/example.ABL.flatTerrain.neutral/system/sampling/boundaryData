@@ -1,0 +1,20 @@
+      boundaryData
+      {
+          type                  surfaces;
+          functionObjectLibs    ("libsampling.so" "libSOWFAfileFormats.so");
+          enabled              true;
+          interpolationScheme   isThisNeeded;
+          outputControl         timeStep;
+          outputInterval        1;
+          surfaceFormat         boundaryData;
+          fields                ( U T k );
+          surfaces
+          (
+              west
+              {
+                  type          patch;
+                  patches       (west);
+                  triangulate   false;
+              }
+          );
+      }
