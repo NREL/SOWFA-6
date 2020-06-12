@@ -11,8 +11,10 @@ EXE_INC = \
     -I$(SOWFA_DIR)/src/meshTools/lnInclude \
     -I$(SOWFA_DIR)/src/boundaryConditions/lnInclude
 
+
 EXE_LIBS = \
     -L$(SOWFA_DIR)/lib/$(WM_OPTIONS) \
+    -lfiniteVolume \
     -lturbulenceModels \
     -lincompressibleTurbulenceModels \
     -lincompressibleTransportModels \
@@ -20,5 +22,7 @@ EXE_LIBS = \
     -lfvOptions \
     -lsampling \
     -lmeshTools \
+    -lSOWFAboundaryConditions \
     -lSOWFAABLForcing \
     -lSOWFAmeshTools
+
