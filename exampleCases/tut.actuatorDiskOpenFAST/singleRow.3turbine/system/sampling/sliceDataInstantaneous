@@ -1,0 +1,41 @@
+      sliceDataInstantaneous
+      {
+          type                 surfaces;
+          functionObjectLibs   ("libsampling.so");
+          enabled              true;
+          interpolationScheme  cellPointFace;
+          writeControl         adjustableRunTime;
+          writeInterval        2;
+          surfaceFormat        vtk;
+          fields
+          (
+              U
+              bodyForce
+              p_rgh
+          );
+          surfaces
+          (
+              slice_horizontal
+              {
+                  type         plane;
+                  planeType    pointAndNormal;
+                  pointAndNormalDict
+                  {
+                       point  (1893.10306671  837.57765907  139.25434156);
+                       normal (0.0 0.0 1.0);
+                  }
+                  triangulate  false;
+              }
+              slice_vertical
+              {
+                  type         plane;
+                  planeType    pointAndNormal;
+                  pointAndNormalDict
+                  {
+                       point  (1893.10306671  837.57765907  139.25434156);
+                       normal (-0.10383413058880699 0.9945946276372433 0.0);
+                  }
+                  triangulate  false;
+              }
+          );
+      }
