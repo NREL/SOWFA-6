@@ -43,6 +43,7 @@ Description
 #include "turbulentTransportModel.H"
 #include "wallDist.H"
 #include "fixedFluxPressureFvPatchScalarField.H"
+#include "timeVaryingMappedInletOutletFvPatchField.H"
 #include "interpolateXY.H"
 #include "fvOptions.H"
 #include "pimpleControl.H"
@@ -122,6 +123,9 @@ int main(int argc, char *argv[])
             // Compute the continuity errors.
             #include "computeDivergence.H"
         }
+
+        // Update timeVaryingMappedInletOutlet parameters
+        #include "updateFixesValue.H"
 
         // Write the solution if at write time.
         runTime.write();

@@ -213,9 +213,9 @@ void Foam::drivingForce<Type>::writeSourceHistory_
     // Write the source information.
     if (Pstream::master())
     {
-        if (statisticsOn_)
+        if (writeSource_)
         {
-            if (runTime_.timeIndex() % statisticsFreq_ == 0)
+            if (runTime_.timeIndex() % writeSourceInterval_ == 0)
             {
                 sourceHistoryFile_() << runTime_.timeName() << " " << runTime_.deltaT().value() << " " << source << endl;
             }
@@ -233,9 +233,9 @@ void Foam::drivingForce<Type>::writeErrorHistory_
     // Write the error information.
     if (Pstream::master())
     {
-        if (statisticsOn_)
+        if (writeSource_)
         {
-            if (runTime_.timeIndex() % statisticsFreq_ == 0)
+            if (runTime_.timeIndex() % writeSourceInterval_ == 0)
             {
                 errorHistoryFile_() << runTime_.timeName() << " " << runTime_.deltaT().value() << " " << error << endl;
             }
@@ -253,9 +253,9 @@ void Foam::drivingForce<Type>::writeSourceHistory_
     // Write the column of source information.
     if (Pstream::master())
     {
-        if (statisticsOn_)
+        if (writeSource_)
         {
-            if (runTime_.timeIndex() % statisticsFreq_ == 0)
+            if (runTime_.timeIndex() % writeSourceInterval_ == 0)
             {
                 sourceHistoryFile_() << runTime_.timeName() << " " << runTime_.deltaT().value();
 
@@ -282,7 +282,7 @@ void Foam::drivingForce<Type>::writeErrorHistory_
     {
         if (writeError_)
         {
-            if (runTime_.timeIndex() % statisticsFreq_ == 0)
+            if (runTime_.timeIndex() % writeSourceInterval_ == 0)
             {
                 errorHistoryFile_() << runTime_.timeName() << " " << runTime_.deltaT().value();
 
@@ -359,21 +359,8 @@ namespace Foam
 
 
 template<class Type>
-void Foam::drivingForce<Type>::readInputData_()
+void Foam::drivingForce<Type>::readInputData_(const IOdictionary& ABLProperties)
 {
-    // Define dictionary with input data
-    IOdictionary ABLProperties
-    (
-        IOobject
-        (
-            "ABLProperties",
-            runTime_.time().constant(),
-            runTime_,
-            IOobject::MUST_READ,
-            IOobject::NO_WRITE
-        )
-    );
-
     // PROPERTIES CONCERNING THE SOURCE TERM.
     const dictionary& sourceDict(ABLProperties.subOrEmptyDict(name_ & "Source"));
 
@@ -487,12 +474,10 @@ void Foam::drivingForce<Type>::readInputData_()
     // PROPERTIES CONCERNING GATHERING STATISTICS
 
     // Gather/write statistics?
-    bool statisticsOn(ABLProperties.lookupOrDefault<bool>("statisticsOn",false));
-    statisticsOn_ = statisticsOn;
+    writeSource_ = ABLProperties.lookupOrDefault<bool>("writeSource",true);
 
     // Statistics gathering/writing frequency?
-    int statisticsFreq(int(readScalar(ABLProperties.lookup("statisticsFrequency"))));
-    statisticsFreq_ = statisticsFreq;
+    writeSourceInterval_ = ABLProperties.lookupOrDefault<int>("writeSourceInterval",1);
 }
 
 
@@ -719,6 +704,7 @@ void Foam::drivingForce<Type>::openFiles_()
 template<class Type>
 Foam::drivingForce<Type>::drivingForce
 (
+    const IOdictionary& dict,
     const word& name,
     const GeometricField<Type, fvPatchField, volMesh>& field
 )
@@ -761,7 +747,7 @@ Foam::drivingForce<Type>::drivingForce
 {
     Info << "Creating driving force object for " << name_ << endl;
 
-    readInputData_();
+    readInputData_(dict);
     openFiles_();
 }
 

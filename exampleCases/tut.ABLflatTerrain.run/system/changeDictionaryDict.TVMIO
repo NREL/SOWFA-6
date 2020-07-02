@@ -1,0 +1,305 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  6
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      changeDictionaryDict;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#include "../setUp"
+
+
+dictionaryReplacement
+{
+
+    // Specify
+    // - all fvPatchFields with potential non-uniform values
+    // - all fvPatchFields originating from meshing
+    // - all fvPatchFields originating from mesh-redistribution
+
+
+    boundary
+    {
+        north
+        {
+            type            patch;
+        }
+        south
+        {
+            type            patch;
+        }
+        west
+        {
+            type            patch;
+        }
+        east
+        {
+            type            patch;
+        }
+    }
+
+    T
+    {
+        boundaryField
+        {
+            south
+            {
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform 0;
+                value           uniform 0;
+            }
+            north
+            {
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform 0;
+                value           uniform 0;
+            }
+            west
+            {
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform 0;
+                value           uniform 0;
+            }
+            east
+            {
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform 0;
+                value           uniform 0;
+            }
+        }
+    }
+    U
+    {
+        boundaryField
+        {
+            south
+            {
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform (0 0 0);
+                value           uniform (0 0 0);
+            }
+            north
+            {
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform (0 0 0);
+                value           uniform (0 0 0);
+            }
+            west
+            {
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform (0 0 0);
+                value           uniform (0 0 0);
+            }
+            east
+            {
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform (0 0 0);
+                value           uniform (0 0 0);
+            }
+        }
+    }
+    k
+    {
+        boundaryField
+        {
+            south
+            {
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform 0;
+                value           uniform 0;
+            }
+            north
+            {
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform 0;
+                value           uniform 0;
+            }
+            west
+            {
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform 0;
+                value           uniform 0;
+            }
+            east
+            {
+                type            timeVaryingMappedInletOutlet;
+                valueFraction   uniform 0;
+                refValue        uniform 0;
+                value           uniform 0;
+            }
+        }
+    }
+    kappat
+    {
+        boundaryField
+        {
+            south
+            {
+                type            zeroGradient;
+            }
+            north
+            {
+                type            zeroGradient;
+            }
+            west
+            {
+                type            zeroGradient;
+            }
+            east
+            {
+                type            zeroGradient;
+            }
+        }
+    }
+    nut
+    {
+        boundaryField
+        {
+            south
+            {
+                type            zeroGradient;
+            }
+            north
+            {
+                type            zeroGradient;
+            }
+            west
+            {
+                type            zeroGradient;
+            }
+            east
+            {
+                type            zeroGradient;
+            }
+        }
+    }
+    p_rgh
+    {
+        boundaryField
+        {
+            south
+            {
+                type            fixedFluxPressure;
+            }
+            north
+            {
+                type            fixedFluxPressure;
+            }
+            west
+            {
+                type            fixedFluxPressure;
+            }
+            east
+            {
+                type            fixedFluxPressure;
+            }
+            lower
+            {
+                type            fixedFluxPressure;
+            }
+            upper
+            {
+                type            fixedFluxPressure;
+            }
+        }
+    }
+    qwall
+    {
+        boundaryField
+        {
+            south
+            {
+                type            fixedValue;
+                value           uniform (0 0 0);
+            }
+            north
+            {
+                type            fixedValue;
+                value           uniform (0 0 0);
+            }
+            west
+            {
+                type            fixedValue;
+                value           uniform (0 0 0);
+            }
+            east
+            {
+                type            fixedValue;
+                value           uniform (0 0 0);
+            }
+            //lower
+            //{
+            //    type            fixedValue;
+            //    value           uniform (0 0 0);
+            //}
+            //upper
+            {
+                type            fixedValue;
+                value           uniform (0 0 0);
+            }
+        }
+    }
+    Rwall
+    {
+        boundaryField
+        {
+            south
+            {
+                type            fixedValue;
+                value           uniform (0 0 0 0 0 0);
+            }
+            north
+            {
+                type            fixedValue;
+                value           uniform (0 0 0 0 0 0);
+            }
+            west
+            {
+                type            fixedValue;
+                value           uniform (0 0 0 0 0 0);
+            }
+            east
+            {
+                type            fixedValue;
+                value           uniform (0 0 0 0 0 0);
+            }
+            //lower
+            //{
+            //    type            SchumannGrotzbach;
+            //    kappa           $kappa;
+            //    z0              uniform $z0;
+            //    betaM           $betaM;
+            //    gammaM          $gammaM;
+            //    averageType     $wallModelAverageType;
+            //    value           uniform (0 0 0 0 0 0);
+            //}
+            upper
+            {
+                type            fixedValue;
+                value           uniform (0 0 0 0 0 0);
+            }
+        }
+    }
+}
+// ************************************************************************* //
