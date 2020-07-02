@@ -2557,9 +2557,6 @@ List<scalar> horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int tur
                                 spreading = computeBladeProjectionFunction(disVector,r0,i,j,k);
                             }
                             
-                            // If the projection gets scaled, here is where that happens.
-                          //spreading *= projectionScaling;
-
                             // Add this spreading to the overall force projection field.
                             gBlade[bladeInfluenceCells[i][m]] += spreading;
  
@@ -2571,6 +2568,10 @@ List<scalar> horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int tur
                             Urel[bladeInfluenceCells[i][m]] = localVelocity;
 
                             // Compute the body force contribution.
+                            // - If bladeBodyForceScaling is enabled, that means that we insist that the integrated body force thrust and torque match the 
+                            // - thrust and torque coming from the actuator line point forces.  To do this, we first take a pass without scaling and see
+                            // - how far off the thrust and torque are, and then a second pass doing the scaling.  The passes are controlled in the main
+                            // - update function.
                             if ((bladeForceProjectionDirection[i] == "localVelocityAligned") ||
                                 (bladeForceProjectionDirection[i] == "localVelocityAlignedCorrected"))
                             {
@@ -2612,13 +2613,13 @@ List<scalar> horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int tur
                             {
                                 bodyForce[bladeInfluenceCells[i][m]] += scalar(updateBodyForce) * spreading * 
                                                                        ( projectionScaling[0]*bladePointForce[i][j][k] 
-                                                                      + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & axialVector) * axialVector) );
+                                                                      + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & mainShaftOrientation[i]) * mainShaftOrientation[i]) );
                             }
                             else
                             {
                                 bodyForce[bladeInfluenceCells[i][m]] += scalar(updateBodyForce) * spreading * 
                                                                        ( projectionScaling[0]*bladePointForce[i][j][k] 
-                                                                      + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & axialVector) * axialVector) );
+                                                                      + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & mainShaftOrientation[i]) * mainShaftOrientation[i]) );
                             }
 /*
                         }
@@ -2650,12 +2651,12 @@ List<scalar> horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int tur
                              //rotorAxialForceBodySum += (-bladePointForce[i][j][k] * spreading * mesh_.V()[bladeInfluenceCells[i][m]]) & axialVector;
                              //rotorTorqueBodySum += (bladePointForce[i][j][k] * spreading * bladePointRadius[i][j][k] * mesh_.V()[bladeInfluenceCells[i][m]])  & bladeAlignedVectors[i][j][k][1];
 
-                               rotorAxialForceBodySum += ( axialVector & (spreading *
+                               rotorAxialForceBodySum -= ( mainShaftOrientation[i] & (spreading *
                                                          ( projectionScaling[0]*bladePointForce[i][j][k]
-                                                        + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & axialVector) * axialVector) ) ) ) * mesh_.V()[bladeInfluenceCells[i][m]];
+                                                        + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & mainShaftOrientation[i]) * mainShaftOrientation[i]) ) ) ) * mesh_.V()[bladeInfluenceCells[i][m]];
                                rotorTorqueBodySum +=     ( bladeAlignedVectors[i][j][k][1] & (spreading *
                                                          ( projectionScaling[0]*bladePointForce[i][j][k]
-                                                        + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & axialVector) * axialVector) ) ) ) * mesh_.V()[bladeInfluenceCells[i][m]] * bladePointRadius[i][j][k];
+                                                        + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & mainShaftOrientation[i]) * mainShaftOrientation[i]) ) ) ) * mesh_.V()[bladeInfluenceCells[i][m]] * bladePointRadius[i][j][k];
                             }
                         }
                     }
@@ -3984,7 +3985,8 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
         // forces using this scaling and actually apply them this time.
         if (includeBladeBodyForceScaling[i])
         {
-            bodyForceScalar = scaling;
+            bodyForceScalar[0] = 1.0/scaling[0];
+            bodyForceScalar[1] = 1.0/scaling[1];
             updateBodyForce = true;
             scaling = updateBladeBodyForce(i, bodyForceScalar, updateBodyForce);
         }
