@@ -213,7 +213,7 @@ mesh.setFluxRequired(p_rgh.name());
 //    Correction Algorithm. Comparison with Analytical Solutions." In Conference proceedings (online) European
 //    Wind Energy Association (EWEA), 2008.
 //
-bool bodyForceStabilization = mesh.schemesDict().lookupOrDefault<bool>("bodyForceStabilization",false);
+bool bodyForceStabilization = mesh.schemesDict().lookupOrDefault<bool>("bodyForceStabilization",true);
 
 
 // Create an object of the horizontalWindTurbineArray class if there is to be a turbine array
