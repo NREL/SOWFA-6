@@ -296,7 +296,7 @@ private:
             //  back to the desired force.  The most desirable option is to increase mesh resolution, but
             //  if this is not possible, then this provides an option to scale the body forces to match
             //  the desired forces.
-            DynamicList<word> bladeBodyForceScaling;
+            DynamicList<bool> includeBladeBodyForceScaling;
 
             //- List of body force normalization parameter for each turbine (m). This controls
             //  the width of the Gaussian projection.  It should be tied to grid width.
@@ -743,7 +743,7 @@ private:
         void getChordLengths();
 
         //- Body force projection.
-        List<scalar> updateBladeBodyForce(int turbineNumber, scalar projectionScaling, bool updateBodyForce);
+        List<scalar> updateBladeBodyForce(int turbineNumber, List<scalar> projectionScaling, bool updateBodyForce);
         void updateNacelleBodyForce(int turbineNumber);
         void updateTowerBodyForce(int turbineNumber);
 

@@ -374,7 +374,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::readInput()
 
         bladeForceProjectionDirection.append(word(turbineArrayProperties.subDict(turbineName[i]).lookup("bladeForceProjectionDirection")));
 
-        bladeBodyForceScaling.append(turbineArrayProperties.subDict(turbineName[i]).lookupOrDefault<word>("bladeBodyForceScaling","none"));
+        includeBladeBodyForceScaling.append(turbineArrayProperties.subDict(turbineName[i]).lookupOrDefault<bool>("includeBladeBodyForceScaling",false));
 
         bladeEpsilon.append(vector(turbineArrayProperties.subDict(turbineName[i]).lookup("bladeEpsilon")));
         nacelleEpsilon.append(vector(turbineArrayProperties.subDict(turbineName[i]).lookup("nacelleEpsilon")));
@@ -2463,7 +2463,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::computeBladeAlignedVelocity()
 
 
 
-List<scalar> horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumber, scalar projectionScaling, bool updateBodyForce)
+List<scalar> horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumber, List<scalar> projectionScaling, bool updateBodyForce)
 {
     int i = turbineNumber;
 
@@ -2558,7 +2558,7 @@ List<scalar> horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int tur
                             }
                             
                             // If the projection gets scaled, here is where that happens.
-                            spreading *= projectionScaling;
+                          //spreading *= projectionScaling;
 
                             // Add this spreading to the overall force projection field.
                             gBlade[bladeInfluenceCells[i][m]] += spreading;
@@ -2610,11 +2610,15 @@ List<scalar> horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int tur
                             }
                             else if (bladeForceProjectionDirection[i] == "sampledVelocityAligned")
                             {
-                                bodyForce[bladeInfluenceCells[i][m]] += bladePointForce[i][j][k] * spreading * scalar(updateBodyForce);
+                                bodyForce[bladeInfluenceCells[i][m]] += scalar(updateBodyForce) * spreading * 
+                                                                       ( projectionScaling[0]*bladePointForce[i][j][k] 
+                                                                      + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & axialVector) * axialVector) );
                             }
                             else
                             {
-                                bodyForce[bladeInfluenceCells[i][m]] += bladePointForce[i][j][k] * spreading * scalar(updateBodyForce);
+                                bodyForce[bladeInfluenceCells[i][m]] += scalar(updateBodyForce) * spreading * 
+                                                                       ( projectionScaling[0]*bladePointForce[i][j][k] 
+                                                                      + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & axialVector) * axialVector) );
                             }
 /*
                         }
@@ -2643,8 +2647,15 @@ List<scalar> horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int tur
                              //rotorAxialForceBodySum += (-bodyForce[bladeInfluenceCells[i][m]] * mesh_.V()[bladeInfluenceCells[i][m]]) & axialVector;
                              //rotorTorqueBodySum += (bodyForce[bladeInfluenceCells[i][m]] * bladePointRadius[i][j][k] * mesh_.V()[bladeInfluenceCells[i][m]]) & bladeAlignedVectors[i][j][k][1];
 
-                               rotorAxialForceBodySum += (-bladePointForce[i][j][k] * spreading * mesh_.V()[bladeInfluenceCells[i][m]]) & axialVector;
-                               rotorTorqueBodySum += (bladePointForce[i][j][k] * spreading * bladePointRadius[i][j][k] * mesh_.V()[bladeInfluenceCells[i][m]])  & bladeAlignedVectors[i][j][k][1];
+                             //rotorAxialForceBodySum += (-bladePointForce[i][j][k] * spreading * mesh_.V()[bladeInfluenceCells[i][m]]) & axialVector;
+                             //rotorTorqueBodySum += (bladePointForce[i][j][k] * spreading * bladePointRadius[i][j][k] * mesh_.V()[bladeInfluenceCells[i][m]])  & bladeAlignedVectors[i][j][k][1];
+
+                               rotorAxialForceBodySum += ( axialVector & (spreading *
+                                                         ( projectionScaling[0]*bladePointForce[i][j][k]
+                                                        + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & axialVector) * axialVector) ) ) ) * mesh_.V()[bladeInfluenceCells[i][m]];
+                               rotorTorqueBodySum +=     ( bladeAlignedVectors[i][j][k][1] & (spreading *
+                                                         ( projectionScaling[0]*bladePointForce[i][j][k]
+                                                        + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & axialVector) * axialVector) ) ) ) * mesh_.V()[bladeInfluenceCells[i][m]] * bladePointRadius[i][j][k];
                             }
                         }
                     }
@@ -3964,30 +3975,16 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
         // body force to the desired force.  If scaling is going to be performed, do not update the
         // body forces in this first pass, though.  If scaling is not performed, go ahead and update
         // the body forces and be done.
-        scalar bodyForceScalar = 1.0;
-        bool updateBodyForce = (bladeBodyForceScaling[i] == "none");
+        List<scalar> bodyForceScalar(2,1.0);
+        bool updateBodyForce = !includeBladeBodyForceScaling[i];
 
         List<scalar> scaling = updateBladeBodyForce(i, bodyForceScalar, updateBodyForce);
 
         // if scaling will be done, get the scaling based on thrust or torque, and update the body
         // forces using this scaling and actually apply them this time.
-        if (bladeBodyForceScaling[i] != "none")
+        if (includeBladeBodyForceScaling[i])
         {
-            if (bladeBodyForceScaling[i] == "torque")
-            {
-                bodyForceScalar = 1.0/scaling[0];
-            }
-            else if (bladeBodyForceScaling[i] == "thrust")
-            {
-                bodyForceScalar = 1.0/scaling[1];
-            }
-            else
-            {
-                Info<< "WARNING: Unrecognized body force scaling quantity '"
-                    << bladeBodyForceScaling[i]
-                    << "' -- no scaling performed"
-                    << endl;
-            }
+            bodyForceScalar = scaling;
             updateBodyForce = true;
             scaling = updateBladeBodyForce(i, bodyForceScalar, updateBodyForce);
         }
