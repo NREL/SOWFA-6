@@ -374,6 +374,8 @@ void horizontalAxisWindTurbinesALMOpenFAST::readInput()
 
         bladeForceProjectionDirection.append(word(turbineArrayProperties.subDict(turbineName[i]).lookup("bladeForceProjectionDirection")));
 
+        includeBladeBodyForceScaling.append(turbineArrayProperties.subDict(turbineName[i]).lookupOrDefault<bool>("includeBladeBodyForceScaling",false));
+
         bladeEpsilon.append(vector(turbineArrayProperties.subDict(turbineName[i]).lookup("bladeEpsilon")));
         nacelleEpsilon.append(vector(turbineArrayProperties.subDict(turbineName[i]).lookup("nacelleEpsilon")));
         towerEpsilon.append(vector(turbineArrayProperties.subDict(turbineName[i]).lookup("towerEpsilon")));
@@ -2461,7 +2463,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::computeBladeAlignedVelocity()
 
 
 
-void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumber)
+List<scalar> horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumber, List<scalar> projectionScaling, bool updateBodyForce)
 {
     int i = turbineNumber;
 
@@ -2554,7 +2556,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
                             {
                                 spreading = computeBladeProjectionFunction(disVector,r0,i,j,k);
                             }
-
+                            
                             // Add this spreading to the overall force projection field.
                             gBlade[bladeInfluenceCells[i][m]] += spreading;
  
@@ -2566,6 +2568,10 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
                             Urel[bladeInfluenceCells[i][m]] = localVelocity;
 
                             // Compute the body force contribution.
+                            // - If bladeBodyForceScaling is enabled, that means that we insist that the integrated body force thrust and torque match the 
+                            // - thrust and torque coming from the actuator line point forces.  To do this, we first take a pass without scaling and see
+                            // - how far off the thrust and torque are, and then a second pass doing the scaling.  The passes are controlled in the main
+                            // - update function.
                             if ((bladeForceProjectionDirection[i] == "localVelocityAligned") ||
                                 (bladeForceProjectionDirection[i] == "localVelocityAlignedCorrected"))
                             {
@@ -2605,11 +2611,15 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
                             }
                             else if (bladeForceProjectionDirection[i] == "sampledVelocityAligned")
                             {
-                                bodyForce[bladeInfluenceCells[i][m]] += bladePointForce[i][j][k] * spreading;
+                                bodyForce[bladeInfluenceCells[i][m]] += scalar(updateBodyForce) * spreading * 
+                                                                       ( projectionScaling[0]*bladePointForce[i][j][k] 
+                                                                      + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & mainShaftOrientation[i]) * mainShaftOrientation[i]) );
                             }
                             else
                             {
-                                bodyForce[bladeInfluenceCells[i][m]] += bladePointForce[i][j][k] * spreading;
+                                bodyForce[bladeInfluenceCells[i][m]] += scalar(updateBodyForce) * spreading * 
+                                                                       ( projectionScaling[0]*bladePointForce[i][j][k] 
+                                                                      + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & mainShaftOrientation[i]) * mainShaftOrientation[i]) );
                             }
 /*
                         }
@@ -2638,8 +2648,15 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
                              //rotorAxialForceBodySum += (-bodyForce[bladeInfluenceCells[i][m]] * mesh_.V()[bladeInfluenceCells[i][m]]) & axialVector;
                              //rotorTorqueBodySum += (bodyForce[bladeInfluenceCells[i][m]] * bladePointRadius[i][j][k] * mesh_.V()[bladeInfluenceCells[i][m]]) & bladeAlignedVectors[i][j][k][1];
 
-                               rotorAxialForceBodySum += (-bladePointForce[i][j][k] * spreading * mesh_.V()[bladeInfluenceCells[i][m]]) & axialVector;
-                               rotorTorqueBodySum += (bladePointForce[i][j][k] * spreading * bladePointRadius[i][j][k] * mesh_.V()[bladeInfluenceCells[i][m]])  & bladeAlignedVectors[i][j][k][1];
+                             //rotorAxialForceBodySum += (-bladePointForce[i][j][k] * spreading * mesh_.V()[bladeInfluenceCells[i][m]]) & axialVector;
+                             //rotorTorqueBodySum += (bladePointForce[i][j][k] * spreading * bladePointRadius[i][j][k] * mesh_.V()[bladeInfluenceCells[i][m]])  & bladeAlignedVectors[i][j][k][1];
+
+                               rotorAxialForceBodySum -= ( mainShaftOrientation[i] & (spreading *
+                                                         ( projectionScaling[0]*bladePointForce[i][j][k]
+                                                        + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & mainShaftOrientation[i]) * mainShaftOrientation[i]) ) ) ) * mesh_.V()[bladeInfluenceCells[i][m]];
+                               rotorTorqueBodySum +=     ( bladeAlignedVectors[i][j][k][1] & (spreading *
+                                                         ( projectionScaling[0]*bladePointForce[i][j][k]
+                                                        + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & mainShaftOrientation[i]) * mainShaftOrientation[i]) ) ) ) * mesh_.V()[bladeInfluenceCells[i][m]] * bladePointRadius[i][j][k];
                             }
                         }
                     }
@@ -2770,13 +2787,21 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
   //}
     reduce(rotorAxialForceBodySum,sumOp<scalar>());
     reduce(rotorTorqueBodySum,sumOp<scalar>());
-
+    
+    List<scalar> ratio(2, 0.0);
+    ratio[0] = rotorTorqueBodySum/max(rotorTorque[i],1.0E-5);
+    ratio[1] = rotorAxialForceBodySum/rotorAxialForce[i];
 
     // Print information comparing the actual rotor thrust and torque to the integrated body force.
-    Info << "Turbine " << i << tab << "Rotor Axial Force from Body Force = " << rotorAxialForceBodySum << tab << "Rotor Axial Force from Actuator = " << rotorAxialForce[i] << tab  
-         << "Ratio = " << rotorAxialForceBodySum/rotorAxialForce[i] << endl;
-    Info << "Turbine " << i << tab << "Rotor Torque from Body Force = " << rotorTorqueBodySum << tab << "Rotor Torque from Actuator = " << rotorTorque[i] << tab 
-         << "Ratio = " << rotorTorqueBodySum/max(rotorTorque[i],1.0E-5) << endl;
+    if (updateBodyForce)
+    {
+        Info << "Turbine " << i << tab << "Rotor Torque from Body Force = " << rotorTorqueBodySum << tab << "Rotor Torque from Actuator = " << rotorTorque[i] << tab 
+             << "Ratio = " << ratio[0] << endl;
+        Info << "Turbine " << i << tab << "Rotor Axial Force from Body Force = " << rotorAxialForceBodySum << tab << "Rotor Axial Force from Actuator = " << rotorAxialForce[i] << tab  
+             << "Ratio = " << ratio[1] << endl;
+    }
+
+    return ratio;
 }
 
 
@@ -3933,6 +3958,10 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
     // Compute the actuator point forces.
     getForces();
 
+    
+    // Project the actuator forces as body forces.
+    
+    
     // Zero out the body forces and spreading function.
     bodyForce *= 0.0;
     gBlade *= 0.0;
@@ -3940,13 +3969,35 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
     // Project the actuator forces as body forces.
     forAll(turbineName,i)
     {
-        updateBladeBodyForce(i);
+        // for the blade forces, treat this specially because there is the option to scale body force
+        // projection based on how the well it integrates back to the desired value.
+        
+        // in the first pass, proceed as normal with no scaling, and compute the ratio of integrated
+        // body force to the desired force.  If scaling is going to be performed, do not update the
+        // body forces in this first pass, though.  If scaling is not performed, go ahead and update
+        // the body forces and be done.
+        List<scalar> bodyForceScalar(2,1.0);
+        bool updateBodyForce = !includeBladeBodyForceScaling[i];
+
+        List<scalar> scaling = updateBladeBodyForce(i, bodyForceScalar, updateBodyForce);
+
+        // if scaling will be done, get the scaling based on thrust or torque, and update the body
+        // forces using this scaling and actually apply them this time.
+        if (includeBladeBodyForceScaling[i])
+        {
+            bodyForceScalar[0] = 1.0/scaling[0];
+            bodyForceScalar[1] = 1.0/scaling[1];
+            updateBodyForce = true;
+            scaling = updateBladeBodyForce(i, bodyForceScalar, updateBodyForce);
+        }
      
+        // if the nacelle is to be included, update body forces for it.
         if (includeNacelle[i])
         {
             updateNacelleBodyForce(i);
         }
      
+        // if the tower is to be included, update body forces for it.
         if (includeTower[i])
         {
             updateTowerBodyForce(i);

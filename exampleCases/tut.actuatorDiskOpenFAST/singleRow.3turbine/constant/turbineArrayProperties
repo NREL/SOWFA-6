@@ -1,0 +1,183 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.0.x                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      turbineProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+globalProperties
+{
+    outputControl                    "timeStep";
+//  outputControl                    "runTime";
+    outputInterval                    10;
+    
+    dryRun                            false;
+    restart                           true;
+
+    superControllerOn                 true;
+    superControllerLib               "libScontroller.so";
+    numSuperControllerInputs          4;
+    numSuperControllerOutputs         2;
+
+    timeSimulationStart            20000.0;
+    timeSimulationEnd              27200.0;
+
+    checkPointInterval              10000;    
+}
+
+
+turbine0
+{
+    turbineType                      "IEA-15-240-RWT-Monopile";
+    FASTInputFileName                "IEA-15-240-RWT-Monopile.0.fst";
+    FASTRestartFileName              "IEA-15-240-RWT-Monopile.0.chkpt";
+    nFASTSubSteps                     50;
+    includeNacelle                    true;
+    includeTower                      true;
+    baseLocation                     (1000.0 900.0 0.0);
+    numBladePoints                    36;
+    numNacellePoints                  1;
+    numTowerPoints                    40;
+    bladePointDistType               "uniform";
+    nacellePointDistType             "uniform";
+    towerPointDistType               "uniform";
+    bladeSearchCellMethod            "disk";
+    bladeActuatorPointInterpType     "linear";
+    nacelleActuatorPointInterpType   "linear";
+    towerActuatorPointInterpType     "linear";
+    actuatorUpdateType               "oldPosition";
+    bladeForceProjectionType         "lineToDiskGaussian3D";
+    nacelleForceProjectionType       "diskGaussian";
+    towerForceProjectionType         "diskGaussian";
+    bladeForceProjectionDirection    "sampledVelocityAligned";
+    includeBladeBodyForceScaling      true;
+    bladeEpsilon                     (12.0 12.0 0.0);
+    nacelleEpsilon                   (10.0 10.0 0.0);
+    towerEpsilon                     (10.0 10.0 0.0);
+    nacelleSampleDistance            10.0;
+    towerSampleDistance               6.0;
+    nacelleLength                     20.0;
+    nacelleFrontalArea                30.0;
+    nacelleCd                         0.5;
+    velocityDragCorrType             "none";
+    tipRootLossCorr
+    {
+         tipRootLossCorrField             "velocity";
+         tipRootLossCorrType              "Glauert";
+    }
+    rotationDir                      "cw";
+    Azimuth                           0.0;
+    RotSpeed                          9.1552;
+    TorqueGen                         0.0;
+    Pitch                             0.0;
+    NacYaw                          270.0;
+    fluidDensity                      1.225;
+}
+
+
+turbine1
+{
+    turbineType                      "IEA-15-240-RWT-Monopile";
+    FASTInputFileName                "IEA-15-240-RWT-Monopile.1.fst";
+    FASTRestartFileName              "IEA-15-240-RWT-Monopile.1.chkpt";
+    nFASTSubSteps                     50;
+    includeNacelle                    true;
+    includeTower                      true;
+    baseLocation                     (2250.0 900.0 0.0);
+    numBladePoints                    36;
+    numNacellePoints                  1;
+    numTowerPoints                    40;
+    bladePointDistType               "uniform";
+    nacellePointDistType             "uniform";
+    towerPointDistType               "uniform";
+    bladeSearchCellMethod            "disk";
+    bladeActuatorPointInterpType     "linear";
+    nacelleActuatorPointInterpType   "linear";
+    towerActuatorPointInterpType     "linear";
+    actuatorUpdateType               "oldPosition";
+    bladeForceProjectionType         "lineToDiskGaussian3D";
+    nacelleForceProjectionType       "diskGaussian";
+    towerForceProjectionType         "diskGaussian";
+    bladeForceProjectionDirection    "sampledVelocityAligned";
+    includeBladeBodyForceScaling      true;
+    bladeEpsilon                     (12.0 12.0 0.0);
+    nacelleEpsilon                   (10.0 10.0 0.0);
+    towerEpsilon                     (10.0 10.0 0.0);
+    nacelleSampleDistance            10.0;
+    towerSampleDistance               6.0;
+    nacelleLength                     20.0;
+    nacelleFrontalArea                30.0;
+    nacelleCd                         0.5;
+    velocityDragCorrType             "none";
+    tipRootLossCorr
+    {
+         tipRootLossCorrField             "velocity";
+         tipRootLossCorrType              "Glauert";
+    }
+    rotationDir                      "cw";
+    Azimuth                           0.0;
+    RotSpeed                          9.1552;
+    TorqueGen                         0.0;
+    Pitch                             0.0;
+    NacYaw                          270.0;
+    fluidDensity                      1.225;
+}
+
+
+turbine2
+{
+    turbineType                      "IEA-15-240-RWT-Monopile";
+    FASTInputFileName                "IEA-15-240-RWT-Monopile.2.fst";
+    FASTRestartFileName              "IEA-15-240-RWT-Monopile.2.chkpt";
+    nFASTSubSteps                     50;
+    includeNacelle                    true;
+    includeTower                      true;
+    baseLocation                     (3500.0 900.0 0.0);
+    numBladePoints                    36;
+    numNacellePoints                  1;
+    numTowerPoints                    40;
+    bladePointDistType               "uniform";
+    nacellePointDistType             "uniform";
+    towerPointDistType               "uniform";
+    bladeSearchCellMethod            "disk";
+    bladeActuatorPointInterpType     "linear";
+    nacelleActuatorPointInterpType   "linear";
+    towerActuatorPointInterpType     "linear";
+    actuatorUpdateType               "oldPosition";
+    bladeForceProjectionType         "lineToDiskGaussian3D";
+    nacelleForceProjectionType       "diskGaussian";
+    towerForceProjectionType         "diskGaussian";
+    bladeForceProjectionDirection    "sampledVelocityAligned";
+    includeBladeBodyForceScaling      true;
+    bladeEpsilon                     (12.0 12.0 0.0);
+    nacelleEpsilon                   (10.0 10.0 0.0);
+    towerEpsilon                     (10.0 10.0 0.0);
+    nacelleSampleDistance            10.0;
+    towerSampleDistance               6.0;
+    nacelleLength                     20.0;
+    nacelleFrontalArea                30.0;
+    nacelleCd                         0.5;
+    velocityDragCorrType             "none";
+    tipRootLossCorr
+    {
+         tipRootLossCorrField             "velocity";
+         tipRootLossCorrType              "Glauert";
+    }
+    rotationDir                      "cw";
+    Azimuth                           0.0;
+    RotSpeed                          9.1552;
+    TorqueGen                         0.0;
+    Pitch                             0.0;
+    NacYaw                          270.0;
+    fluidDensity                      1.225;
+}
