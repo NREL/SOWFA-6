@@ -2,21 +2,16 @@
 
 
 # Turbulence models.
-cd src/TurbulenceModels
-./Allwclean
-cd ../../
+wclean src/TurbulenceModels/incompressible
+wclean src/TurbulenceModels/turbulenceModels
 
 
 # Custom boundary conditions.
-cd src/boundaryConditions
-wclean
-cd ../../
+wclean src/boundaryConditions
 
 
 # Standard actuator turbine models.
-#cd src/turbineModels/turbineModelsStandard
-#wclean
-#cd ../../../
+wclean src/turbineModels/turbineModelsStandard
 
 
 # OpenFAST-coupled actuator turbine models.
@@ -27,57 +22,39 @@ else
     if [ -d ${OPENFAST_DIR} ] 
     then
 	echo "OPENFAST_DIR is set to '${OPENFAST_DIR}'. Attempting to clean OpenFAST interface."
-	cd src/turbineModels/turbineModelsOpenFAST
-	wclean
-	cd ../../../
+	wclean src/turbineModels/turbineModelsOpenFAST
     else
 	echo "OPENFAST_DIR is set to '${OPENFAST_DIR}'. Directory doesn't exist or I can't access it. Skipping cleaning of OpenFAST interface."
     fi	
 fi
 
 # Custom mesh Tools
-cd src/meshTools
-wclean
-cd ../../
+wclean src/meshTools
 
 
 # ABL forcing objects
-cd src/ABLForcing
-wclean
-cd ../../
+wclean src/ABLForcing
 
 
 # Custom sampling (this includes sampling on an annulus).
-cd src/sampling
-wclean
-cd ../../
+wclean src/sampling
 
 
 # Custom file formats (like structured VTK).
-cd src/fileFormats
-wclean
-cd ../../
+wclean src/fileFormats
 
 
 # Custom function objects (this includes planar and temporal averaging).
-cd src/functionObjects/field
-wclean
-cd ../../../
+wclean src/functionObjects/field
 
 
 # Custom function objects (this includes the lidar sampling).
-cd src/functionObjects/utilities
-wclean
-cd ../../../
+wclean src/functionObjects/utilities
 
 
 # Utility to set the initial fields for the ABL solver.
-cd applications/utilities/setFieldsABL
-wclean
-cd ../../../
+wclean applications/utilities/setFieldsABL
 
 
 # The atmospheric LES solver for precursors.
-cd applications/solvers/superDeliciousVanilla
-wclean
-cd ../../../
+wclean applications/solvers/superDeliciousVanilla

@@ -9,5 +9,5 @@ LIB_LIBS = \
     -ltriSurface \
     -lfiniteVolume \
     -lmeshTools \
-    -lincompressibleTurbulenceModel 
+    -lincompressibleTurbulenceModels
     
