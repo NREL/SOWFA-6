@@ -635,6 +635,13 @@ private:
             OFstream* bladePointLiftFile_;
             OFstream* bladePointDragFile_;
 
+            OFstream* bladePointGxFile_;
+            OFstream* bladePointGyFile_;
+            OFstream* bladePointGzFile_;
+            OFstream* bladePointdGxFile_;
+            OFstream* bladePointdGyFile_;
+            OFstream* bladePointdGzFile_;
+
             OFstream* bladePointAxialForceFile_;
             OFstream* bladePointHorizontalForceFile_;
             OFstream* bladePointVerticalForceFile_;
