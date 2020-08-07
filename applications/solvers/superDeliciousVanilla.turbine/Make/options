@@ -20,7 +20,7 @@ EXE_INC = \
     -I$(HDF5_DIR)/include/
 
 EXE_LIBS = \
-    -L$(SOWFA_DIR)/lib/$(WM_OPTIONS) \
+    -L$(SOWFA_LIBBIN) \
     -lturbulenceModels \
     -lincompressibleTurbulenceModels \
     -lincompressibleTransportModels \

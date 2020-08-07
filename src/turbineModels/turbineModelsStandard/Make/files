@@ -1,3 +1,3 @@
 horizontalAxisWindTurbinesALMAdvanced/horizontalAxisWindTurbinesALMAdvanced.C
 
-LIB = $(SOWFA_DIR)/lib/$(WM_OPTIONS)/libSOWFATurbineModelsStandard
+LIB = $(SOWFA_LIBBIN)/libSOWFATurbineModelsStandard

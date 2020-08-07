@@ -13,7 +13,7 @@ EXE_INC = \
 
 
 EXE_LIBS = \
-    -L$(SOWFA_DIR)/lib/$(WM_OPTIONS) \
+    -L$(SOWFA_LIBBIN) \
     -lfiniteVolume \
     -lturbulenceModels \
     -lincompressibleTurbulenceModels \
