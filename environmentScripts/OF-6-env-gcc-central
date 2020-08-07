@@ -1,0 +1,72 @@
+#!/bin/bash
+OpenFOAM-6-gcc-central()
+{
+   # Important locations.
+   export inst_loc=/nopt/nrel/ecom/wind/OpenFOAM
+   export spack_loc=/nopt/nrel/ecom/wind
+   export sowfa_loc=/nopt/nrel/ecom/wind/OpenFOAM
+
+   # Load the right modules.
+   echo "Purging and loading modules..."
+   module purge
+   module use $spack_loc/spack/share/spack/modules/linux-centos7-x86_64/gcc-8.4.0
+   module load gcc-8.4.0
+   module load openmpi-4.0.4
+   module load cgal-4.12
+   module load boost-1.69.0
+   module load mpfr-4.0.1
+   module load gmp-6.1.2
+   module load scotch-6.0.6
+   module load metis-5.1.0
+   module load parmetis-4.0.3
+   module load flex-2.6.3
+   module load hdf5-1.10.6
+   module load openblas-0.3.5
+   module load yaml-cpp-0.6.2
+   module load zlib-1.2.11
+   module load libxml2-2.9.8
+   module load cmake-3.13.3
+   module load zoltan-3.83
+   module list
+
+   # Unset OpenFOAM environment variables.
+   if [ -z "$FOAM_INST_DIR" ]; then
+      echo "Nothing to unset..."
+   else
+      echo "     *Unsetting OpenFOAM environment variables..."
+      if [ -f "$FOAM_INST_DIR/OpenFOAM-$OPENFOAM_VERSION/etc/config.sh/unset" ]; then
+         . $FOAM_INST_DIR/OpenFOAM-$OPENFOAM_VERSION/etc/config.sh/unset
+      else
+         . $FOAM_INST_DIR/OpenFOAM-$OPENFOAM_VERSION/etc/config/unset.sh
+      fi
+   fi
+
+   # Set the OpenFOAM version and installation directory
+   export OPENFOAM_VERSION=6
+   export OPENFOAM_NAME=OpenFOAM-$OPENFOAM_VERSION
+   export FOAM_INST_DIR=$inst_loc
+   export WM_PROJECT_USER_DIR=/home/$USER/$USER-$OPENFOAM_VERSION
+   export FOAMY_HEX_MESH=true
+   
+   # Source the OpenFOAM main environment.
+   foamDotFile=$FOAM_INST_DIR/$OPENFOAM_NAME/etc/bashrc.gcc-openmpi
+   if [ -f $foamDotFile ] ; then
+      echo "Sourcing $foamDotFile..."
+      source $foamDotFile
+   fi
+
+   # For wmake compiling.
+   export WM_NCOMPPROCS=24
+   export WM_COLOURS="white blue green cyan red magenta yellow"
+
+   # Alias to tutorials.
+   alias tut='cd /home/$USER/OpenFOAM/$USER-$OPENFOAM_VERSION/tutorials'
+   
+   # Set the SOWFA installation directory.
+   export SOWFA_DIR=$sowfa_loc/SOWFA-$OPENFOAM_VERSION
+   export SOWFA_APPBIN=$SOWFA_DIR/platforms/$WM_OPTIONS/bin
+   export SOWFA_LIBBIN=$SOWFA_DIR/platforms/$WM_OPTIONS/lib
+   export OPENFAST_DIR=$sowfa_loc/ThirdParty-$OPENFOAM_VERSION/openfast/install.gcc
+   export LD_LIBRARY_PATH=$SOWFA_LIBBIN:$OPENFAST_DIR/lib:$LD_LIBRARY_PATH
+   export PATH=$SOWFA_APPBIN:$OPENFAST_DIR/bin:$PATH
+}
