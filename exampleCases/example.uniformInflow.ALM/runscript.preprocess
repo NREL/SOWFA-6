@@ -102,7 +102,7 @@ refineMeshLocal $refinementLevelsLocal
 
 
 # If running in parallel from this point forward, then do the following:
-if [ $cores -gt 1  -a  $parallelRun ]
+if [ $cores -gt 1  -a $parallelRun == true ]
    then
    # Decompose the mesh and solution files (serial)
    decomposePar -cellDist -force > log.decomposePar 2>&1
