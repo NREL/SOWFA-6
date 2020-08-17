@@ -3,4 +3,4 @@ CoriolisForce/CoriolisForce.C
 buoyancyModel/buoyancyModel.C
 drivingForce/drivingForces.C
 
-LIB = $(SOWFA_DIR)/lib/$(WM_OPTIONS)/libSOWFAABLForcing
+LIB = $(SOWFA_LIBBIN)/libSOWFAABLForcing
