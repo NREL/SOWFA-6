@@ -4,6 +4,7 @@
 - The delay for start computing averages, indicated by the variable `campAvgDelay`, _should_ be a multiple of `controlDict.writeInterval`
 - The end time should be set on `controlDict.endTime`. This end time corresponds to the quasi-steady state part. The simulation will be adjusted to run for `compAvgTime` seconds after the `endTime`, saving extra information
 - For precursor-mapped runs, any `coded` boundary condition gets overwritten by the `changeDictionary` call to set timeVarying-type of BC
+- The user has to set the actual start and end time desired in `controlDict.*.startAt$startTime`. Create the controlDict if it does not exist.
 - `0.original/T.<type>` has custom boundary conditions. Copy that as appropriate
 - Terrain `stl` file not included
 - Terrain handling: use `~/utilities/shiftFlatBlendToz0.sh` to shift the terrain. The script works by calling `shiftFlatBlendToz0 terrainFile.stl -1000 0`, where the numbers are the $x$ and $y$ of the inlet plane, which we want to be flush at $z=0$. The terrain is shifted such that the inlet planes do not change size with respect to the precursor boundaries

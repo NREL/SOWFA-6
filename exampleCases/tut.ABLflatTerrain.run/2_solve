@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=runTutFarm
-#SBATCH --output foam2run_%a.log
+#SBATCH --output foam2run_%j.log
 #SBATCH --ntasks=288         # Change on setUp as well
 #SBATCH --time=1-00
 #SBATCH --account=mmc
@@ -33,21 +33,18 @@ writeInterval=$(foamDictionary -entry "writeInterval" -value system/controlDict.
 saveAvgTime=$(($startTime+$compAvgDelay))
 latestTime=$(foamListTimes -processor -latestTime -withZero | tail -1)
 
-if [ $saveAvgTime -ge $endTime ];                            then touch "WARNING (1)"; fi
-if [ $writeInterval -gt $saveAvgTime ];                      then touch "WARNING (2)"; fi
-if [ $(echo "$saveAvgTime%$writeInterval" | bc) -ne 0 ];     then touch "WARNING (3)"; fi
-if [ $(echo "$lastBdData <= $endTime" | bc) ];               then touch "WARNING (4)"; fi
+if [ $saveAvgTime -ge $endTime ];                            then touch "WARNING_1"; fi
+if [ $writeInterval -gt $saveAvgTime ];                      then touch "WARNING_2"; fi
+if [ $(echo "$saveAvgTime%$writeInterval" | bc) -ne 0 ];     then touch "WARNING_3"; fi
+if [ $(echo "$lastBdData <= $endTime" | bc) ];               then touch "WARNING_4"; fi
 # **************************************************************************************************** #
 
 # ************************************ COPYING APPROPRIATE FILES ************************************* #
 cp system/controlDict.$solver.startAt$startTime        system/controlDict
-
-ln -f foam2run_${SLURM_JOBID}.log foam2run_startAt$latestTime
 # **************************************************************************************************** #
 
 # Split run to get to developed-flow stage
 if [ $compAvgDelay -ne 0 ] && [ $latestTime -lt $saveAvgTime ]; then
-    foamDictionary -entry "fieldAverages.enabled" -set "false" system/sampling/fieldAverages
     foamDictionary -entry "temporalAverages.enabled" -set "false" system/sampling/temporalAverages
     foamDictionary -entry "endTime" -set $saveAvgTime -disableFunctionEntries system/controlDict
     srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$latestTime 2>&1
@@ -55,9 +52,7 @@ fi
 
 # Split run to save averages
 continueTime=$(( $latestTime > $saveAvgTime ? $latestTime : $saveAvgTime ))
-foamDictionary -entry "fieldAverages.timeStart"    -set $saveAvgTime system/sampling/fieldAverages
 foamDictionary -entry "temporalAverages.timeStart" -set $saveAvgTime system/sampling/temporalAverages
-foamDictionary -entry "fieldAverages.enabled"      -set "true" system/sampling/fieldAverages
 foamDictionary -entry "temporalAverages.enabled"   -set "true" system/sampling/temporalAverages
 foamDictionary -entry "startTime" -set $continueTime -disableFunctionEntries system/controlDict
 foamDictionary -entry "endTime" -set $endTime -disableFunctionEntries system/controlDict
@@ -65,6 +60,7 @@ srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$contin
 
 echo "Ending OpenFOAM job at: " $(date)
 
+cp foam2run_${SLURM_JOBID}.log foam2run_startAt$continueTime
 rm foam2run_${SLURM_JOBID}.log
 
 # **************************************************************************************************** #

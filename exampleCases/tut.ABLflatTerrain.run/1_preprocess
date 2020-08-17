@@ -49,7 +49,7 @@ elif (($windDir==180));                  then inflowDir=south;
 elif ((180<$windDir&& $windDir<270));    then inflowDir=southwest;
 elif (($windDir==270));                  then inflowDir=west;
 elif ((270<$windDir&& $windDir<360));    then inflowDir=northwest;
-else touch "WARNING (1)"; fi
+else touch "WARNING_1"; fi
 # **************************************************************************************************** #
 
 # *************************************** REFINEMENT FUNCTIONS *************************************** #
@@ -105,7 +105,7 @@ decomposePar -cellDist -force > log.1.decomposePar 2>&1
 refineMeshGlobal $nGlobalRefs
 
 # Change the boundary conditions from cyclic everywhere to TVMIO. See readme file
-srun -n $cores changeDictionary -dict system/changeDictionaryDict.TVMIO -time $startTime -enableFunctionEntries -subDict dictionaryReplacement -parallel > log.1.changeDictionary.TVMIO 2>&1
+srun -n $cores changeDictionary -dict system/changeDictionaryDict.TVMIO -time $startTime -subDict dictionaryReplacement -parallel > log.1.changeDictionary.TVMIO 2>&1
 
 # Renumber the mesh for better matrix solver performance.
 srun -n $cores renumberMesh -parallel -overwrite > log.1.renumberMesh 2>&1

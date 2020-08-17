@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=runTutPrec
-#SBATCH --output foam2run_%a.log
+#SBATCH --output foam2run_%j.log
 #SBATCH --ntasks=288         # Change on setUp as well
 #SBATCH --time=2-00
 #SBATCH --account=car
@@ -36,18 +36,17 @@ endTime=$(foamDictionary -entry "endTime" -value system/controlDict.$solver.star
 writeInterval=$(foamDictionary -entry "writeInterval" -value system/controlDict.$solver.startAt$startTime)
 latestTime=$(foamListTimes -processor -latestTime -withZero | tail -1)
 
-if [ $(echo "$endTime%$writeInterval" | bc) -ne 0 ]; then touch  "WARNING (1)"; fi
+if [ $(echo "$endTime%$writeInterval" | bc) -ne 0 ]; then touch  "WARNING_1"; fi
 # **************************************************************************************************** #
 
 # ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
 cp system/controlDict.$solver.startAt$startTime        system/controlDict
-
-ln -f foam2run_${SLURM_JOBID}.log foam2run_startAt$latestTime
 # **************************************************************************************************** #
 
 # Run decomposePar if domain not yet decomposed
 if [ ! -d "processor0" ]; then
 	decomposePar -cellDist -force > log.2.decomposePar 2>&1
+    latestTime=0
 fi
 
 # Run the flow field initializer
@@ -57,7 +56,6 @@ fi
 
 # Split run to get to developed-flow stage
 if [ $latestTime -lt $endTime ]; then
-    foamDictionary -entry "fieldAverages.enabled" -set "false" system/sampling/fieldAverages
     foamDictionary -entry "temporalAverages.enabled" -set "false" system/sampling/temporalAverages
     foamDictionary -entry "boundaryData.enabled" -set "false" system/sampling/boundaryData
     srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$latestTime 2>&1
@@ -65,9 +63,7 @@ fi
 
 # Split run to save boundaryData and averages
 continueTime=$(( $latestTime > $endTime ? $latestTime : $endTime ))
-foamDictionary -entry "fieldAverages.timeStart"    -set $endTime system/sampling/fieldAverages
 foamDictionary -entry "temporalAverages.timeStart" -set $endTime system/sampling/temporalAverages
-foamDictionary -entry "fieldAverages.enabled"      -set "true" system/sampling/fieldAverages
 foamDictionary -entry "temporalAverages.enabled"   -set "true" system/sampling/temporalAverages
 foamDictionary -entry "boundaryData.enabled"       -set "true" system/sampling/boundaryData
 foamDictionary -entry "startTime" -set $continueTime -disableFunctionEntries system/controlDict
@@ -81,12 +77,13 @@ if [ -d processor0/$endTime ] && [ ! -f log.3.reconstructPar ]; then
         ln -sf $(ls postProcessing/boundaryData/$dir | head -1) postProcessing/boundaryData/$dir/$endTime
     done
 else
-    touch "WARNING (2)"
+    touch "WARNING_2"
     echo "Case not reconstructed and first time of boundaryData not fixed. Check if endTime dir exists."
 fi
 
 echo "Ending OpenFOAM job at: " $(date)
 
+cp foam2run_${SLURM_JOBID}.log foam2run_startAt$continueTime
 rm foam2run_${SLURM_JOBID}.log
 
 # **************************************************************************************************** #
