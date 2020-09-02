@@ -4,7 +4,6 @@
 #SBATCH --ntasks=288         # Change on setUp as well
 #SBATCH --time=2-00
 #SBATCH --account=car
-#SBATCH --qos=high
 
 source $HOME/.bash_profile
 cores=$SLURM_NTASKS
@@ -18,7 +17,11 @@ echo "using" $cores "core(s)"
 # ******************************************** USER INPUT ******************************************** #
 OpenFOAM-6-gcc-dev              # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
 startTime=0                     # Start time
-timeBdData=5000                 # Time executed further after endTime. Also saves averages
+writeIntervalBeforeBdData=5000
+endTimeBeforeBdData=20000
+startTimeBdData=$endTimeBeforeBdData
+writeIntervalBdData=1000
+endTimeBdData=25000
 stabState=neutral               # neutral, stable, unstable
 solver=superDeliciousVanilla
 initializer=setFieldsABL
@@ -32,11 +35,8 @@ if [ ! -f setUp ];                                                      then ech
 if [ $(foamDictionary -entry "nCores" -value setUp) -ne $cores ];       then echo "Job killed (5)"; scancel $SLURM_JOBID; fi
 if [ ! -f system/sampling/boundaryData ];                               then echo "Job killed (6)"; scancel $SLURM_JOBID; fi
 
-endTime=$(foamDictionary -entry "endTime" -value system/controlDict.$solver.startAt$startTime)
-writeInterval=$(foamDictionary -entry "writeInterval" -value system/controlDict.$solver.startAt$startTime)
-latestTime=$(foamListTimes -processor -latestTime -withZero | tail -1)
-
-if [ $(echo "$endTime%$writeInterval" | bc) -ne 0 ]; then touch  "WARNING_1"; fi
+if [ $(echo "($endTimeBeforeBdData-$startTime)%$writeInterval" | bc)       -ne 0 ]; then touch  "WARNING_1"; fi
+if [ $(echo "($endTimeBdData-$startTimeBdData)%$writeIntervalBdData" | bc) -ne 0 ]; then touch  "WARNING_2"; fi
 # **************************************************************************************************** #
 
 # ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
@@ -46,7 +46,9 @@ cp system/controlDict.$solver.startAt$startTime        system/controlDict
 # Run decomposePar if domain not yet decomposed
 if [ ! -d "processor0" ]; then
 	decomposePar -cellDist -force > log.2.decomposePar 2>&1
-    latestTime=0
+    latestTime=$startTime
+else
+    latestTime=$(foamListTimes -processor -latestTime -withZero | tail -1)
 fi
 
 # Run the flow field initializer
@@ -55,26 +57,30 @@ if [ $initializer = setFieldsABL ] && [ ! -f log.2.$initializer ];  then
 fi
 
 # Split run to get to developed-flow stage
-if [ $latestTime -lt $endTime ]; then
+if [ $latestTime -lt $endTimeBeforeBdData ]; then
     foamDictionary -entry "temporalAverages.enabled" -set "false" system/sampling/temporalAverages
     foamDictionary -entry "boundaryData.enabled" -set "false" system/sampling/boundaryData
+    foamDictionary -entry "startTime" -set $latestTime -disableFunctionEntries system/controlDict
+    foamDictionary -entry "endTime" -set $endTimeBeforeBdData -disableFunctionEntries system/controlDict
+    foamDictionary -entry "writeInterval" -set $writeIntervalBeforeBdData system/controlDict
     srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$latestTime 2>&1
 fi
 
 # Split run to save boundaryData and averages
-continueTime=$(( $latestTime > $endTime ? $latestTime : $endTime ))
-foamDictionary -entry "temporalAverages.timeStart" -set $endTime system/sampling/temporalAverages
+continueTime=$(( $latestTime > $endTimeBeforeBdData ? $latestTime : $startTimeBdData ))
+foamDictionary -entry "temporalAverages.timeStart" -set $startTimeBdData system/sampling/temporalAverages
 foamDictionary -entry "temporalAverages.enabled"   -set "true" system/sampling/temporalAverages
 foamDictionary -entry "boundaryData.enabled"       -set "true" system/sampling/boundaryData
 foamDictionary -entry "startTime" -set $continueTime -disableFunctionEntries system/controlDict
-foamDictionary -entry "endTime" -set $(echo $endTime+$timeBdData | bc) -disableFunctionEntries system/controlDict
+foamDictionary -entry "endTime" -set $endTimeBdData -disableFunctionEntries system/controlDict
+foamDictionary -entry "writeInterval" -set $writeIntervalBdData system/controlDict
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.saveBdData.startAt$continueTime 2>&1
 
 # Make the precursor data ready for future mapping and adjust the initial time of boundaryData
-if [ -d processor0/$endTime ] && [ ! -f log.3.reconstructPar ]; then
-    reconstructPar -time $endTime > log.3.reconstructPar 2>&1
+if [ -d processor0/$endTimeBdData ] && [ ! -f log.3.reconstructPar ]; then
+    reconstructPar -time $endTimeBdData > log.3.reconstructPar 2>&1
     for dir in north south east west; do
-        ln -sf $(ls postProcessing/boundaryData/$dir | head -1) postProcessing/boundaryData/$dir/$endTime
+        ln -sf $(ls postProcessing/boundaryData/$dir | head -1) postProcessing/boundaryData/$dir/$endTimeBdData
     done
 else
     touch "WARNING_2"

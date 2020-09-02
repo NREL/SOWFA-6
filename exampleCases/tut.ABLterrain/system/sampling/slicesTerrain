@@ -108,7 +108,6 @@ slicesTerrain
             }
             interpolate true;
         }
-        }
         yNormal.5000
         {
             type cuttingPlane;

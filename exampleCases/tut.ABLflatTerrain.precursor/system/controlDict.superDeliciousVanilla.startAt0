@@ -27,13 +27,13 @@ FoamFile
 
   stopAt            endTime;
 
-  endTime           20000.0;
+  endTime           20000.0; // Will be overwritten by values in 2_solve. Modify there.
 
   deltaT            0.5;
 
   writeControl      adjustableRunTime;
 
-  writeInterval     2000.0; 
+  writeInterval     2000.0;  // Will be overwritten by values in 2_solve. Modify there.
 
   purgeWrite        0;
 
