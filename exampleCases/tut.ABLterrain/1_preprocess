@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --job-name=sTerrain
+#SBATCH --job-name=setupTerrain
 #SBATCH --output foam1preprocess.log
 #SBATCH --ntasks=576
-#SBATCH --time=3:00:00
+#SBATCH --time=4:00:00
 #SBATCH --mem=180G
 #SBATCH --account=mmc
 

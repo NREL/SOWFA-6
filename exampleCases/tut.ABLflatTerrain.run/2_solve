@@ -16,46 +16,50 @@ echo "using" $cores "core(s)"
 
 # ******************************************** USER INPUT ******************************************** #
 OpenFOAM-6-gcc-dev              # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
-startTime=20000                 # Start time (cp script for restarted runs)
-compAvgDelay=3000               # Delay after startTime for computing averages
+startTime=20000                 # Map time (DO NOT change for restarted runs)
+writeIntervalBeforeAvg=3000
+endTimeBeforeAvg=3000
+startTimeAvg=$endTimeBeforeAvg
+writeIntervalAvg=1000
+endTimeAvg=300000
 solver=superDeliciousVanilla
 # **************************************************************************************************** #
 
 # **************************************** PERFORM SOME CHECKS *************************************** #
-if [ ! -f foam1preprocess.log ];                                   then echo "Job killed (1)"; scancel $SLURM_JOBID; fi
-if [ ! -f system/controlDict.$solver.startAt$startTime ];          then echo "Job killed (2)"; scancel $SLURM_JOBID; fi
-if [ ! -f setUp ];                                                 then echo "Job killed (3)"; scancel $SLURM_JOBID; fi
-if [ $(foamDictionary -entry "nCores" -value setUp) -ne $cores ];  then echo "Job killed (4)"; scancel $SLURM_JOBID; fi
+if [ ! -f foam1preprocess.log ];                  then echo "Job killed (1)"; scancel $SLURM_JOBID; fi
+if [ ! -f system/controlDict.$solver ];           then echo "Job killed (2)"; scancel $SLURM_JOBID; fi
+if [ ! -f setUp ];                                then echo "Job killed (3)"; scancel $SLURM_JOBID; fi
 
 lastBdData=$(ls $(ls -d constant/boundaryData/* | head -1) | tail -2 | head -1)
-endTime=$(foamDictionary -entry "endTime" -value system/controlDict.$solver.startAt$startTime)
-writeInterval=$(foamDictionary -entry "writeInterval" -value system/controlDict.$solver.startAt$startTime)
-saveAvgTime=$(($startTime+$compAvgDelay))
-latestTime=$(foamListTimes -processor -latestTime -withZero | tail -1)
 
-if [ $saveAvgTime -ge $endTime ];                            then touch "WARNING_1"; fi
-if [ $writeInterval -gt $saveAvgTime ];                      then touch "WARNING_2"; fi
-if [ $(echo "$saveAvgTime%$writeInterval" | bc) -ne 0 ];     then touch "WARNING_3"; fi
-if [ $(echo "$lastBdData <= $endTime" | bc) ];               then touch "WARNING_4"; fi
+if [ $(echo "($endTimeBeforeAvg-$startTime)%$writeIntervalBeforeAvg" | bc) -ne 0 ]; then touch  "WARNING_1"; fi
+if [ $(echo "($endTimeAvg-$startTimeAvg)%$writeIntervalAvg" | bc) -ne 0 ];          then touch  "WARNING_2"; fi
+if [ -d constant/boundaryData ] && [ $(echo "$lastBdData <= $endTimeAvg" | bc) ];    then touch "WARNING_3"; fi
 # **************************************************************************************************** #
 
-# ************************************ COPYING APPROPRIATE FILES ************************************* #
-cp system/controlDict.$solver.startAt$startTime        system/controlDict
+# ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
+cp system/controlDict.$solver                          system/controlDict
+cp system/fvSolution.flow                              system/fvSolution
+cp system/fvSchemes.flow.$interp                       system/fvSchemes
+latestTime=$(foamListTimes -processor -latestTime -withZero | tail -1)
 # **************************************************************************************************** #
 
 # Split run to get to developed-flow stage
-if [ $compAvgDelay -ne 0 ] && [ $latestTime -lt $saveAvgTime ]; then
+if [ $latestTime -lt $endTimeBeforeAvg ]; then
     foamDictionary -entry "temporalAverages.enabled" -set "false" system/sampling/temporalAverages
-    foamDictionary -entry "endTime" -set $saveAvgTime -disableFunctionEntries system/controlDict
+    foamDictionary -entry "startTime" -set $latestTime -disableFunctionEntries system/controlDict
+    foamDictionary -entry "endTime" -set $endTimeBeforeAvg -disableFunctionEntries system/controlDict
+    foamDictionary -entry "writeInterval" -set $writeIntervalBeforeAvg system/controlDict
     srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$latestTime 2>&1
 fi
 
 # Split run to save averages
 continueTime=$(( $latestTime > $saveAvgTime ? $latestTime : $saveAvgTime ))
-foamDictionary -entry "temporalAverages.timeStart" -set $saveAvgTime system/sampling/temporalAverages
+foamDictionary -entry "temporalAverages.timeStart" -set $startTimeAvg system/sampling/temporalAverages
 foamDictionary -entry "temporalAverages.enabled"   -set "true" system/sampling/temporalAverages
 foamDictionary -entry "startTime" -set $continueTime -disableFunctionEntries system/controlDict
-foamDictionary -entry "endTime" -set $endTime -disableFunctionEntries system/controlDict
+foamDictionary -entry "endTime" -set $endTimeAvg -disableFunctionEntries system/controlDict 
+foamDictionary -entry "writeInterval" -set $writeIntervalAvg system/controlDict
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$continueTime 2>&1
 
 echo "Ending OpenFOAM job at: " $(date)

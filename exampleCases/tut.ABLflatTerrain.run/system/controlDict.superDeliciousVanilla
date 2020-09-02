@@ -23,7 +23,7 @@ FoamFile
 
   startFrom         startTime;
 
-  startTime         20000.0;
+  startTime         20000.0;  // Will be overwritten by values in 2_solve. Modify there.
 
   stopAt            endTime;
 
@@ -33,7 +33,7 @@ FoamFile
 
   writeControl      adjustableRunTime;
 
-  writeInterval     1000.0; 
+  writeInterval     1000.0;  // Will be overwritten by values in 2_solve. Modify there.
 
   purgeWrite        0;
 

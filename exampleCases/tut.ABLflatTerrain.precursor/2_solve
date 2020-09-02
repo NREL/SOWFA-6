@@ -3,7 +3,7 @@
 #SBATCH --output foam2run_%j.log
 #SBATCH --ntasks=288         # Change on setUp as well
 #SBATCH --time=2-00
-#SBATCH --account=car
+#SBATCH --account=mmc
 
 source $HOME/.bash_profile
 cores=$SLURM_NTASKS
@@ -16,7 +16,7 @@ echo "using" $cores "core(s)"
 
 # ******************************************** USER INPUT ******************************************** #
 OpenFOAM-6-gcc-dev              # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
-startTime=0                     # Start time
+startTime=0                     # Start time (DO NOT change for restarted runs)
 writeIntervalBeforeBdData=5000
 endTimeBeforeBdData=20000
 startTimeBdData=$endTimeBeforeBdData
@@ -29,18 +29,17 @@ initializer=setFieldsABL
 
 # **************************************** PERFORM SOME CHECKS *************************************** #
 if [ ! -f foam1preprocess.log ];                                        then echo "Job killed (1)"; scancel $SLURM_JOBID; fi
-if [ ! -f system/controlDict.$solver.startAt$startTime ];               then echo "Job killed (2)"; scancel $SLURM_JOBID; fi
+if [ ! -f system/controlDict.$solver ];                                 then echo "Job killed (2)"; scancel $SLURM_JOBID; fi
 if [ $initializer = setFieldsABL ] && [ ! -f system/setFieldsABLDict ]; then echo "Job killed (3)"; scancel $SLURM_JOBID; fi
 if [ ! -f setUp ];                                                      then echo "Job killed (4)"; scancel $SLURM_JOBID; fi
-if [ $(foamDictionary -entry "nCores" -value setUp) -ne $cores ];       then echo "Job killed (5)"; scancel $SLURM_JOBID; fi
-if [ ! -f system/sampling/boundaryData ];                               then echo "Job killed (6)"; scancel $SLURM_JOBID; fi
+if [ ! -f system/sampling/boundaryData ];                               then echo "Job killed (5)"; scancel $SLURM_JOBID; fi
 
-if [ $(echo "($endTimeBeforeBdData-$startTime)%$writeInterval" | bc)       -ne 0 ]; then touch  "WARNING_1"; fi
-if [ $(echo "($endTimeBdData-$startTimeBdData)%$writeIntervalBdData" | bc) -ne 0 ]; then touch  "WARNING_2"; fi
+if [ $(echo "($endTimeBeforeBdData-$startTime)%$writeIntervalBeforeBdData" | bc) -ne 0 ]; then touch  "WARNING_1"; fi
+if [ $(echo "($endTimeBdData-$startTimeBdData)%$writeIntervalBdData" | bc) -ne 0 ];       then touch  "WARNING_2"; fi
 # **************************************************************************************************** #
 
 # ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
-cp system/controlDict.$solver.startAt$startTime        system/controlDict
+cp system/controlDict.$solver                          system/controlDict
 # **************************************************************************************************** #
 
 # Run decomposePar if domain not yet decomposed
@@ -83,7 +82,7 @@ if [ -d processor0/$endTimeBdData ] && [ ! -f log.3.reconstructPar ]; then
         ln -sf $(ls postProcessing/boundaryData/$dir | head -1) postProcessing/boundaryData/$dir/$endTimeBdData
     done
 else
-    touch "WARNING_2"
+    touch "WARNING_3"
     echo "Case not reconstructed and first time of boundaryData not fixed. Check if endTime dir exists."
 fi
 
