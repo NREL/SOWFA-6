@@ -17,14 +17,15 @@ echo "using" $cores "core(s)"
 # ******************************************** USER INPUT ******************************************** #
 OpenFOAM-6-gcc-dev              # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
 startTime=0                     # Start time (DO NOT change for restarted runs)
-writeIntervalBeforeBdData=5000
+writeIntervalBeforeBdData=5000  # Averages computation starts with "BdData" times
 endTimeBeforeBdData=20000
 startTimeBdData=$endTimeBeforeBdData
 writeIntervalBdData=1000
 endTimeBdData=25000
-stabState=neutral               # neutral, stable, unstable
 solver=superDeliciousVanilla
 initializer=setFieldsABL
+WRFcoupled=false                # Is it a run using internal coupling (PAT method)? If true, no BdData
+                                        # is saved but the times above should be adjusted for averages
 # **************************************************************************************************** #
 
 # **************************************** PERFORM SOME CHECKS *************************************** #
@@ -32,14 +33,21 @@ if [ ! -f foam1preprocess.log ];                                        then ech
 if [ ! -f system/controlDict.$solver ];                                 then echo "Job killed (2)"; scancel $SLURM_JOBID; fi
 if [ $initializer = setFieldsABL ] && [ ! -f system/setFieldsABLDict ]; then echo "Job killed (3)"; scancel $SLURM_JOBID; fi
 if [ ! -f setUp ];                                                      then echo "Job killed (4)"; scancel $SLURM_JOBID; fi
-if [ ! -f system/sampling/boundaryData ];                               then echo "Job killed (5)"; scancel $SLURM_JOBID; fi
+if [ $WRFcoupled = false ] && [ ! -f system/sampling/boundaryData ];    then echo "Job killed (5)"; scancel $SLURM_JOBID; fi
+if [ $WRFcoupled = true ] && [ ! -f system/setFieldsABLDict.wrf ];      then echo "Job killed (6)"; scancel $SLURM_JOBID; fi
+if [ $WRFcoupled = true ] && [ ! -f constant/ABLProperties.wrf ];       then echo "Job killed (7)"; scancel $SLURM_JOBID; fi
 
 if [ $(echo "($endTimeBeforeBdData-$startTime)%$writeIntervalBeforeBdData" | bc) -ne 0 ]; then touch  "WARNING_1"; fi
 if [ $(echo "($endTimeBdData-$startTimeBdData)%$writeIntervalBdData" | bc) -ne 0 ];       then touch  "WARNING_2"; fi
+if ! ( [ $WRFcoupled = "true" ] || [ $WRFcoupled = "false" ]);                            then touch  "WARNING_3"; fi
 # **************************************************************************************************** #
 
 # ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
 cp system/controlDict.$solver                          system/controlDict
+if [ $WRFcoupled = true ]; then
+    cp constant/ABLProperties.wrf                      constant/ABLProperties
+    cp system/setFieldsABLDict.wrf                     system/setFieldsABLDict
+fi
 # **************************************************************************************************** #
 
 # Run decomposePar if domain not yet decomposed
@@ -69,21 +77,23 @@ fi
 continueTime=$(( $latestTime > $endTimeBeforeBdData ? $latestTime : $startTimeBdData ))
 foamDictionary -entry "temporalAverages.timeStart" -set $startTimeBdData system/sampling/temporalAverages
 foamDictionary -entry "temporalAverages.enabled"   -set "true" system/sampling/temporalAverages
-foamDictionary -entry "boundaryData.enabled"       -set "true" system/sampling/boundaryData
+foamDictionary -entry "boundaryData.enabled"       -set $WRFcoupled system/sampling/boundaryData
 foamDictionary -entry "startTime" -set $continueTime -disableFunctionEntries system/controlDict
 foamDictionary -entry "endTime" -set $endTimeBdData -disableFunctionEntries system/controlDict
 foamDictionary -entry "writeInterval" -set $writeIntervalBdData system/controlDict
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.saveBdData.startAt$continueTime 2>&1
 
 # Make the precursor data ready for future mapping and adjust the initial time of boundaryData
-if [ -d processor0/$endTimeBdData ] && [ ! -f log.3.reconstructPar ]; then
-    reconstructPar -time $endTimeBdData > log.3.reconstructPar 2>&1
-    for dir in north south east west; do
-        ln -sf $(ls postProcessing/boundaryData/$dir | head -1) postProcessing/boundaryData/$dir/$endTimeBdData
-    done
-else
-    touch "WARNING_3"
-    echo "Case not reconstructed and first time of boundaryData not fixed. Check if endTime dir exists."
+if [ $WRFcoupled = false ]; then
+    if [ -d processor0/$endTimeBdData ] && [ ! -f log.3.reconstructPar ]; then
+        reconstructPar -time $endTimeBdData > log.3.reconstructPar 2>&1
+        for dir in north south east west; do
+            ln -sf $(ls postProcessing/boundaryData/$dir | head -1) postProcessing/boundaryData/$dir/$endTimeBdData
+        done
+    else
+        touch "WARNING_4"
+        echo "Case not reconstructed and first time of boundaryData not fixed. Check if endTime dir exists."
+    fi
 fi
 
 echo "Ending OpenFOAM job at: " $(date)

@@ -17,7 +17,7 @@ echo "using" $cores "core(s)"
 # ******************************************** USER INPUT ******************************************** #
 OpenFOAM-6-gcc-dev              # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
 startTime=0                     # Start time
-stabState=neutral               # neutral, stable, unstable
+stabState=neutral               # neutral, stable, unstable, wrf
 solver=superDeliciousVanilla
 # **************************************************************************************************** #
 

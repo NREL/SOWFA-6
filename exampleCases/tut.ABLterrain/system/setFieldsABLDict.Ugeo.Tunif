@@ -44,20 +44,20 @@ scaleVelocityWithHeight   false;
 // Specify how to initialze the base velocity and temperature profile.
 //velocityInitType          "table";
 //velocityInitType          "log";
+  velocityInitType          "geostrophic";
 //velocityInitType          "scaleGiven";
-velocityInitType          "geostrophic";
 
-temperatureInitType       "table";
-//temperatureInitType     "none";
-//temperatureInitType     "simple";
+  temperatureInitType       "table";
+//temperatureInitType       "simple";
+//temperatureInitType       "none";
 
 // Maximum perturbation of streamwise/spanwise flow near surface.
 deltaU                    0.25;
 deltaV                    0.25;
 
 // Total periods of perturbations in streamwise/spanwise in the domain.
-Uperiods                  12.0;
-Vperiods                  12.0;
+Uperiods                  #calc "4*($xMax - $xMin)/1000";
+Vperiods                  #calc "4*($yMax - $yMin)/1000";
 
 // Percentage of domain height (zMax) where peak in perturbation 
 // magnitude occurs.

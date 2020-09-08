@@ -63,6 +63,7 @@ FoamFile
     #include "sampling/boundaryData"
     #include "sampling/temporalAverages"
     #include "sampling/slicesPrecursor"
+ // #include "sampling/slicesWRF"
   }
 
 // ************************************************************************* //
