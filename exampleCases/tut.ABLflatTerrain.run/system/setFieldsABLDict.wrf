@@ -42,12 +42,12 @@ scaleVelocityWithHeight   false;
 
 
 // Specify how to initialze the base velocity and temperature profile.
-//velocityInitType          "table";
+  velocityInitType          "table";
 //velocityInitType          "log";
-  velocityInitType          "geostrophic";
+//velocityInitType          "geostrophic";
 
-//temperatureInitType       "table";
-  temperatureInitType       "simple";
+  temperatureInitType       "table";
+//temperatureInitType       "simple";
 
 // Maximum perturbation of streamwise/spanwise flow near surface.
 deltaU                    0.25;
@@ -93,10 +93,7 @@ kappa                     $kappa;
 profileTable
 (
 //   z          U       V        T
- // (0.0 0.0 0.0 273.121917725)
- // (5.0 1.82671529027 1.98969371553 282.524156211)
- // (1995.0 9.9684979548 6.57921591612 304.553531428)
- // (2000.0 9.98013391268 6.55482917932 304.574451837)
+#include "../../drivingData/initialValues"
 );
 
 // Update internal field.

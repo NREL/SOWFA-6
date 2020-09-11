@@ -29,12 +29,12 @@ if [ ! -f setUp.$stabState ];                     then echo "Job killed (2)"; sc
 # ************************************** COPY APPROPRIATE FILES ************************************** #
 cp system/controlDict.$solver                          system/controlDict
 cp setUp.$stabState                                    setUp
-cp $startTime.original/qwall.$stabState                $startTime.original/qwall
 # **************************************************************************************************** #
 
 # Copy the "clean" .original initial fields to a working copy
 rm -rf $startTime
 cp -rf $startTime.original $startTime
+cp     $startTime/qwall.$stabState  $startTime/qwall
 rm     $startTime/qwall.*
 
 # Build the mesh and check it

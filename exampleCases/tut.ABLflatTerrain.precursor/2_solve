@@ -69,7 +69,7 @@ if [ $latestTime -lt $endTimeBeforeBdData ]; then
     foamDictionary -entry "boundaryData.enabled" -set "false" system/sampling/boundaryData
     foamDictionary -entry "startTime" -set $latestTime -disableFunctionEntries system/controlDict
     foamDictionary -entry "endTime" -set $endTimeBeforeBdData -disableFunctionEntries system/controlDict
-    foamDictionary -entry "writeInterval" -set $writeIntervalBeforeBdData system/controlDict
+    foamDictionary -entry "writeInterval" -set $writeIntervalBeforeBdData -disableFunctionEntries system/controlDict
     srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$latestTime 2>&1
 fi
 
@@ -80,7 +80,7 @@ foamDictionary -entry "temporalAverages.enabled"   -set "true" system/sampling/t
 foamDictionary -entry "boundaryData.enabled"       -set $WRFcoupled system/sampling/boundaryData
 foamDictionary -entry "startTime" -set $continueTime -disableFunctionEntries system/controlDict
 foamDictionary -entry "endTime" -set $endTimeBdData -disableFunctionEntries system/controlDict
-foamDictionary -entry "writeInterval" -set $writeIntervalBdData system/controlDict
+foamDictionary -entry "writeInterval" -set $writeIntervalBdData -disableFunctionEntries system/controlDict
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.saveBdData.startAt$continueTime 2>&1
 
 # Make the precursor data ready for future mapping and adjust the initial time of boundaryData

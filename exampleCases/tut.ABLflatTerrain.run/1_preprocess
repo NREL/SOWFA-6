@@ -21,8 +21,8 @@ startTime=20000                 # Start time
 nLocalRefs=2                    # Number of local refinements (serial)
 nGlobalRefs=0                   # Number of global refinements (parallel) 
 solver=superDeliciousVanilla
-refLoc=floating                 # floating, ground. If ground, change wallModelType
-wallModelType=planarAverage     # planarAverage, local
+refLoc=floating                 # floating, ground.
+coupled=precursor               # precursor,WRFint,WRFbd. WRF-coupled uses the PAT method
 # **************************************************************************************************** #
 
 # **************************************** PERFORM SOME CHECKS *************************************** #
@@ -34,21 +34,20 @@ if [ ! -d $precursorDir/$starTime ];                                           t
 # **************************************************************************************************** #
 
 # ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
-cp system/controlDict.$solver                          system/controlDict
-cp $precursorDir/setUp                                 setUp
-foamDictionary -entry "nCores" -set $cores setUp
-foamDictionary -entry "wallModelAverageType" -set $wallModelType setUp
+cp system/controlDict.$solver                      system/controlDict
+if [[ $coupled == WRF* ]]; then
+    cp setUp.wrf                                   setUp
+    cp constant/ABLProperties.wrf                  constant/ABLProperties
+    cp system/setFieldsABLDict.wrf                 system/setFieldsABLDict
+else
+    cp $precursorDir/setUp                         setUp
+    cp constant/ABLProperties.precursor            constant/ABLProperties
+fi
 
-windDir=$(foamDictionary -entry "windDir" -value setUp)
-if   (($windDir==0 || $windDir==360));   then inflowDir=north;
-elif ((0<$windDir&& $windDir<90));       then inflowDir=northeast;
-elif (($windDir==90));                   then inflowDir=east;
-elif ((90<$windDir&& $windDir<180));     then inflowDir=southeast;
-elif (($windDir==180));                  then inflowDir=south;
-elif ((180<$windDir&& $windDir<270));    then inflowDir=southwest;
-elif (($windDir==270));                  then inflowDir=west;
-elif ((270<$windDir&& $windDir<360));    then inflowDir=northwest;
-else touch "WARNING_1"; fi
+foamDictionary -entry "nCores" -set $cores setUp
+if [[ $refType == ground* ]]; then
+    foamDictionary -entry "wallModelAverageType" -set local setUp
+fi
 # **************************************************************************************************** #
 
 # *************************************** REFINEMENT FUNCTIONS *************************************** #
@@ -78,21 +77,36 @@ refineMeshGlobal()
 # **************************************************************************************************** #
 
 # Clean up case before start 
-rm -rf $startTime*
+rm -rf $startTime $startTime.fromPrec
 rm -rf constant/polyMesh
 rm -rf constant/boundaryData
 
-# Get information from the precursor
-cp -rf $precursorDir/$startTime $startTime.fromPrec
-rm -rf $startTime.fromPrec/{cellDist,uniform,CeField,U_0,T_0,k_0,p,phi*,sourc*,*BlendingFactor}
-cp -rf $startTime.fromPrec $startTime
+if [[ $coupled == WRF* ]]; then
+    # If it is a wrf-coupled run, the mesh needs to be generated, instead of copied
+    cp -rf 0.forWRFcoupled $startTime
+    mv $startTime/qwall.wrf $startTime
+
+    # Build the mesh and check it
+    blockMesh -noFunctionObjects > log.1.blockMesh 2>&1
+    checkMesh -noFunctionObjects > log.1.checkMesh 2>&1
+
+elif [ $coupled == precursor ]; then
+    # Get IC information from the precursor
+    mkdir $startTime.fromPrec
+    cp -f $precursorDir/$startTime/{U,T,k,kappat,nut,p_rgh,qwall,Rwall} $startTime.fromPrec
+    cp -rf $startTime.fromPrec $startTime
+   
+    # Copy the mesh from precursor
+    cp -rf $precursorDir/constant/polyMesh constant
+    #cp -rf $precursorDir/system/blockMeshDict system
+
+fi
 
 # Make the link to the boundary data
-ln -s $precursorDir/postProcessing/boundaryData constant/boundaryData
-
-# Copy the mesh from precursor
-cp -rf $precursorDir/constant/polyMesh constant
-#cp -rf $precursorDir/system/blockMeshDict system
+if [ $coupled = precursor ]; then
+    ln -s $precursorDir/postProcessing/boundaryData constant/boundaryData
+    ln -s $precursorDir/constant/givenSource* constant/
+fi
 
 # Do serial local refinement
 refineMeshLocal $nLocalRefs
@@ -107,7 +121,14 @@ refineMeshGlobal $nGlobalRefs
 srun -n $cores changeDictionary -dict system/changeDictionaryDict.TVMIO -time $startTime -subDict dictionaryReplacement -parallel > log.1.changeDictionary.TVMIO 2>&1
 
 # Renumber the mesh for better matrix solver performance.
-srun -n $cores renumberMesh -parallel -overwrite > log.1.renumberMesh 2>&1
+if [ $(($nLocalRefs+$nGlobalRefs)) -gt 0 ]; then
+    srun -n $cores renumberMesh -parallel -overwrite > log.1.renumberMesh 2>&1
+fi
+
+# Run the flow field initializer
+if [[ $coupled == WRF** ]]; then
+   srun -n $cores --cpu_bind=cores $initializer -parallel > log.2.$initializer 2>&1
+fi
 
 # Do a final check on the mesh.
 srun -n $cores checkMesh -parallel -allGeometry -allTopology > log.1.checkMesh.full 2>&1

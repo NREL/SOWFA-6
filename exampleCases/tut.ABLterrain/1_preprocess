@@ -78,8 +78,8 @@ if [ $initializer = precursor ]; then
     foamDictionary -entry "wallModelAverageType" -set $wallModelType setUp
 
     # Copy the startTime solution dir from precursor 
-    cp -rf $precursorDir/$startTime $startTime.fromPrec
-    rm -rf $startTime.fromPrec/{cellDist,uniform,CeField,U_0,T_0,k_0,p,phi*,sourc*,*BlendingFactor,Q,vort*}
+    mkdir $startTime.fromPrec
+    cp -f $precursorDir/$startTime/{U,T,k,kappat,nut,p_rgh,qwall,Rwall} $startTime.fromPrec
     cp -rf $startTime.fromPrec $startTime
     cp 0.original/pointDisplacement $startTime/
 
