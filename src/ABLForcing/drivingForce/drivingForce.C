@@ -428,6 +428,15 @@ void Foam::drivingForce<Type>::readInputData_(const IOdictionary& ABLProperties)
         scalar timeWindow(sourceDict.lookupOrDefault<scalar>("timeWindow",3600.0));
         timeWindow_ = timeWindow;
 
+        // Transition to constant source terms with height for partial profile assimilation
+        blendToConst_ = sourceDict.lookupOrDefault<bool>("blendToConst",false);
+    
+        if (blendToConst_)
+        {
+            assimMaxHeight_ = readScalar(sourceDict.lookup("assimMaxHeight"));
+            blendThickness_ = sourceDict.lookupOrDefault<scalar>("blendThickness",100.0);
+        }
+
         // Smoothing by means of regression curve fitting
         bool regSmoothing(sourceDict.lookupOrDefault<bool>("regSmoothing",true));
         regSmoothing_ = regSmoothing;

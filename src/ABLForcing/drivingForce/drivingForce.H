@@ -57,10 +57,19 @@ Description
         - \c alpha: Weights of proportional and integral actions are alpha and (1-alpha), respectively
         - \c timeWindow: Time window of exponential time filter in integral action (s)
         - \c regSmoothing: smooth error by fitting a regression curve
+        - \c blendToConst: Blend source terms to a constant value above a certain height to permit
+            assimilation of a partial profile
 
         - when \c regSmoothing is set to true
             - \c regOrder: Order of regression polynomial
             - \c weightsTable: Table with weights versus height
+
+        - when \c blendToConst is set to true
+            - \c assimMaxHeight: Height above which the sources are constant
+            - \c blendThickness: The vertical distance over which the source term transitions to
+                constant with height; the slope changes linearly, from the finite difference between
+                    the cell at assimMaxHeight and just below, to 0 at assimMaxHeight +
+                    blendThickness
 
 Usage
     \table
@@ -74,6 +83,9 @@ Usage
         writeError                  | Write out error profile   | no        | false
         alpha                       | Ratio of P to I action    | no        | 1.0
         timeWindow                  | Time filter window        | no        | 3600.0
+        blendToConst                | Constant sources above assimMaxHeight | no | false
+        assimMaxHeight              | Constant sources above assimMaxHeight | no | 
+        blendThickness              | Vertical distance over which to blend to constant | no |
         regSmoothing                | Regression smoothing      | no        | true
         regOrder                    | Regression order          | no        | 1
         weightsTable                | Table with weights        | no        |
@@ -180,6 +192,11 @@ class drivingForce
 
         //- Integrated error
         List<Type> errorInt_;
+
+        //- Direct assimilation of partial profile
+        bool blendToConst_;
+        scalar assimMaxHeight_;
+        scalar blendThickness_;
 
         //- Weighted regression
         bool regSmoothing_;
