@@ -156,6 +156,11 @@ class drivingForce
         //- Height levels for forcing at one height
         scalar hLevels1;
         scalar hLevels2;
+
+        //- Height level indices for blending
+        label hLevelBlend0;
+        label hLevelBlend1;
+        label hLevelBlendMax;
         
         //- Output file pointer
         autoPtr<OFstream> sourceHistoryFile_;
@@ -253,6 +258,9 @@ class drivingForce
 
         //- Find grid levels closest to specified height
         void findSingleForcingHeight_();
+
+        //- Find grid levels closest to specified height
+        void findBlendLevels_();
 
         //- Open file streams
         void openFiles_();

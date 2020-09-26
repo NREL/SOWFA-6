@@ -435,6 +435,7 @@ void Foam::drivingForce<Type>::readInputData_(const IOdictionary& ABLProperties)
         {
             assimMaxHeight_ = readScalar(sourceDict.lookup("assimMaxHeight"));
             blendThickness_ = sourceDict.lookupOrDefault<scalar>("blendThickness",100.0);
+            findBlendLevels_();
         }
 
         // Smoothing by means of regression curve fitting
@@ -648,6 +649,36 @@ void Foam::drivingForce<Type>::findSingleForcingHeight_()
             j++;
         }
     }
+}
+
+
+template<class Type>
+void Foam::drivingForce<Type>::findBlendLevels_()
+{
+    hLevelBlend0 = -1;
+    hLevelBlend1 = -1;
+    hLevelBlendMax = -1;
+
+    // Find the two levels closest to the specified height
+    // Find the closest level
+    forAllPlanes(zPlanes_,planeI)
+    {
+        if ( (hLevelBlend1 < 0) &&
+             (zPlanes_.planeLocationValues()[planeI] >= assimMaxHeight_) )
+        {
+            hLevelBlend1 = planeI;
+            hLevelBlend0 = planeI - 1;
+        }
+        else if ( zPlanes_.planeLocationValues()[planeI] >= assimMaxHeight_+blendThickness_ )
+        {
+            hLevelBlendMax = planeI;
+            break;
+        }
+    }
+    Info<< "Blending source terms to constant between z= "
+        << zPlanes_.planeLocationValues()[hLevelBlend1] <<  " and "
+        << zPlanes_.planeLocationValues()[hLevelBlendMax]
+        << endl;
 }
 
 
