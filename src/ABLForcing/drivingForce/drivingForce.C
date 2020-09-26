@@ -184,6 +184,12 @@ void Foam::drivingForce<Type>::updateComputedTimeHeightDepSource_(bool writeIter
         }
     }
 
+    // Blend source terms to constant
+    if (blendToConst_)
+    {
+        blendLinearSlopeDecay_(source);
+    }
+
     // Now go by cell levels and apply the source term
     forAllPlanes(zPlanes_,planeI)
     {
@@ -324,6 +330,36 @@ Type Foam::drivingForce<Type>::subtractVerticalPart_
 {
     //Do nothing, just return input
     return source;
+}
+
+
+template<class Type>
+void Foam::drivingForce<Type>::blendLinearSlopeDecay_
+(
+    List<Type>& source
+)
+{
+    Type slope0 = (source[hLevelBlend1] - source[hLevelBlend0])
+                / (  zPlanes_.planeLocationValues()[hLevelBlend1]
+                   - zPlanes_.planeLocationValues()[hLevelBlend0]);
+    Type dslope = -slope0
+                / (  zPlanes_.planeLocationValues()[hLevelBlendMax]
+                   - zPlanes_.planeLocationValues()[hLevelBlend1]);
+    // march from hLevelBlend1 (z >= maxAssimHeight)
+    // up to hLevelBlendMax (z >= maxAssimheight + blendThickness)
+    // as the slope decreases linearly to 0
+    for (label lvl=hLevelBlend1; lvl <= hLevelBlendMax; lvl++)
+    {
+        Type slope = slope0 + dslope*(  zPlanes_.planeLocationValues()[lvl]
+                                      - zPlanes_.planeLocationValues()[hLevelBlend1]);
+        source[lvl] = source[lvl-1] + slope*(  zPlanes_.planeLocationValues()[lvl]
+                                             - zPlanes_.planeLocationValues()[lvl-1]);
+    }
+    // set the remaining levels above hLevelBlendMax to the last value
+    for (label lvl=hLevelBlendMax+1; lvl < zPlanes_.numberOfPlanes(); lvl++)
+    {
+        source[lvl] = source[hLevelBlendMax];
+    }
 }
 
 

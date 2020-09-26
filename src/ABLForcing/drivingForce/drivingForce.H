@@ -161,7 +161,7 @@ class drivingForce
         label hLevelBlend0;
         label hLevelBlend1;
         label hLevelBlendMax;
-        
+
         //- Output file pointer
         autoPtr<OFstream> sourceHistoryFile_;
 
@@ -305,6 +305,9 @@ class drivingForce
 
         //- Subtract off vertical part (only for Type vector)
         Type subtractVerticalPart_(Type source);
+
+        //- Blend source terms to constant
+        void blendLinearSlopeDecay_(List<Type>& source);
 
 public:
 
