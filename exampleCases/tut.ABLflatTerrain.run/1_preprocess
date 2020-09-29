@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=setupTutFarm
-#SBATCH --output foam1setup.log
-#SBATCH --ntasks=1
+#SBATCH --output foam1preprocess.log
+#SBATCH --ntasks=288
 #SBATCH --time=1:00:00
 #SBATCH --account=mmc
 
@@ -23,25 +23,29 @@ nGlobalRefs=0                   # Number of global refinements (parallel)
 solver=superDeliciousVanilla
 refLoc=floating                 # floating, ground.
 coupled=precursor               # precursor,WRFint,WRFbd. WRF-coupled uses the PAT method
+interp=linearupwind             # midpoint, linearupwind. divSchmes midpoints needed for gravity waves
 # **************************************************************************************************** #
 
 # **************************************** PERFORM SOME CHECKS *************************************** #
-if [ ! -f system/controlDict.$solver ];                                        then echo "Job killed (1)"; scancel $SLURM_JOBID; fi
-if [ $nLocalRefs -gt 0 ] && [ ! -f system/topoSetDict.$refLoc.$nLocalRefs ];   then echo "Job killed (2)"; scancel $SLURM_JOBID; fi
-if [ ! -f $precursorDir/setUp ];                                               then echo "Job killed (3)"; scancel $SLURM_JOBID; fi
-if [ ! -d $precursorDir/postProcessing/boundaryData ];                         then echo "Job killed (4)"; scancel $SLURM_JOBID; fi
-if [ ! -d $precursorDir/$starTime ];                                           then echo "Job killed (5)"; scancel $SLURM_JOBID; fi  
+if [ ! -f system/controlDict.$solver ];                                       then echo "Job killed (1)"; scancel $SLURM_JOBID; fi
+if [ $nLocalRefs -gt 0 ] && [ ! -f system/topoSetDict.$refLoc.$nLocalRefs ];  then echo "Job killed (2)"; scancel $SLURM_JOBID; fi
+if [ ! -f $precursorDir/setUp ];                                              then echo "Job killed (3)"; scancel $SLURM_JOBID; fi
+if [ ! -d $precursorDir/postProcessing/boundaryData ];                        then echo "Job killed (4)"; scancel $SLURM_JOBID; fi
+if [ ! -d $precursorDir/$starTime ];                                          then echo "Job killed (5)"; scancel $SLURM_JOBID; fi  
 # **************************************************************************************************** #
 
 # ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
-cp system/controlDict.$solver                      system/controlDict
+cp system/controlDict.$solver                          system/controlDict
+cp system/fvSchemes.flow.$interp                       system/fvSchemes
+foamDictionary -entry "startTime" -set $startTime -disableFunctionEntries system/controlDict
+
 if [[ $coupled == WRF* ]]; then
-    cp setUp.wrf                                   setUp
-    cp constant/ABLProperties.wrf                  constant/ABLProperties
-    cp system/setFieldsABLDict.wrf                 system/setFieldsABLDict
+    cp setUp.wrf                                       setUp
+    cp constant/ABLProperties.wrf                      constant/ABLProperties
+    cp system/setFieldsABLDict.wrf                     system/setFieldsABLDict
 else
-    cp $precursorDir/setUp                         setUp
-    cp constant/ABLProperties.precursor            constant/ABLProperties
+    cp $precursorDir/setUp                             setUp
+    cp constant/ABLProperties.givenSourceFiles         constant/ABLProperties
 fi
 
 foamDictionary -entry "nCores" -set $cores setUp
@@ -104,8 +108,8 @@ fi
 
 # Make the link to the boundary data
 if [ $coupled = precursor ]; then
-    ln -s $precursorDir/postProcessing/boundaryData constant/boundaryData
-    ln -s $precursorDir/constant/givenSource* constant/
+    ln -sf $precursorDir/postProcessing/boundaryData constant/boundaryData
+    ln -sf $precursorDir/constant/givenSource* constant/
 fi
 
 # Do serial local refinement
@@ -127,7 +131,7 @@ fi
 
 # Run the flow field initializer
 if [[ $coupled == WRF** ]]; then
-   srun -n $cores --cpu_bind=cores $initializer -parallel > log.2.$initializer 2>&1
+   srun -n $cores --cpu_bind=cores setFieldsABL -parallel > log.2.setFieldsABL 2>&1
 fi
 
 # Do a final check on the mesh.

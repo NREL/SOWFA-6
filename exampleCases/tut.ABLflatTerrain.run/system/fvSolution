@@ -17,7 +17,7 @@ FoamFile
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#include    "../setUp"
+#include   "../setUp"
 
 solvers
 {
@@ -49,7 +49,23 @@ solvers
         relTol          0.0;
     }
 
-    "(U|T|k|epsilon|R)"
+
+    T
+    {
+        solver          PBiCG;
+        preconditioner  DILU;
+        tolerance       1e-8;
+        relTol          0.1;
+        maxIter         1000;
+    }
+
+    TFinal
+    {
+        $T;
+        relTol          0.0;
+    }
+
+    "(U|k|epsilon|R)"
     {
         solver          PBiCG;
         preconditioner  DILU;
@@ -58,7 +74,7 @@ solvers
         maxIter         1000;
     }
 
-    "(U|T|k|epsilon|R)Final"
+    "(U|k|epsilon|R)Final"
     {
         $U;
         relTol          0.0;

@@ -23,6 +23,7 @@ startTimeAvg=$endTimeBeforeAvg
 writeIntervalAvg=1000
 endTimeAvg=300000
 solver=superDeliciousVanilla
+interp=linearupwind             # midpoint, linearupwind. divSchemes midpoint needed for gravity waves
 # **************************************************************************************************** #
 
 # **************************************** PERFORM SOME CHECKS *************************************** #
@@ -32,16 +33,16 @@ if [ ! -f setUp ];                                then echo "Job killed (3)"; sc
 
 lastBdData=$(ls $(ls -d constant/boundaryData/* | head -1) | tail -2 | head -1)
 
-if [ $(echo "($endTimeBeforeAvg-$startTime)%$writeIntervalBeforeAvg" | bc) -ne 0 ]; then touch  "WARNING_1"; fi
-if [ $(echo "($endTimeAvg-$startTimeAvg)%$writeIntervalAvg" | bc) -ne 0 ];          then touch  "WARNING_2"; fi
-if [ -d constant/boundaryData ] && [ $(echo "$lastBdData <= $endTimeAvg" | bc) ];    then touch "WARNING_3"; fi
+if [ $(echo "($endTimeBeforeAvg-$startTime)%$writeIntervalBeforeAvg" | bc) -ne 0 ];   then touch "WARNING_1"; fi
+if [ $(echo "($endTimeAvg-$startTimeAvg)%$writeIntervalAvg" | bc) -ne 0 ];            then touch "WARNING_2"; fi
+if [ -d constant/boundaryData ] && [ $(echo "$lastBdData <= $endTimeAvg"|bc) -ne 0 ]; then touch "WARNING_3"; fi
 # **************************************************************************************************** #
 
 # ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
 cp system/controlDict.$solver                          system/controlDict
 cp system/fvSolution.flow                              system/fvSolution
 cp system/fvSchemes.flow.$interp                       system/fvSchemes
-latestTime=$(foamListTimes -processor -latestTime -withZero | tail -1)
+latestTime=$(foamListTimes -processor -latestTime -withZero -noFunctionObjects| tail -1)
 # **************************************************************************************************** #
 
 # Split run to get to developed-flow stage
@@ -54,7 +55,7 @@ if [ $latestTime -lt $endTimeBeforeAvg ]; then
 fi
 
 # Split run to save averages
-continueTime=$(( $latestTime > $saveAvgTime ? $latestTime : $saveAvgTime ))
+continueTime=$(( $latestTime > $endTimeBeforeAvg ? $latestTime : $startTimeAvg ))
 foamDictionary -entry "temporalAverages.timeStart" -set $startTimeAvg system/sampling/temporalAverages
 foamDictionary -entry "temporalAverages.enabled"   -set "true" system/sampling/temporalAverages
 foamDictionary -entry "startTime" -set $continueTime -disableFunctionEntries system/controlDict

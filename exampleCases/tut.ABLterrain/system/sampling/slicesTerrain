@@ -97,6 +97,7 @@ slicesTerrain
                 normalVector (0 1 0);
             }
             interpolate true;
+        }    
         yNormal.7500
         {
             type cuttingPlane;

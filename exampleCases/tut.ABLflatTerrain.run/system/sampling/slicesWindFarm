@@ -3,7 +3,7 @@ slicesWindFarm
     type surfaces;
     functionObjectLibs ( "libsampling.so" );
     writeControl        adjustableRunTime;
-    writeInterval       500;
+    writeInterval       100;
     fields
     (
       U
@@ -41,6 +41,17 @@ slicesWindFarm
             }
             interpolate true;
         }
+        yNormal.4000
+        {
+            type cuttingPlane;
+            planeType pointAndNormal;
+            pointAndNormalDict
+            {
+                basePoint (0 4000 0);
+                normalVector (0 1 0);
+            }
+            interpolate true;
+        }
         //
         xNormal.1000
         {
@@ -64,6 +75,18 @@ slicesWindFarm
             }
             interpolate true;
         }
+        xNormal.4000
+        {
+            type cuttingPlane;
+            planeType pointAndNormal;
+            pointAndNormalDict
+            {
+                basePoint (4000 0 0);
+                normalVector (1 0 0);
+            }
+            interpolate true;
+        }
+        //
         zNormal.80
         {
             type cuttingPlane;

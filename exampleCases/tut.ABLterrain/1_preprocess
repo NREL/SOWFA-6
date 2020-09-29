@@ -19,7 +19,6 @@ echo "using" $cores "core(s)"
 OpenFOAM-6-gcc-dev        # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
 startTime=0               # Start time
 stabState=neutral         # neutral, stable, unstable
-wallModelType=local 
 terrainSTL=biglow_xm15001to16009_ym5005to15485_blendFlatNSEW_shifted.stl
 temperatureBC=TstableThroughout   # T{stableThroughout,strongInv,unif}  Only used if initializer != precursor
 initializer=precursor     # precursor, setFieldsABL, none. If precursor, set precursorDir, mapTime
@@ -35,12 +34,13 @@ if [ ! -f 0.original/qwall.$stabState ];                         then echo "Job 
 if [ ! -f 0.original/pointDisplacement ];                        then echo "Job killed (4)"; scancel $SLURM_JOBID; fi
 if [ ! -f constant/dynamicMeshDict ];                            then echo "Job killed (5)"; scancel $SLURM_JOBID; fi
 if [ ! -f constant/triSurface/$terrainSTL ] ;                    then echo "Job killed (6)"; scancel $SLURM_JOBID; fi
-if [ $(foamDictionary -entry "nCores" -value setUp.$stabState) -ne $cores ]; then echo "Job killed (7)"; scancel $SLURM_JOBID; fi
-#stlbb=$(surfaceCheck constant/triSurface/$terrainSTL | grep -e "Bounding" | awk '{print $9}' | awk -F "[.)]" '{print $1}')
-#if [[ $stlbb -ge $(foamDictionary -entry "zMin" -value setUp.$stabState) ]]; then echo "Job killed (8)."; scancel $SLURM_JOBID; fi
+if [ $initializer != precursor ] && [ $(foamDictionary -entry "nCores" -value setUp.$stabState) -ne $cores ]; 
+                                                                 then echo "Job killed (7)"; scancel $SLURM_JOBID; fi
+
 if [ $initializer = precursor ] && [ ! -d $precursorDir/postProcessing/boundaryData ];  then echo "Job killed (8)"; scancel $SLURM_JOBID; fi
-if [ $initializer = precursor ] && [ ! -d $precursorDir/$startTime ];                   then echo "Job killed (9)"; scancel $SLURM_JOBID; fi
-if [ $initializer = setFieldsABL ] && [ ! -f system/setFieldsABLDict.Ugeo.$temperatureBC ]; then echo "Job killed (10)"; scancel $SLURM_JOBID; fi
+if [ $initializer = precursor ] && [ ! -f $precursorDir/constant/givenSourceU ];        then echo "Job killed (9)"; scancel $SLURM_JOBID; fi
+if [ $initializer = precursor ] && [ ! -d $precursorDir/$startTime ];                   then echo "Job killed (10)";scancel $SLURM_JOBID; fi
+if [ $initializer = setFieldsABL ] && [ ! -f system/setFieldsABLDict.Ugeo.$temperatureBC ]; then echo "Job killed (11)"; scancel $SLURM_JOBID; fi
 # **************************************************************************************************** #
 
 # ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
@@ -53,6 +53,14 @@ cp system/fvSchemes.mesh                               system/fvSchemes
 rm -rf constant/polyMesh
 rm -rf constant/boundaryData
 rm -rf $startTime $mapTime
+
+if [ $initializer = precursor ]; then
+    cp constant/ABLProperties.givenSourceFiles            constant/ABLProperties
+elif [ $initializer = setFieldsABL ]; then
+    cp constant/ABLProperties.computerGivenOneSpeedAndDir constant/ABLProperties
+else
+    cp constant/ABLProperties.noSources                   constant/ABLProperties
+fi
 
 windDir=$(foamDictionary -entry "windDir" -value setUp)
 if   (($windDir==0 || $windDir==360));   then inflowDir=north;
@@ -73,9 +81,9 @@ if [ $initializer = precursor ]; then
 
     # Get information from the precursor
     cp $precursorDir/setUp                                 setUp
-    rm setUp.*
+    rm -f setUp.*
     foamDictionary -entry "nCores" -set $cores setUp
-    foamDictionary -entry "wallModelAverageType" -set $wallModelType setUp
+    foamDictionary -entry "wallModelAverageType" -set "local" setUp
 
     # Copy the startTime solution dir from precursor 
     mkdir $startTime.fromPrec
@@ -83,8 +91,12 @@ if [ $initializer = precursor ]; then
     cp -rf $startTime.fromPrec $startTime
     cp 0.original/pointDisplacement $startTime/
 
+    # Change the wall model type to 'local' from precursor's 'planarAverage'
+    foamDictionary -entry "boundaryField.lower.averageType" -set "local" $startTime/Rwall
+
     # Make the link to the boundary data
-    ln -s $precursorDir/postProcessing/boundaryData constant/boundaryData
+    ln -sf $precursorDir/postProcessing/boundaryData constant/boundaryData
+    ln -sf $precursorDir/constant/givenSource* constant/
 
     # Copy the mesh from precursor
     cp -rf $precursorDir/constant/polyMesh constant/

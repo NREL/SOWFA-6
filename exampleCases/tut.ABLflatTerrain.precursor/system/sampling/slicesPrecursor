@@ -3,7 +3,7 @@ slicesPrecursor
     type surfaces;
     functionObjectLibs ( "libsampling.so" );
     writeControl        adjustableRunTime;
-    writeInterval       500;
+    writeInterval       100;
     fields
     (
       U

@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=setupTutPrec
 #SBATCH --output foam1preprocess.log
-#SBATCH --ntasks=1
+#SBATCH --ntasks=36
 #SBATCH --time=1:00:00
 #SBATCH --account=mmc
 
