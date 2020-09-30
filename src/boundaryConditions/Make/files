@@ -10,5 +10,9 @@ $(surfaceVelocityModels)/velocityABLWallFunction/velocityABLWallFunctionFvPatchF
 surfaceHeatFluxModels = ./surfaceHeatFluxModels
 $(surfaceHeatFluxModels)/specifiedSurfaceTemperature/specifiedSurfaceTemperatureFvPatchField.C
 
+/* Inflow/Outflow Boundary Condition  */
+inflowOutflow = ./inflowOutflow
+$(inflowOutflow)/timeVaryingMappedInletOutlet/timeVaryingMappedInletOutletFvPatchFields.C
 
-LIB = $(SOWFA_DIR)/lib/$(WM_OPTIONS)/libSOWFAboundaryConditions
+
+LIB = $(SOWFA_LIBBIN)/libSOWFAboundaryConditions

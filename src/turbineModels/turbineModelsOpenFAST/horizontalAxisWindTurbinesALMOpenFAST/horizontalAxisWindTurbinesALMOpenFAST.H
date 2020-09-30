@@ -291,6 +291,12 @@ private:
             //  spanwise direction, and the drage is pareallel to the local velocity vector.  The second
             //  option follows Spalart's formulation.
             DynamicList<word> bladeForceProjectionDirection;
+    
+            //- If the body force projection function is poorly resolved on the mesh, it may not integrate
+            //  back to the desired force.  The most desirable option is to increase mesh resolution, but
+            //  if this is not possible, then this provides an option to scale the body forces to match
+            //  the desired forces.
+            DynamicList<bool> includeBladeBodyForceScaling;
 
             //- List of body force normalization parameter for each turbine (m). This controls
             //  the width of the Gaussian projection.  It should be tied to grid width.
@@ -321,6 +327,7 @@ private:
             //- List of tip/root loss correction type for each turbine.  "none" applies
             //  no correction.  "Glauert" applies the Glauert tip loss correction.
             DynamicList<word> tipRootLossCorrType;
+            DynamicList<word> tipRootLossCorrField;
 
             //- List of correction type for the effect of drag on sampled velocity.  "none"
             //  applies no corretion.  "Martinez" applies the correction of Tony Martinez
@@ -736,7 +743,7 @@ private:
         void getChordLengths();
 
         //- Body force projection.
-        void updateBladeBodyForce(int turbineNumber);
+        List<scalar> updateBladeBodyForce(int turbineNumber, List<scalar> projectionScaling, bool updateBodyForce);
         void updateNacelleBodyForce(int turbineNumber);
         void updateTowerBodyForce(int turbineNumber);
 
@@ -750,10 +757,13 @@ private:
         scalar lineToDiskGaussian3D(vector epsilon, scalar r0, scalar n, vector d);
         scalar gaussian1D(scalar x, scalar x0, scalar epsilon, scalar coeff);
 
-        //- If using the actuator disk projection function, the shape of the disk must be
-        //  computed.  It is done by fitting a periodic function through the blade points.
+        //- Functions for use with actuator disk projection.
         void computeRotorSurfaceCoeffs(int turbineNumber);
         scalar getPointOnRotorSurface(int turbineNumber, scalar r, scalar theta);
+    
+        //- Tip/root loss correction functions.
+        void computeTipRootLossCorrectedVelocity(int turbineNumber);
+        void computeTipRootLossCorrectedForce(int turbineNumber);
 
         //- Rotates a point/vector about a rotation axis and rotation point by the specified
         //  angle in radians.
@@ -764,6 +774,7 @@ private:
         vector transformLocalCartToGlobalCart(vector vP, vector xP, vector yP, vector zP);
         vector transformCartToCyl(vector v);
         vector transformCylToCart(vector c);
+        vector transformGlobalCartToRotorLocalCart(vector v, int turbineNumber);
         vector transformGlobalCartToRotorLocalCyl(vector v, int turbineNumber);
 
         //- Perform interpolation.
@@ -771,16 +782,12 @@ private:
         scalar interpolate(scalar x, DynamicList<scalar>& xList, DynamicList<scalar>& yList);
         label  interpolate(scalar x, DynamicList<scalar>& xList, DynamicList<label>& yList);
 
-        //- Change a degree angle measurement from compass to standard.
+        //- Change a degree angle measurement from compass to standard and vice versa.
         scalar compassToStandard(scalar dir);
-
-        //- Change a degree angle measurement from standard to compass.
         scalar standardToCompass(scalar dir);
 
-        //- Open turbine data output files.
+        //- Open and print turbine data output files.
         void openOutputFiles();
-           
-        //- Write turbine information to file.
         void printOutputFiles();
 
         //- Print variables for debugging.

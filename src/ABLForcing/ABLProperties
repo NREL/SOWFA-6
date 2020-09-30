@@ -135,9 +135,11 @@ spongeList
     }
 }
 
-// Statistics gathering input
-statisticsOn              $statisticsOn;
-statisticsFrequency       $statisticsFrequency;
+
+// Write out postProcessing/sourceHistory
+writeSource             $writeSource;
+writeSourceInterval     $writeSourceInterval;
+
 
 
 // ************************************************************************* //

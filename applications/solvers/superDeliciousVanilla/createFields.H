@@ -1,3 +1,20 @@
+// Read ABLProperties with input data
+IOdictionary ABLProperties
+(
+    IOobject
+    (
+        "ABLProperties",
+        runTime.time().constant(),
+        runTime,
+        IOobject::MUST_READ,
+        IOobject::NO_WRITE
+    )
+);
+
+//- Automatically update fixesValue for timeVaryingMappedInletOutlet BC?
+bool updateFixesValue(ABLProperties.lookupOrDefault<bool>("updateFixesValue",false));
+
+
 // Create and read the potential temperature field [K].
 Info << "Creating and reading potential temperature field, T" << endl;
 volScalarField T
@@ -79,8 +96,8 @@ CoriolisForce Coriolis(U);
 
 // Create external source term objects [m/s^2 and K/s].
 Info << "Creating and reading volumetric source terms for momentum and temperature" << endl;
-drivingForce<vector> momentumSourceTerm("momentum",U);
-drivingForce<scalar> temperatureSourceTerm("temperature",T);
+drivingForce<vector> momentumSourceTerm(ABLProperties, "momentum",U);
+drivingForce<scalar> temperatureSourceTerm(ABLProperties, "temperature",T);
 
 
 // Create list of sponge layer object

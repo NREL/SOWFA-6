@@ -77,8 +77,8 @@ Usage
         regSmoothing                | Regression smoothing      | no        | true
         regOrder                    | Regression order          | no        | 1
         weightsTable                | Table with weights        | no        |
-        statisticsOn                | Write out source profile  | no        | false
-        statisticsFrequency         | Writing frequency         | yes       |
+        writeSource                 | Write out source profile  | no        | true
+        writeSourceFrequency        | Writing frequency         | no        | 1
 
 SourceFiles
     drivingForce.C
@@ -190,11 +190,11 @@ class drivingForce
         //- Write error profile?
         bool writeError_;
 
-        //- Gather/write statistics?
-        bool statisticsOn_;
+        //- Gather/write source profile?
+        bool writeSource_;
 
-        //- Statistics gathering/writing frequency?
-        int statisticsFreq_;
+        //- Source writing frequency?
+        int writeSourceInterval_;
 
 
     // Private Member Functions
@@ -215,7 +215,7 @@ class drivingForce
 
 
         //- Read input data from ABLProperties dictionary
-        void readInputData_();
+        void readInputData_(const IOdictionary& ABLProperties);
 
 
         //- Read source tables (componentwise)
@@ -290,6 +290,7 @@ public:
     // Constructors
     drivingForce
     (
+        const IOdictionary& dict,
         const word& name,
         const volFieldType& field
     );

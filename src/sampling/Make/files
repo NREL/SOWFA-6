@@ -1,4 +1,4 @@
 sampledSet/cylinder/cylinderSet.C
 sampledSet/arrayStructured/arrayStructured.C
 
-LIB = $(SOWFA_DIR)/lib/$(WM_OPTIONS)/libSOWFAsampling
+LIB = $(SOWFA_LIBBIN)/libSOWFAsampling
