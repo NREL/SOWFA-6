@@ -36,17 +36,250 @@ namespace Foam
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
+void Foam::spongeLayer::readSingleSpongeSubdict(int s)
+{
+    // Get current sponge and read the associated subdict
+    word currentSponge = spongesList_[s];
+    dictionary currentSpongeDict(spongeDict_.subDict(currentSponge));
+
+    // Type of layer 
+    type_ = currentSpongeDict.lookupOrDefault<word>("type","none");
+
+    // Sponge layer start location
+    startLocation_ = currentSpongeDict.lookupOrDefault<scalar>("startLocation",0.0);
+
+    // Sponge layer width
+    width_ = currentSpongeDict.lookupOrDefault<scalar>("width",5000.0);
+
+    // Maximum viscosity
+    viscosityMax_ = currentSpongeDict.lookupOrDefault<scalar>("viscosityMax",0.0); 
+    
+    // Coordinate index
+    coordIndex_ = currentSpongeDict.lookupOrDefault<label>("coordIndex",2);
+
+    // Step up or step down
+    direction_ = currentSpongeDict.lookupOrDefault<word>("direction","stepUp");
+
+    // Components to actively damp
+    dampingComp_ = currentSpongeDict.lookupOrDefault<word>("dampingComp","vertical");
+
+    // Create sponge layer reference velocity
+    Ux_ = currentSpongeDict.lookupOrDefault<scalar>("Ux",0.0);
+    Uy_ = currentSpongeDict.lookupOrDefault<scalar>("Uy",0.0);
+
+}
+
 void Foam::spongeLayer::update()
 {
-    // Compute the sponge layer damping force
-    if (type_ == "Rayleigh")
+    // Compute the sponge layer damping force, solving an equation for each type of layer 
+    // This approach is contrasted by solving an equation for each layer; however, a viscosity
+    // field already summed all the layers of that type
+
+    if ( spongesList_.size() == 0 )
+        return;
+
+    vector Uref;
+    Uref.x() = Ux_;
+    Uref.y() = Uy_;
+    Uref.z() = 0.0;
+    Uref_ = dimensionedVector("Uref", dimensionSet(0, 1, -1, 0, 0, 0, 0), Uref);
+
+    volVectorField Unew= 1*U_;
+    forAll(Unew,cellI)
     {
-        bodyForce_ = viscosity_ * (Uref_ - U_);
+        Unew[cellI].x()=0;
+        Unew[cellI].y()=0;
     }
-    else if (type_ == "viscous")
+
+    // "Rayleigh" and "vertical"
+    bodyForce_ = - tauV_ * Unew;
+
+    // "Rayleigh" and "horizontal"
+    bodyForce_ += tauH_ * (Uref_ - U_);
+
+    // "viscous" and "vertical"
+    bodyForce_ += fvc::laplacian(viscosityV_,Unew);
+
+    // "viscous" and "horizontal"
+    bodyForce_ += fvc::laplacian(viscosityH_,U_);
+
+}
+
+
+void Foam::spongeLayer::addSponge(int s)
+{
+
+    Info << "Adding a " << type_ << " damping layer in coordinate direction " << coordIndex_;
+    Info << " between " << startLocation_ << " and " << startLocation_+width_ << " (" << direction_;
+    Info << ") with lambdaMax " << viscosityMax_ << " and " << dampingComp_ << " damping" << endl;
+
+    // Set viscosity to cosine profile between startLocation and startLocation+width,
+    // For step up:   zero below startLocation and one  above startLocation+width
+    // For step down: one  below startLocation and zero above startLocation+width
+    // viscosity is the percentage of the viscosityMax set in the dictionary
+    scalar fact = 1.0; //stepUp
+    if (direction_ == "stepDown")
     {
-        bodyForce_ = fvc::laplacian(viscosity_,U_);
+        fact = -1.0;
     }
+
+    // Get the current layer's type viscosity field from previously added layers
+    if (type_ == "Rayleigh" && dampingComp_ == "vertical")
+    {
+        viscosity_.dimensions().reset(dimensionSet(0, 0, -1, 0, 0, 0, 0));
+        viscosity_ = tauV_;
+    }
+    else if (type_ == "Rayleigh" && dampingComp_ == "horizontal")
+    {
+        viscosity_.dimensions().reset(dimensionSet(0, 0, -1, 0, 0, 0, 0));
+        viscosity_ = tauH_;
+    }
+    else if (type_ == "viscous"  && dampingComp_ == "vertical")
+    {
+        viscosity_.dimensions().reset(dimensionSet(0, 2, -1, 0, 0, 0, 0));
+        viscosity_ = viscosityV_;
+    }
+    else if (type_ == "viscous"  && dampingComp_ == "horizontal")
+    {
+        viscosity_.dimensions().reset(dimensionSet(0, 2, -1, 0, 0, 0, 0));
+        viscosity_ = viscosityH_;
+    }
+    else
+    {
+        Info << "^ The layer above has not been adeed. Invalid or \"none\" type added." << endl;
+    }
+
+    scalar temp;
+    forAll(mesh_.cells(),cellI)
+    {
+        scalar loc = mesh_.C()[cellI][coordIndex_];
+
+        temp  = (loc<=startLocation_) * (1.0 - fact);
+        temp += ((loc>startLocation_) && (loc<startLocation_+width_)) *
+            (
+             1.0 - fact * Foam::cos
+             (
+              Foam::constant::mathematical::pi * (loc - startLocation_)/width_
+             )
+            );
+        temp += (loc>=startLocation_+width_) * (1.0 + fact);
+        temp *= 0.5 * viscosityMax_;
+        if (temp > viscosity_[cellI])
+            viscosity_[cellI] = temp;
+    }
+
+    forAll(viscosity_.boundaryField(),i)
+    {
+        if ( !mesh_.boundary()[i].coupled() )
+        {
+            forAll(viscosity_.boundaryField()[i],j)
+            {
+                scalar loc = mesh_.boundary()[i].Cf()[j][coordIndex_];
+                temp  = (loc<=startLocation_) * (1.0 - fact);
+                temp += ((loc>startLocation_) && (loc<startLocation_+width_)) *
+                    (
+                     1.0 - fact * Foam::cos
+                     (
+                      Foam::constant::mathematical::pi * (loc - startLocation_)/width_
+                     )
+
+                    );
+                temp += (loc>=startLocation_+width_) * (1.0 + fact);
+                temp *= 0.5 * viscosityMax_;
+                if (temp > viscosity_.boundaryField()[i][j])
+                    viscosity_.boundaryFieldRef()[i][j] = temp;
+            }
+        }
+    }
+
+    // Add the viscosity into the correct variable
+    if      (type_ == "Rayleigh" && dampingComp_ == "vertical")
+    {
+            tauV_ = viscosity_;
+    }
+    else if (type_ == "Rayleigh" && dampingComp_ == "horizontal")
+    {
+            tauH_ = viscosity_;
+    }
+    else if (type_ == "viscous"  && dampingComp_ == "vertical" )
+    {
+            viscosityV_ = viscosity_;
+    }
+    else if (type_ == "viscous"  && dampingComp_ == "horizontal")
+    {
+            viscosityH_ = viscosity_;
+    }
+    
+}
+
+
+void Foam::spongeLayer::adjustOverlappingVisc()
+{
+    // When two viscosity fields (vicosity*_ or tau*_) overlap, only the highest one
+    // should be considered for the bodyForce computation. A linear sum will result 
+    // in a overestimation of the force field
+
+    scalar maxVisc;
+    forAll(mesh_.cells(),cellI)
+    {
+        maxVisc = max(max(viscosityH_[cellI], viscosityV_[cellI]),max(tauH_[cellI], tauV_[cellI]));
+        //gMax for parallel?
+
+        if ( maxVisc == tauV_[cellI] )
+        {
+            viscosityH_[cellI]=0.0; viscosityV_[cellI]=0.0; tauH_[cellI]=0.0;
+        }
+        else if ( maxVisc == tauH_[cellI] )
+        {
+            viscosityH_[cellI]=0.0; viscosityV_[cellI]=0.0; tauV_[cellI]=0.0;
+        }
+        else if ( maxVisc == viscosityV_[cellI] )
+        {  
+            viscosityH_[cellI]=0.0; tauH_[cellI]=0.0; tauV_[cellI]=0.0;
+        }
+        else if ( maxVisc == viscosityH_[cellI] )
+        {
+            viscosityV_[cellI]=0.0; tauH_[cellI]=0.0; tauV_[cellI]=0.0;
+        }
+    }
+
+    forAll(viscosity_.boundaryField(),i)
+    {
+        if ( !mesh_.boundary()[i].coupled() )
+        {
+            forAll(viscosity_.boundaryField()[i],j)
+            {
+                maxVisc = max(max(viscosityH_.boundaryField()[i][j], viscosityV_.boundaryField()[i][j]),
+                              max(tauH_.boundaryField()[i][j], tauV_.boundaryField()[i][j])   );
+                
+                if ( maxVisc == tauV_.boundaryField()[i][j] )
+                {
+                    viscosityH_.boundaryFieldRef()[i][j]=0.0;
+                    viscosityV_.boundaryFieldRef()[i][j]=0.0;
+                    tauH_.boundaryFieldRef()[i][j]=0.0;
+                }
+                else if ( maxVisc == tauH_.boundaryField()[i][j] )
+                {
+                    viscosityH_.boundaryFieldRef()[i][j]=0.0;
+                    viscosityV_.boundaryFieldRef()[i][j]=0.0;
+                    tauV_.boundaryFieldRef()[i][j]=0.0;
+                }
+                else if ( maxVisc == viscosityV_.boundaryField()[i][j] )
+                {  
+                    viscosityH_.boundaryFieldRef()[i][j]=0.0;
+                    tauH_.boundaryFieldRef()[i][j]=0.0;
+                    tauV_.boundaryFieldRef()[i][j]=0.0;
+                }
+                else if ( maxVisc == viscosityH_.boundaryField()[i][j] )
+                {
+                    viscosityV_.boundaryFieldRef()[i][j]=0.0;
+                    tauH_.boundaryFieldRef()[i][j]=0.0;
+                    tauV_.boundaryFieldRef()[i][j]=0.0;
+                }
+            }
+        }
+    }
+
 }
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -83,7 +316,8 @@ Foam::spongeLayer::spongeLayer
         dimensionedVector("Uref_", dimensionSet(0, 1, -1, 0, 0, 0, 0), vector::zero)
     ),
 
-    // Initialize the viscosity field
+    // Initialize the viscosity fields
+    // `viscosity` if viscous, `tau` if Rayleigh
     viscosity_
     (
         IOobject
@@ -92,10 +326,62 @@ Foam::spongeLayer::spongeLayer
             runTime_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::AUTO_WRITE //NO_WRITE
         ),
         mesh_,
-        dimensionedScalar("viscosity_", dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
+        dimensionedScalar("viscosity_", dimensionSet(0, 2, -1, 0, 0, 0, 0), 0.0)
+    ),
+    viscosityH_
+    (
+        IOobject
+        (
+            name_ & "viscosityH",
+            runTime_.timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE //NO_WRITE
+        ),
+        mesh_,
+        dimensionedScalar("viscosityH_", dimensionSet(0, 2, -1, 0, 0, 0, 0), 0.0)
+    ),
+    viscosityV_
+    (
+        IOobject
+        (
+            name_ & "viscosityV",
+            runTime_.timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE //NO_WRITE
+        ),
+        mesh_,
+        dimensionedScalar("viscosityV_", dimensionSet(0, 2, -1, 0, 0, 0, 0), 0.0)
+    ),
+    tauH_
+    (
+        IOobject
+        (
+            name_ & "tauH",
+            runTime_.timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE // NO_WRITE
+        ),
+        mesh_,
+        dimensionedScalar("tauH_", dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
+    ),
+    tauV_
+    (
+        IOobject
+        (
+            name_ & "tauV",
+            runTime_.timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE // NO_WRITE
+        ),
+        mesh_,
+        dimensionedScalar("tauV_", dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
     ),
 
     // Initialize the body force field
@@ -103,11 +389,11 @@ Foam::spongeLayer::spongeLayer
     (
         IOobject
         (
-            name_ & "force",
+            name_ & "Force",
             runTime_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::AUTO_WRITE // NO_WRITE
         ),
         mesh_,
         dimensionedVector("bodyForce",dimensionSet(0, 1, -2, 0, 0, 0, 0),vector::zero)
@@ -128,96 +414,25 @@ Foam::spongeLayer::spongeLayer
         )
     );
     
-    const dictionary& spongeDict(ABLProperties.subOrEmptyDict(name_));
+    spongeDict_ = ABLProperties.subOrEmptyDict(name_);
+    spongesList_ = spongeDict_.toc();
 
-    type_ = spongeDict.lookupOrDefault<word>("type","none");
-
-    // Sponge layer start location
-    scalar startLocation = spongeDict.lookupOrDefault<scalar>("startLocation",0.0);
-
-    // Sponge layer width
-    scalar width = spongeDict.lookupOrDefault<scalar>("width",10000.0);
-
-    // Maximum viscosity
-    scalar viscosityMax = spongeDict.lookupOrDefault<scalar>("viscosityMax",0.0); 
-    
-    // Coordinate index
-    label coordIndex = spongeDict.lookupOrDefault<label>("coordIndex",2);
-
-    // Step up or step down
-    word direction = spongeDict.lookupOrDefault<word>("direction","stepUp");
-
-    // Create sponge layer reference velocity
-    scalar Ux = spongeDict.lookupOrDefault<scalar>("Ux",0.0);
-    scalar Uy = spongeDict.lookupOrDefault<scalar>("Uy",0.0);
-    vector Uref;
-    Uref.x() = Ux;
-    Uref.y() = Uy;
-    Uref.z() = 0.0;
-
-    Uref_ = dimensionedVector("Uref", dimensionSet(0, 1, -1, 0, 0, 0, 0), Uref);
-    
-    if (type_ == "Rayleigh" || type_ == "viscous")
+    if ( spongesList_.size() == 0 )
     {
-        Info << "Adding " << name << " layer (" << type_ << " damping) in coordinate direction " << coordIndex;
-        Info << " between " << startLocation << " and " << startLocation+width << " (" << direction;
-        Info << ") with lambdaMax " << viscosityMax << endl;
+        Info << "No sponge layers specified in ABLProperties. Skipping." << endl;
+    }
+  
+    // Loop over all sponge subdictionaries
+    forAll(spongesList_, s)
+    {
+        // Read the subdict of the current sponge
+        readSingleSpongeSubdict(s);
+
+        // Add to the appropriate viscosity/tau field
+        addSponge(s);
     }
 
-    // For a viscous type sponge layer, change the dimensions of the viscosity field from 1/s to m^2/s
-    if (type_ == "viscous")
-    {
-        viscosity_.dimensions().reset(dimensionSet(0, 2, -1, 0, 0, 0, 0));
-    }
-    
-    // Set viscosity to cosine profile between startLocation and startLocation+width,
-    // For step up:   zero below startLocation and one  above startLocation+width
-    // For step down: one  below startLocation and zero above startLocation+width
-    scalar fact = 1.0; //stepUp
-    if (direction == "stepDown")
-    {
-        fact = -1.0;
-    }
-
-    forAll(mesh_.cells(),cellI)
-    {
-        scalar loc = mesh_.C()[cellI][coordIndex];
-        viscosity_[cellI]  = (loc<=startLocation) * (1.0 - fact);
-        viscosity_[cellI] += ((loc>startLocation) && (loc<startLocation+width)) *
-            (
-                1.0 - fact * Foam::cos
-                    (
-                        Foam::constant::mathematical::pi * (loc - startLocation)/width
-                    )
-
-            );
-        viscosity_[cellI] += (loc>=startLocation+width) * (1.0 + fact);
-        viscosity_[cellI] *= 0.5 * viscosityMax;
-
-    }
-
-    forAll(viscosity_.boundaryField(),i)
-    {
-        if ( !mesh_.boundary()[i].coupled() )
-        {
-            forAll(viscosity_.boundaryField()[i],j)
-            {
-                scalar loc = mesh_.boundary()[i].Cf()[j][coordIndex];
-                viscosity_.boundaryFieldRef()[i][j]  = (loc<=startLocation) * (1.0 - fact);
-                viscosity_.boundaryFieldRef()[i][j] += ((loc>startLocation) && (loc<startLocation+width)) *
-                    (
-                        1.0 - fact * Foam::cos
-                            (
-                                Foam::constant::mathematical::pi * (loc - startLocation)/width
-                            )
-
-                    );
-                viscosity_.boundaryFieldRef()[i][j] += (loc>=startLocation+width) * (1.0 + fact);
-                viscosity_.boundaryFieldRef()[i][j] *= 0.5 * viscosityMax;
-            }
-        }
-    }
-
+    adjustOverlappingVisc();
 
 }
 

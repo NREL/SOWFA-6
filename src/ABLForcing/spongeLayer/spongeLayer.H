@@ -72,17 +72,37 @@ class spongeLayer
             //- Velocity field pointer
             const volVectorField& U_;
 
-        //- Type of sponge layer
-        word type_;
+        //- Dictionary
+        dictionary spongeDict_;
+        
+        //- List of entries in the subdict
+        wordList spongesList_;
 
         //- Reference velocity field
         uniformDimensionedVectorField Uref_;
 
-        //- Viscosity field
+        //- Viscosity and time scale fields
         volScalarField viscosity_;
+        volScalarField viscosityH_;
+        volScalarField viscosityV_;
+        volScalarField tauH_;
+        volScalarField tauV_;
 
         //- Body force field of the sponge layer
         volVectorField bodyForce_;
+
+        //- Sponge layer parameters
+        word type_;
+        scalar startLocation_;
+        scalar width_;
+        scalar viscosityMax_;
+        label coordIndex_;
+        word direction_;
+        word dampingComp_;
+        scalar Ux_;
+        scalar Uy_;
+
+
 
 
 public:
@@ -91,7 +111,7 @@ public:
     ClassName("spongeLayer");
 
 
-    // Constructors
+    //- Constructors
     spongeLayer
     (
         const word& name,
@@ -99,14 +119,22 @@ public:
     );
 
 
-    // Destructor
+    //- Destructor
     virtual ~spongeLayer();
 
 
     // Public Member functions
+        //- Read a subdict
+        void readSingleSpongeSubdict(int s);
 
-        //- Update sponge layer force
+        //- Update sponge layer total force
         void update();
+
+        //- Add sponge to the viscosity field
+        void addSponge(int s);
+
+        // - Fix viscosity field for overlapping regions
+        void adjustOverlappingVisc();
 
         //- Return force
         volVectorField& force()
@@ -125,4 +153,3 @@ public:
 
 #endif
 
-// ************************************************************************* //
