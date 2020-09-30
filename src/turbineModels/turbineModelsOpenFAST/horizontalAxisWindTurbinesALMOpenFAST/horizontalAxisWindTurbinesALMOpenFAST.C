@@ -209,7 +209,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::initialize()
 
     // Get the chord lengths from FAST.
     getChordLengths();
-    
+
     // Define the sets of search cells when sampling velocity and projecting
     // the body force.
     forAll(turbineName,i)
@@ -269,6 +269,19 @@ void horizontalAxisWindTurbinesALMOpenFAST::initialize()
 
     // Get the positions out after solution0 and step are called.
     getPositions();
+
+    forAll(turbineName,i)
+    {
+        updateRotorSearchCells(i);
+      //if (includeNacelle[i])
+      //{
+            updateNacelleSearchCells(i);
+      //}
+      //if (includeTower[i])
+      //{
+            updateTowerSearchCells(i);
+      //}
+    }
 
     // Set the rotorApex and mainShaftOrientation that was before
     // the latest search.
@@ -362,6 +375,8 @@ void horizontalAxisWindTurbinesALMOpenFAST::readInput()
 
         bladeForceProjectionDirection.append(word(turbineArrayProperties.subDict(turbineName[i]).lookup("bladeForceProjectionDirection")));
 
+        includeBladeBodyForceScaling.append(turbineArrayProperties.subDict(turbineName[i]).lookupOrDefault<bool>("includeBladeBodyForceScaling",false));
+
         bladeEpsilon.append(vector(turbineArrayProperties.subDict(turbineName[i]).lookup("bladeEpsilon")));
         nacelleEpsilon.append(vector(turbineArrayProperties.subDict(turbineName[i]).lookup("nacelleEpsilon")));
         towerEpsilon.append(vector(turbineArrayProperties.subDict(turbineName[i]).lookup("towerEpsilon")));
@@ -374,7 +389,9 @@ void horizontalAxisWindTurbinesALMOpenFAST::readInput()
         nacelleCd.append(scalar(readScalar(turbineArrayProperties.subDict(turbineName[i]).lookup("nacelleCd"))));
         nacelleEquivalentRadius.append(Foam::sqrt(nacelleFrontalArea[i]/Foam::constant::mathematical::pi));
 
-        tipRootLossCorrType.append(word(turbineArrayProperties.subDict(turbineName[i]).lookup("tipRootLossCorrType")));
+        tipRootLossCorrType.append(word(turbineArrayProperties.subDict(turbineName[i]).subDict("tipRootLossCorr").lookup("tipRootLossCorrType")));
+        
+        tipRootLossCorrField.append(word(turbineArrayProperties.subDict(turbineName[i]).subDict("tipRootLossCorr").lookup("tipRootLossCorrField")));
 
         velocityDragCorrType.append(word(turbineArrayProperties.subDict(turbineName[i]).lookup("velocityDragCorrType")));
 
@@ -722,15 +739,6 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateRotorSearchCells(int turbineNu
     // First compute the radius of the force projection (to the radius
     // where the projection is only 0.001 its maximum value - this seems
     // recover 99.9% of the total forces when integrated).
-    scalar bladeEpsilonMax = -1.0E6;
-    for (int j = 0; j < 3; j++)
-    {
-        if(bladeEpsilon[i][j] > bladeEpsilonMax)
-        {
-            bladeEpsilonMax = bladeEpsilon[i][j];
-        }
-    }
-
     scalar bladeChordMax = -1.0E6;
     forAll (bladePointChord[i],j)
     {
@@ -753,24 +761,26 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateRotorSearchCells(int turbineNu
         }
     }
 */
-    if ((bladeForceProjectionType[i] == "uniformGaussian") ||
-        (bladeForceProjectionType[i] == "generalizedGaussian") ||
-        (bladeForceProjectionType[i] == "generalizedGaussian2D"))
+    if (bladeForceProjectionType[i] == "chordThicknessGaussian")
     {
-        bladeProjectionRadius[i] = bladeEpsilonMax * Foam::sqrt(Foam::log(1.0/0.001));
+        bladeProjectionRadius[i] = bladeChordMax * max(max(bladeEpsilon[i][0],bladeEpsilon[i][1]),bladeEpsilon[i][2]) * Foam::sqrt(Foam::log(1.0/0.001));
     }
-
-/*
-    else if (bladeForceProjectionType[i] == "variableUniformGaussianUserDef")
+    else if (bladeForceProjectionType[i] == "chordThicknessGaussian2D")
     {
-        bladeProjectionRadius[i] = bladeUserDefMax * bladeEpsilonMax * Foam::sqrt(Foam::log(1.0/0.001));
+        bladeProjectionRadius[i] = bladeChordMax * max(bladeEpsilon[i][0],bladeEpsilon[i][1]) * Foam::sqrt(Foam::log(1.0/0.001));
     }
-*/
     else if ((bladeForceProjectionType[i] == "variableUniformGaussianChord") ||
-             (bladeForceProjectionType[i] == "chordThicknessGaussian") ||
-             (bladeForceProjectionType[i] == "chordThicknessGaussian2D"))
+             (bladeForceProjectionType[i] == "variableUniformGaussianUserDef"))
     {
-        bladeProjectionRadius[i] = bladeChordMax * bladeEpsilonMax * Foam::sqrt(Foam::log(1.0/0.001));
+        bladeProjectionRadius[i] = bladeEpsilon[i][2] * Foam::sqrt(Foam::log(1.0/0.001));
+    }
+    else if (bladeForceProjectionType[i] == "lineToDiskGaussian3D")
+    {
+        bladeProjectionRadius[i] = max(bladeEpsilon[i][0],bladeEpsilon[i][1]) * Foam::sqrt(Foam::log(1.0/0.001));
+    }
+    else
+    {
+        bladeProjectionRadius[i] = bladeEpsilon[i][0] * Foam::sqrt(Foam::log(1.0/0.001));
     }
 
     // Get a measure of blade precone angle, blade tip radius, and distance from tower top to blade tip.
@@ -1326,6 +1336,8 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateRadius(int turbineNumber)
         vector vP = vector::zero;
         vector v = vector::zero;
 
+      //vector vCyl = vector::zero;
+
         v = U_.mesh().C()[cellI] - rotorApex[i];
         zP.z() = 1.0;
         xP = mainShaftOrientation[i];
@@ -1335,6 +1347,11 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateRadius(int turbineNumber)
         zP = xP ^ yP;
         zP /= mag(zP);
         vP = transformGlobalCartToLocalCart(v,xP,yP,zP);
+
+      //vCyl = transformCartToCyl(vP);
+
+      //Pout << "vP = " << vP << tab << "vCyl = " << vCyl << tab << "vCyl (from vP) = (" << Foam::sqrt(Foam::sqr(vP.y())+Foam::sqr(vP.z())) << " " << Foam::atan2(vP.z(),vP.y()) << " " << vP.x() << ")" << endl;
+
         rFromShaft[cellI] = Foam::sqrt(Foam::sqr(vP.y()) + Foam::sqr(vP.z()));
     }
 }
@@ -1578,13 +1595,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::getPositions()
 
        scalar deltaAzimuth = Foam::acos(Foam::max(-1.0, Foam::min( (bladePoint1 & bladePoint1Old) / (mag(bladePoint1) * mag(bladePoint1Old)),1.0)));
 
-     //Info << "deltaAzimuth = " << deltaAzimuth / degRad << endl;
-
-     //Info << "dt = " << dt << endl;
-
        rotorSpeed[i] = deltaAzimuth / dt;
-
-     //Info << "rotorSpeed = " << rotorSpeed << tab << rotorSpeed / rpmRadSec << endl;
    }
 
    /*
@@ -1738,6 +1749,12 @@ void horizontalAxisWindTurbinesALMOpenFAST::getForces()
              //bladePointForce[i][j][k] = a;
                m++;
            }
+       }
+       
+       // Apply a tip/root loss correction to the blade forces.
+       if ((tipRootLossCorrType[i] != "none") && (tipRootLossCorrField[i] == "force"))
+       {
+           computeTipRootLossCorrectedForce(i);
        }
 
        // Get tower force points.
@@ -2082,6 +2099,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::sampleBladePointWindVectors()
         }
     }
 
+    
     // Perform a parallel gather of this local list to the master processor and
     // and then parallel scatter the list back out to all the processors.
     Pstream::gather(bladeWindVectorsLocal,sumOp<List<vector> >());
@@ -2108,9 +2126,122 @@ void horizontalAxisWindTurbinesALMOpenFAST::sampleBladePointWindVectors()
         }
     }
 
+
+    computeBladeAlignedVelocity();
+    
+    
+    // Apply a tip/root loss correction to the blade sampled velocities.
+    forAll(bladeWindVectorsCartesian, i)
+    {
+        if ((tipRootLossCorrType[i] != "none") && (tipRootLossCorrField[i] == "velocity"))
+        {
+            computeTipRootLossCorrectedVelocity(i);
+        }
+    }
+    
+    
     /*
     Info << "bladeWindVectorsCartesian = " << bladeWindVectorsCartesian << endl;
     */
+}
+
+
+void horizontalAxisWindTurbinesALMOpenFAST::computeTipRootLossCorrectedVelocity(int turbineNumber)
+{
+    int i = turbineNumber;
+    forAll(bladeWindVectors[i], j)
+    {
+        // Get the current radius of the root and tip of the blade.  Because the
+        // force points start at root and tip (as opposed to element centers),
+        // we get the radii from the force points and not the velocity sampling
+        // points.
+        scalar rootRadius = bladePointRadius[i][j][0];
+        scalar tipRadius = bladePointRadius[i][j][numBladePoints[i]-1];
+      //Info << "rootRadius = " << rootRadius << endl;
+      //Info << "tipRadius = " << tipRadius << endl;
+            
+        forAll(bladeWindVectors[i][j], k)
+        {
+            // Transform the velocity vector to blade-local Cartesian coordinates.
+            vector vCart = bladeWindVectorsCartesian[i][j][k];
+            vector xP = bladeAlignedVectorsSample[i][j][k][0];
+            vector yP = bladeAlignedVectorsSample[i][j][k][1];
+            vector zP = bladeAlignedVectorsSample[i][j][k][2];
+            vector v = transformGlobalCartToLocalCart(vCart,xP,yP,zP);
+          //Info << "vCart = " << vCart << endl;
+          //Info << "xP = " << xP << endl;
+          //Info << "yP = " << yP << endl;
+          //Info << "zP = " << zP << endl;
+          //Info << "v = " << v << endl;
+                
+            // Compute the wind angle relative the the blade.
+            vector vRel = bladeWindVectors[i][j][k];
+            scalar windAng = Foam::atan2(vRel.x(),vRel.y())/degRad;
+          //Info << "vRel = " << vRel << endl;
+          //Info << "windAng = " << windAng << endl;
+                
+            // Compute the correction factor.
+            scalar F = 1.0;
+            if (tipRootLossCorrType[i] == "Glauert")
+            {
+                scalar g = 1.0;
+
+                scalar ftip  = (tipRadius - bladeSamplePointRadius[i][j][k])/(bladeSamplePointRadius[i][j][k] * sin(mag(windAng)*degRad));
+                scalar Ftip  = (2.0/(Foam::constant::mathematical::pi)) * acos(min(1.0, exp(-g * (numBl[i] / 2.0) * ftip)));
+
+                scalar froot = (bladeSamplePointRadius[i][j][k] - rootRadius)/(bladeSamplePointRadius[i][j][k] * sin(mag(windAng)*degRad));
+                scalar Froot = (2.0/(Foam::constant::mathematical::pi)) * acos(min(1.0, exp(-g * (numBl[i] / 2.0) * froot)));
+
+                F = Ftip * Froot;
+            }
+                
+            // Multiply only the axial velocity by the correction factor, and then rotate back
+            // global Cartesian coordinates.
+            v.x() *= F;
+            vCart = transformLocalCartToGlobalCart(v,xP,yP,zP);
+            bladeWindVectorsCartesian[i][j][k] = vCart;
+        }
+    }
+}
+
+
+void horizontalAxisWindTurbinesALMOpenFAST::computeTipRootLossCorrectedForce(int turbineNumber)
+{
+    int i = turbineNumber;
+    forAll(bladeWindVectors[i], j)
+    {
+        // Get the current radius of the root and tip of the blade.  Because the
+        // force points start at root and tip (as opposed to element centers),
+        // we get the radii from the force points and not the velocity sampling
+        // points.
+        scalar rootRadius = bladePointRadius[i][j][0];
+        scalar tipRadius = bladePointRadius[i][j][numBladePoints[i]-1];
+            
+        forAll(bladeWindVectors[i][j], k)
+        {
+            // Compute the wind angle relative the the blade.
+            vector vRel = bladeWindVectors[i][j][k];
+            scalar windAng = Foam::atan2(vRel.x(),vRel.y())/degRad;
+                
+            // Compute the correction factor.
+            scalar F = 1.0;
+            if (tipRootLossCorrType[i] == "Glauert")
+            {
+                scalar g = 1.0;
+
+                scalar ftip  = (tipRadius - bladePointRadius[i][j][k])/(bladePointRadius[i][j][k] * sin(mag(windAng)*degRad));
+                scalar Ftip  = (2.0/(Foam::constant::mathematical::pi)) * acos(min(1.0, exp(-g * (numBl[i] / 2.0) * ftip)));
+
+                scalar froot = (bladePointRadius[i][j][k] - rootRadius)/(bladePointRadius[i][j][k] * sin(mag(windAng)*degRad));
+                scalar Froot = (2.0/(Foam::constant::mathematical::pi)) * acos(min(1.0, exp(-g * (numBl[i] / 2.0) * froot)));
+
+                F = Ftip * Froot;
+            }
+                
+            // Multiply the force vector by the correction factor.
+            bladePointForce[i][j][k] *= F;
+        }
+    }
 }
 
 
@@ -2333,10 +2464,9 @@ void horizontalAxisWindTurbinesALMOpenFAST::computeBladeAlignedVelocity()
 
 
 
-void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumber)
+List<scalar> horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumber, List<scalar> projectionScaling, bool updateBodyForce)
 {
     int i = turbineNumber;
-
 
     // If this uses the actuator disk body force spreading, then first compute the
     // shape of the rotor disk.
@@ -2344,6 +2474,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
     {
         computeRotorSurfaceCoeffs(i);
     }
+  //Info << "rotorSurfaceCoeffs[" << i << " = " << rotorSurfaceCoeffs[i] << endl;
 
     
     // Initialize variables that are integrated forces.
@@ -2398,16 +2529,19 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
                         //   be from the distorted disk surface.
                         vector cellPointCyl = transformGlobalCartToRotorLocalCyl(mesh_.C()[bladeInfluenceCells[i][m]], turbineNumber);
                         vector bladePointCyl = transformGlobalCartToRotorLocalCyl(bladePoints[i][j][k], turbineNumber);
+                      //Pout << "cellPointCyl = " << cellPointCyl << tab << "cellPointCart = " << mesh_.C()[bladeInfluenceCells[i][m]] << endl;
+                      //Pout << "bladePointCyl = " << bladePointCyl << tab << "bladePointCart = " << bladePoints[i][j][k] << endl;
                         vector disVectorCyl = cellPointCyl - bladePointCyl;
                         scalar rotorSurfaceX = 0.0;
                         if (bladeForceProjectionType[i] == "lineToDiskGaussian3D")
                         {
                             rotorSurfaceX = getPointOnRotorSurface(turbineNumber, cellPointCyl.x(), cellPointCyl.y());
                             disVectorCyl.z() = cellPointCyl.z() - rotorSurfaceX;
+                            dis = 0.0;
                         }
 
                         // - some projection functions need radius along blade.
-                        scalar r0 = rotorSurfaceCoeffs[i][j][0];
+                        scalar r0 = rotorSurfaceCoeffs[i][k][0];
 
                         if (dis <= bladeProjectionRadius[i])
                         {
@@ -2422,7 +2556,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
                             {
                                 spreading = computeBladeProjectionFunction(disVector,r0,i,j,k);
                             }
-
+                            
                             // Add this spreading to the overall force projection field.
                             gBlade[bladeInfluenceCells[i][m]] += spreading;
  
@@ -2434,6 +2568,10 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
                             Urel[bladeInfluenceCells[i][m]] = localVelocity;
 
                             // Compute the body force contribution.
+                            // - If bladeBodyForceScaling is enabled, that means that we insist that the integrated body force thrust and torque match the 
+                            // - thrust and torque coming from the actuator line point forces.  To do this, we first take a pass without scaling and see
+                            // - how far off the thrust and torque are, and then a second pass doing the scaling.  The passes are controlled in the main
+                            // - update function.
                             if ((bladeForceProjectionDirection[i] == "localVelocityAligned") ||
                                 (bladeForceProjectionDirection[i] == "localVelocityAlignedCorrected"))
                             {
@@ -2473,11 +2611,15 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
                             }
                             else if (bladeForceProjectionDirection[i] == "sampledVelocityAligned")
                             {
-                                bodyForce[bladeInfluenceCells[i][m]] += bladePointForce[i][j][k] * spreading;
+                                bodyForce[bladeInfluenceCells[i][m]] += scalar(updateBodyForce) * spreading * 
+                                                                       ( projectionScaling[0]*bladePointForce[i][j][k] 
+                                                                      + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & mainShaftOrientation[i]) * mainShaftOrientation[i]) );
                             }
                             else
                             {
-                                bodyForce[bladeInfluenceCells[i][m]] += bladePointForce[i][j][k] * spreading;
+                                bodyForce[bladeInfluenceCells[i][m]] += scalar(updateBodyForce) * spreading * 
+                                                                       ( projectionScaling[0]*bladePointForce[i][j][k] 
+                                                                      + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & mainShaftOrientation[i]) * mainShaftOrientation[i]) );
                             }
 /*
                         }
@@ -2506,8 +2648,15 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
                              //rotorAxialForceBodySum += (-bodyForce[bladeInfluenceCells[i][m]] * mesh_.V()[bladeInfluenceCells[i][m]]) & axialVector;
                              //rotorTorqueBodySum += (bodyForce[bladeInfluenceCells[i][m]] * bladePointRadius[i][j][k] * mesh_.V()[bladeInfluenceCells[i][m]]) & bladeAlignedVectors[i][j][k][1];
 
-                               rotorAxialForceBodySum += (-bladePointForce[i][j][k] * spreading * mesh_.V()[bladeInfluenceCells[i][m]]) & axialVector;
-                               rotorTorqueBodySum += (bladePointForce[i][j][k] * spreading * bladePointRadius[i][j][k] * mesh_.V()[bladeInfluenceCells[i][m]])  & bladeAlignedVectors[i][j][k][1];
+                             //rotorAxialForceBodySum += (-bladePointForce[i][j][k] * spreading * mesh_.V()[bladeInfluenceCells[i][m]]) & axialVector;
+                             //rotorTorqueBodySum += (bladePointForce[i][j][k] * spreading * bladePointRadius[i][j][k] * mesh_.V()[bladeInfluenceCells[i][m]])  & bladeAlignedVectors[i][j][k][1];
+
+                               rotorAxialForceBodySum -= ( mainShaftOrientation[i] & (spreading *
+                                                         ( projectionScaling[0]*bladePointForce[i][j][k]
+                                                        + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & mainShaftOrientation[i]) * mainShaftOrientation[i]) ) ) ) * mesh_.V()[bladeInfluenceCells[i][m]];
+                               rotorTorqueBodySum +=     ( bladeAlignedVectors[i][j][k][1] & (spreading *
+                                                         ( projectionScaling[0]*bladePointForce[i][j][k]
+                                                        + (projectionScaling[1] - projectionScaling[0]) * ((bladePointForce[i][j][k] & mainShaftOrientation[i]) * mainShaftOrientation[i]) ) ) ) * mesh_.V()[bladeInfluenceCells[i][m]] * bladePointRadius[i][j][k];
                             }
                         }
                     }
@@ -2638,13 +2787,21 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int turbineNumb
   //}
     reduce(rotorAxialForceBodySum,sumOp<scalar>());
     reduce(rotorTorqueBodySum,sumOp<scalar>());
-
+    
+    List<scalar> ratio(2, 0.0);
+    ratio[0] = rotorTorqueBodySum/max(rotorTorque[i],1.0E-5);
+    ratio[1] = rotorAxialForceBodySum/rotorAxialForce[i];
 
     // Print information comparing the actual rotor thrust and torque to the integrated body force.
-    Info << "Turbine " << i << tab << "Rotor Axial Force from Body Force = " << rotorAxialForceBodySum << tab << "Rotor Axial Force from Actuator = " << rotorAxialForce[i] << tab  
-         << "Ratio = " << rotorAxialForceBodySum/rotorAxialForce[i] << endl;
-    Info << "Turbine " << i << tab << "Rotor Torque from Body Force = " << rotorTorqueBodySum << tab << "Rotor Torque from Actuator = " << rotorTorque[i] << tab 
-         << "Ratio = " << rotorTorqueBodySum/max(rotorTorque[i],1.0E-5) << endl;
+    if (updateBodyForce)
+    {
+        Info << "Turbine " << i << tab << "Rotor Torque from Body Force = " << rotorTorqueBodySum << tab << "Rotor Torque from Actuator = " << rotorTorque[i] << tab 
+             << "Ratio = " << ratio[0] << endl;
+        Info << "Turbine " << i << tab << "Rotor Axial Force from Body Force = " << rotorAxialForceBodySum << tab << "Rotor Axial Force from Actuator = " << rotorAxialForce[i] << tab  
+             << "Ratio = " << ratio[1] << endl;
+    }
+
+    return ratio;
 }
 
 
@@ -3156,16 +3313,37 @@ scalar horizontalAxisWindTurbinesALMOpenFAST::lineToDiskGaussian3D(vector epsilo
     // Compute a spreading function that projects line forces to a rotor disk of force.
     // allows us to keep the actuator line framework while applying an actuator disk.
 
-    // Compute the spreading function.
+    // Get the spreading function parameters.
+    // - Gaussian width in the radial direction and axial directions.
     scalar epsR = epsilon[0];
     scalar epsX = epsilon[1];
-    scalar coeff = (4.0 / n) * Foam::sqr(Foam::constant::mathematical::pi) * r0 * epsX * epsR;
-    scalar cosineComponent = 0.0;
-    if (abs(disVector.y()) < (2.0 / n) * Foam::constant::mathematical::pi)
+
+    // - Spreading is a cosine^2 function in the azimuthal direction that goes from 1 at the blade to zero at next blade.
+    //   Because cos^2(theta) + sin^2(theta) = 1, the overlapping spreading functions from each blade will sum to 1 to
+    //   create a disk of body force.  The spreading also follows the distorted disk shape.  fWidth is the half width
+    //   of the cos^2 function for a blade in radians (just the distance from one blade to the next).
+    scalar fWidth = 2.0 * Foam::constant::mathematical::pi / n;
+
+    // - Make sure the azimuth angle argument to the cosine^2 function falls in the range of -pi to +pi.
+    scalar cosArg = disVector.y();
+    if (cosArg > Foam::constant::mathematical::pi)
     {
-       cosineComponent = (Foam::cos(0.5*n*disVector.y()) + 1.0);
+        cosArg -= 2.0*Foam::constant::mathematical::pi;
     }
-    scalar f = coeff * cosineComponent * Foam::exp(-Foam::sqr(disVector.z()/epsX)) * Foam::exp(-Foam::sqr(disVector.x()/epsR));
+    else if (cosArg < -Foam::constant::mathematical::pi)
+    {
+        cosArg += 2.0*Foam::constant::mathematical::pi;
+    }
+    
+    // - To make the cosine^2 function remain zero at theta greater than the function width, limit the argument to
+    //   cosine^2 function such that it is never greater than the function width.
+    cosArg = Foam::max(Foam::min(cosArg,fWidth),-fWidth);
+    
+    // - Compute a coefficient that makes the volume integral of the spreading function equal to 1.
+    scalar coeff = 1.0 / ((2.0/n) * Foam::sqr(Foam::constant::mathematical::pi) * r0 * epsX * epsR);
+
+    // Compute the spreading function
+    scalar f = coeff * Foam::sqr(Foam::cos((n/4.0)*cosArg)) * Foam::exp(-Foam::sqr(disVector.z()/epsX)) * Foam::exp(-Foam::sqr(disVector.x()/epsR));
 
     return f;
 }
@@ -3231,8 +3409,8 @@ void horizontalAxisWindTurbinesALMOpenFAST::computeRotorSurfaceCoeffs(int turbin
             {
                 L(m,n) = Foam::cos((n+1)*pCylLocal[m].y());
                 L(m,n+numBl[i]) = Foam::sin((n+1)*pCylLocal[m].y());
-                L(m+numBl[i],n) = -(n+1)*Foam::sin((k+1)*pCylLocal[m].y());
-                L(m+numBl[i],n+numBl[i]) = (n+1)*Foam::cos((k+1)*pCylLocal[m].y());
+                L(m+numBl[i],n) = -(n+1)*Foam::sin((n+1)*pCylLocal[m].y());
+                L(m+numBl[i],n+numBl[i]) = (n+1)*Foam::cos((n+1)*pCylLocal[m].y());
             }
         }
 
@@ -3240,12 +3418,24 @@ void horizontalAxisWindTurbinesALMOpenFAST::computeRotorSurfaceCoeffs(int turbin
         List<scalar> R(2*numBl[i], 0.0);
         for (int j = 0; j < numBl[i]; j++)
         {
-            R[j] = pCylLocal[j].z() - rotorSurfaceCoeffs[i][k][0];
+            R[j] = pCylLocal[j].z() - rotorSurfaceCoeffs[i][k][1];
             R[j+numBl[i]] = dxdtheta[j];
         }
 
+      //Info << "x = ";
+      //for (int j = 0; j < numBl[i]; j++)
+      //{
+      //    Info << pCylLocal[j].z() << tab;
+      //}
+      //Info << endl;
+      //Info << "dx/dtheta = " << dxdtheta << endl;
+      //Info << "A0 = " << rotorSurfaceCoeffs[i][k][1] << endl;
+      //Info << "L = " << L << endl;
+      //Info << "R = " << R << endl;
+
         // Solve the coefficients.
         LUsolve(L,R);
+      //Info << "x = " << R << endl;
         for (int j = 0; j < numBl[i]; j++)
         {
             rotorSurfaceCoeffs[i][k][j+2] = R[j];
@@ -3448,9 +3638,9 @@ vector horizontalAxisWindTurbinesALMOpenFAST::transformCylToCart(vector c)
 
 
 
-vector horizontalAxisWindTurbinesALMOpenFAST::transformGlobalCartToRotorLocalCyl(vector v, int turbineNumber)
+vector horizontalAxisWindTurbinesALMOpenFAST::transformGlobalCartToRotorLocalCart(vector v, int turbineNumber)
 {
-    // Transform a point from global Cartesian coordinates to rotor local cyclindrical coordinates.
+    // Transform a point from global Cartesian coordinates to rotor local Cartesian coordinates.
 
     // Get the vector relative to the rotor apex.
     vector pCartGlobal = v - rotorApex[turbineNumber];
@@ -3470,6 +3660,18 @@ vector horizontalAxisWindTurbinesALMOpenFAST::transformGlobalCartToRotorLocalCyl
 
     // Transform to the local Cartesian system.
     vector pCartLocal = transformGlobalCartToLocalCart(pCartGlobal,xP,yP,zP);
+
+    return pCartLocal;
+}
+
+
+
+vector horizontalAxisWindTurbinesALMOpenFAST::transformGlobalCartToRotorLocalCyl(vector v, int turbineNumber)
+{
+    // Transform a point from global Cartesian coordinates to rotor local cyclindrical coordinates.
+    
+    // Transform from global Cartesian to rotor local Cartesian.
+    vector pCartLocal = transformGlobalCartToRotorLocalCart(v,turbineNumber);
 
     // Transform to the local cylindrical system.
     vector pCylLocal = transformCartToCyl(pCartLocal);
@@ -3596,7 +3798,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
         sendVelocities();
 
         // Compute the geometry aligned velocity.
-        computeBladeAlignedVelocity();       
+      //computeBladeAlignedVelocity();       
 
         // Update the rotor state.
       //filterRotSpeed();
@@ -3756,6 +3958,10 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
     // Compute the actuator point forces.
     getForces();
 
+    
+    // Project the actuator forces as body forces.
+    
+    
     // Zero out the body forces and spreading function.
     bodyForce *= 0.0;
     gBlade *= 0.0;
@@ -3763,13 +3969,35 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
     // Project the actuator forces as body forces.
     forAll(turbineName,i)
     {
-        updateBladeBodyForce(i);
+        // for the blade forces, treat this specially because there is the option to scale body force
+        // projection based on how the well it integrates back to the desired value.
+        
+        // in the first pass, proceed as normal with no scaling, and compute the ratio of integrated
+        // body force to the desired force.  If scaling is going to be performed, do not update the
+        // body forces in this first pass, though.  If scaling is not performed, go ahead and update
+        // the body forces and be done.
+        List<scalar> bodyForceScalar(2,1.0);
+        bool updateBodyForce = !includeBladeBodyForceScaling[i];
+
+        List<scalar> scaling = updateBladeBodyForce(i, bodyForceScalar, updateBodyForce);
+
+        // if scaling will be done, get the scaling based on thrust or torque, and update the body
+        // forces using this scaling and actually apply them this time.
+        if (includeBladeBodyForceScaling[i])
+        {
+            bodyForceScalar[0] = 1.0/scaling[0];
+            bodyForceScalar[1] = 1.0/scaling[1];
+            updateBodyForce = true;
+            scaling = updateBladeBodyForce(i, bodyForceScalar, updateBodyForce);
+        }
      
+        // if the nacelle is to be included, update body forces for it.
         if (includeNacelle[i])
         {
             updateNacelleBodyForce(i);
         }
      
+        // if the tower is to be included, update body forces for it.
         if (includeTower[i])
         {
             updateTowerBodyForce(i);
@@ -3799,6 +4027,9 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
     {
         printOutputFiles();
     }
+
+    // Update the force on boundaries.
+    bodyForce.correctBoundaryConditions();
 
     // Now that at least the first time step is finished, set pastFirstTimeStep
     // to true.

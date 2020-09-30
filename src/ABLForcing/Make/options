@@ -6,7 +6,7 @@ EXE_INC = \
     -IcommonAlgorithms/windRoseToCartesian
 
 LIB_LIBS = \
-    -L$(SOWFA_DIR)/lib/$(WM_OPTIONS) \
+    -L$(SOWFA_LIBBIN) \
     -lfiniteVolume \
     -lmeshTools \
     -lSOWFAmeshTools

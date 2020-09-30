@@ -85,5 +85,38 @@ doc/Doxygen/DTAGS
 # Ignore the test directory
 /tutorialsTest
 
-# Ignore log files
+# Log and error files
 log.*
+err.*
+foam*
+core.*
+*log
+
+# Solution directories
+processor*
+[0-9]*
+!0.original
+!0.org
+postProcessing
+forces
+
+# Mesh files
+constant/polyMesh/*
+constant/cellDecomposition
+constant/extendedFeatureEdgeMesh
+
+# Large input files
+constant/triSurface/*.stl
+
+# Misc files and directories
+dynamicCode
+*.gz
+*.OpenFOAM
+*.foam
+
+# Exclude scripts
+![0-9]_*
+
+# In case old version of OpenFOAM's cases
+!constant/polyMesh/blockMeshDict*
+

@@ -1,0 +1,3 @@
+writeCellCenters.C
+
+EXE = $(SOWFA_APPBIN)/writeCellCenters
