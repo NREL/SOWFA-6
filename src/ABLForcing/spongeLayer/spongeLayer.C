@@ -67,6 +67,12 @@ void Foam::spongeLayer::readSingleSpongeSubdict(int s)
     Ux_ = currentSpongeDict.lookupOrDefault<scalar>("Ux",0.0);
     Uy_ = currentSpongeDict.lookupOrDefault<scalar>("Uy",0.0);
 
+    // Height damping
+    verticalFilter_ = currentSpongeDict.lookupOrDefault<bool>("verticalFilter",false);
+    vertStartLoc_ = currentSpongeDict.lookupOrDefault<scalar>("vertStartLoc",2000);
+    cosThickness_ = currentSpongeDict.lookupOrDefault<scalar>("cosThickness",150);
+    useWallDistZ_ = currentSpongeDict.lookupOrDefault<bool>("useWallDistZ",false);
+
 }
 
 void Foam::spongeLayer::update()
@@ -191,6 +197,78 @@ void Foam::spongeLayer::addSponge(int s)
             }
         }
     }
+
+
+
+    // Apply vertical filter on the damping
+    if ( verticalFilter_ )
+    {
+        if (coordIndex_ == 2)
+        {
+            Info << "    WARNING: The layer above is incompatible with height damping." << endl;
+        }
+        else
+        {
+            // Compute wall distance
+            wallDist d(mesh_);
+            vector up = vector::zero;
+            up.z() = 1.0;
+            surfaceScalarField dFace = mesh_.Cf() & up;
+            dFace = fvc::interpolate(d.y());
+
+            scalar temp, height;
+            forAll(mesh_.cells(),cellI)
+            {
+                if (useWallDistZ_)
+                    height = d.y()[cellI];
+                else
+                    height = mesh_.C()[cellI][2];
+
+                temp = 0;
+                temp += ((height>vertStartLoc_) && (height<vertStartLoc_+cosThickness_)) * 0.5 *
+                    (
+                     1.0 - 1.0 * Foam::cos
+                     (
+                      Foam::constant::mathematical::pi * (height - vertStartLoc_)/cosThickness_
+                     )
+                    );
+                temp += (height>=vertStartLoc_+cosThickness_);
+                if (viscosity_[cellI] > 0)
+                    viscosity_[cellI] *= temp;
+            }
+
+            forAll(viscosity_.boundaryField(),i)
+            {
+                if ( !mesh_.boundary()[i].coupled() )
+                {
+                    forAll(viscosity_.boundaryField()[i],j)
+                    {
+                        if (useWallDistZ_)
+                            height = dFace.boundaryField()[i][j];
+                        else
+                            height = mesh_.boundary()[i].Cf()[j][2];
+                                
+                        temp  = 0;
+                        temp += ((height>vertStartLoc_) && (height<vertStartLoc_+cosThickness_)) * 0.5 *
+                            (
+                             1.0 - 1.0 * Foam::cos
+                             (
+                              Foam::constant::mathematical::pi * (height - vertStartLoc_)/cosThickness_
+                             )
+
+                            );
+                        temp += (height>=vertStartLoc_+cosThickness_);
+                        if (viscosity_.boundaryField()[i][j] > 0)
+                            viscosity_.boundaryFieldRef()[i][j] *= temp;
+                    }
+                }
+            }
+
+            Info << "    Height damping applied at z = " << vertStartLoc_;
+            Info << " m, extending upwards up to " << vertStartLoc_+cosThickness_ << " m." << endl;
+        }
+    }
+
 
     // Add the viscosity into the correct variable
     if      (type_ == "Rayleigh" && dampingComp_ == "vertical")

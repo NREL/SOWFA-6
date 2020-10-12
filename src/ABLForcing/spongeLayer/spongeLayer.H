@@ -43,6 +43,7 @@ SourceFiles
 
 #include "fvCFD.H"
 #include "IOdictionary.H"
+#include "wallDist.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -101,7 +102,11 @@ class spongeLayer
         word dampingComp_;
         scalar Ux_;
         scalar Uy_;
-
+        //- Vertical filter parameters
+        bool verticalFilter_;
+        scalar vertStartLoc_;
+        scalar cosThickness_;
+        bool useWallDistZ_;
 
 
 
