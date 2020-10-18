@@ -1,3 +1,3 @@
-renumberMesh.C
+renumberMeshForRefineHexMesh.C
 
-EXE = $(FOAM_APPBIN)/renumberMesh
+EXE = $(SOWFA_APPBIN)/renumberMeshForRefineHexMesh

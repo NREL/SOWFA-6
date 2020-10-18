@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    renumberMesh
+    renumberMeshForRefineHexMesh
 
 Description
     Renumbers the cell list in order to reduce the bandwidth, reading and
@@ -30,6 +30,9 @@ Description
 
     By default uses bandCompression (CuthillMcKee) but will
     read system/renumberMeshDict if -dict option is present
+
+    Modification of renumberMesh based on code from Mattijs Janssens
+    https://develop.openfoam.com/Development/OpenFOAM-plus/-/issues/1241
 
 \*---------------------------------------------------------------------------*/
 
@@ -49,6 +52,7 @@ Description
 #include "cellSet.H"
 #include "faceSet.H"
 #include "pointSet.H"
+#include "hexRef8Data.H"
 
 #ifdef FOAM_USE_ZOLTAN
     #include "zoltanRenumber.H"
@@ -1449,6 +1453,23 @@ int main(int argc, char *argv[])
             }
         }
     }
+
+    // Update refinement data
+    hexRef8Data refData
+    (
+        IOobject
+        (
+            "dummy",
+            mesh.facesInstance(),
+            polyMesh::meshSubDir,
+            mesh,
+            IOobject::READ_IF_PRESENT,
+            IOobject::NO_WRITE,
+            false
+        )
+    );
+    refData.updateMesh(map());
+    refData.write();
 
     Info<< "End\n" << endl;
 
