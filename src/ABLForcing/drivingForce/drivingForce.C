@@ -504,11 +504,13 @@ void Foam::drivingForce<Type>::readSourceTables_
 
     // Assuming that the specified times are the same for all components
     label nSourceTimes = sourceTables[0].size();
+    Info<< "Processing " << nSourceTimes << " " << name_ << " source times" << endl;
+    sourceTimesSpecified_.setSize(nSourceTimes);
+    sourceSpecified_ = List<List<Type> >(nSourceTimes, List<Type>(nSourceHeights, Type::zero));
 
     for(int i = 0; i < nSourceTimes; i++)
     {
-        sourceTimesSpecified_.append(sourceTables[0][i][0]);
-        sourceSpecified_.append(List<Type>(nSourceHeights,Type::zero));
+        sourceTimesSpecified_[i] = sourceTables[0][i][0];
 
         for(int j = 0; j < nSourceHeights; j++)
         {
@@ -545,11 +547,13 @@ namespace Foam
     
         // Assuming that the specified times are the same for all components
         label nSourceTimes = sourceTable.size();
+        Info<< "Processing " << nSourceTimes << " " << name_ << " source times" << endl;
+        sourceTimesSpecified_.setSize(nSourceTimes);
+        sourceSpecified_ = List<List<scalar> >(nSourceTimes, List<scalar>(nSourceHeights, 0.0));
     
         for(int i = 0; i < nSourceTimes; i++)
         {
-            sourceTimesSpecified_.append(sourceTable[i][0]);
-            sourceSpecified_.append(List<scalar>(nSourceHeights,0.0));
+            sourceTimesSpecified_[i] = sourceTable[i][0];
 
             for(int j = 0; j < nSourceHeights; j++)
             {
