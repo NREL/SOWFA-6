@@ -100,6 +100,11 @@ drivingForce<vector> momentumSourceTerm(ABLProperties, "momentum",U);
 drivingForce<scalar> temperatureSourceTerm(ABLProperties, "temperature",T);
 
 
+// Create list of sponge layer object
+Info << "Creating sponge layer(s)" << endl;
+spongeLayer spongeLayers("spongeList",U);
+
+
 // Create and read the kinematic turbulent thermal conductivity [m2/s].
 Info << "Creating and reading turbulent thermal conductivity field, kappat" << endl;
 volScalarField kappat
