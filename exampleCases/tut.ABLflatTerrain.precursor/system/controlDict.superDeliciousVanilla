@@ -29,7 +29,7 @@ FoamFile
 
   endTime           20000.0; // Will be overwritten by values in 2_solve. Modify there.
 
-  deltaT            0.5;
+  deltaT            1.0;
 
   writeControl      adjustableRunTime;
 

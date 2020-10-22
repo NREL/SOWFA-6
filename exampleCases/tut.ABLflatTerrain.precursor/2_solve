@@ -64,6 +64,22 @@ if [ $latestTime -lt $endTimeBeforeBdData ]; then
     srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$latestTime 2>&1
 fi
 
+# Make the precursor data ready for future mapping and adjust the initial time of boundaryData
+if [ -d processor0/$endTimeBdData ] && [ ! -f log.3.reconstructPar ]; then
+    foamDictionary -entry "writeFormat" -set ascii -disableFunctionEntries system/controlDict
+    reconstructPar -time $startTimeBdData -fields '(U T K p_rgh kappat nut qwall Rwall)'> log.3.reconstructPar 2>&1
+    # The z0 gets recomposed as 0. This is a known bug. Workaround below
+    z0=$(foamDictionary -entry "z0" -value setUp)
+    foamDictionary -entry "boundaryField.lower.z0" -set $z0 $startTimeBdData/Rwall
+    for dir in north south east west; do
+        ln -sf $(ls postProcessing/boundaryData/$dir | head -1) postProcessing/boundaryData/$dir/$startTimeBdData
+    done
+    foamDictionary -entry "writeFormat" -set binary -disableFunctionEntries system/controlDict
+else
+    touch "WARNING_4"
+    echo "Case not reconstructed and first time of boundaryData not fixed. Check if endTime dir exists."
+fi
+
 # Split run to save boundaryData and averages
 continueTime=$(( $latestTime > $endTimeBeforeBdData ? $latestTime : $startTimeBdData ))
 foamDictionary -entry "temporalAverages.timeStart" -set $startTimeBdData system/sampling/temporalAverages
@@ -73,21 +89,6 @@ foamDictionary -entry "startTime" -set $continueTime -disableFunctionEntries sys
 foamDictionary -entry "endTime" -set $endTimeBdData -disableFunctionEntries system/controlDict
 foamDictionary -entry "writeInterval" -set $writeIntervalBdData -disableFunctionEntries system/controlDict
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.saveBdData.startAt$continueTime 2>&1
-
-# Make the precursor data ready for future mapping and adjust the initial time of boundaryData
-if [ -d processor0/$endTimeBdData ] && [ ! -f log.3.reconstructPar ]; then
-    foamDictionary -entry "writeFormat" -set ascii -disableFunctionEntries system/controlDict
-    reconstructPar -time $startTimeBdData > log.3.reconstructPar 2>&1
-    # The z0 gets recomposed as 0. This is a known bug. Workaround below
-    z0=$(foamDictionary -entry "z0" -value setUp)
-    foamDictionary -entry "boundaryField.lower.z0" -set $z0 $startTimeBdData/Rwall
-    for dir in north south east west; do
-        ln -sf $(ls postProcessing/boundaryData/$dir | head -1) postProcessing/boundaryData/$dir/$startTimeBdData
-    done
-else
-    touch "WARNING_4"
-    echo "Case not reconstructed and first time of boundaryData not fixed. Check if endTime dir exists."
-fi
 
 echo "Ending OpenFOAM job at: " $(date)
 

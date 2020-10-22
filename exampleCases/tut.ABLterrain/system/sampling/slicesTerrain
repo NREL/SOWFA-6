@@ -19,13 +19,13 @@ slicesTerrain
 
      surfaces
      (
-        terrain.100
+        terrain.80
         {
             type            patchInternalField;
             patches         ( lower );
             interpolate     true;
             offsetMode      uniform;
-            offset          (0 0 100);
+            offset          (0 0 80);
             triangulate     true;
         }
         terrain.200
@@ -44,24 +44,6 @@ slicesTerrain
             interpolate     true;
             offsetMode      uniform;
             offset          (0 0 500);
-            triangulate     true;
-        }
-        terrain.1000
-        {
-            type            patchInternalField;
-            patches         ( lower );
-            interpolate     true;
-            offsetMode      uniform;
-            offset          (0 0 1000);
-            triangulate     true;
-        }
-        terrain.2000
-        {
-            type            patchInternalField;
-            patches         ( lower );
-            interpolate     true;
-            offsetMode      uniform;
-            offset          (0 0 2000);
             triangulate     true;
         }
         //
@@ -131,17 +113,6 @@ slicesTerrain
             }
             interpolate true;
         }
-        yNormal.14000
-        {
-            type cuttingPlane;
-            planeType pointAndNormal;
-            pointAndNormalDict
-            {
-                basePoint (0 14000 0);
-                normalVector (0 1 0);
-            }
-            interpolate true;
-        }
         //
         xNormal.m10000
         {
@@ -194,17 +165,6 @@ slicesTerrain
             pointAndNormalDict
             {
                 basePoint (10000 0 0);
-                normalVector (1 0 0);
-            }
-            interpolate true;
-        }
-        xNormal.15000
-        {
-            type cuttingPlane;
-            planeType pointAndNormal;
-            pointAndNormalDict
-            {
-                basePoint (15000 0 0);
                 normalVector (1 0 0);
             }
             interpolate true;
