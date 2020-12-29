@@ -27,11 +27,11 @@ interp=linearupwind             # midpoint, linearupwind. divSchmes midpoints ne
 # **************************************************************************************************** #
 
 # **************************************** PERFORM SOME CHECKS *************************************** #
-if [ ! -f system/controlDict.$solver ];                                       then echo "Job killed (1)"; scancel $SLURM_JOBID; fi
-if [ $nLocalRefs -gt 0 ] && [ ! -f system/topoSetDict.$refLoc.$nLocalRefs ];  then echo "Job killed (2)"; scancel $SLURM_JOBID; fi
-if [ ! -f $precursorDir/setUp ];                                              then echo "Job killed (3)"; scancel $SLURM_JOBID; fi
-if [ ! -d $precursorDir/postProcessing/boundaryData ];                        then echo "Job killed (4)"; scancel $SLURM_JOBID; fi
-if [ ! -d $precursorDir/$starTime ];                                          then echo "Job killed (5)"; scancel $SLURM_JOBID; fi  
+if [ ! -f system/controlDict.$solver ];                                            then echo "Job killed (1)"; scancel $SLURM_JOBID; fi
+if [ $nLocalRefs -gt 0 ] && [ ! -f system/topoSetDict.$refLoc.$nLocalRefs ];       then echo "Job killed (2)"; scancel $SLURM_JOBID; fi
+if [ $coupled = precursor ] && [ ! -f $precursorDir/setUp ];                       then echo "Job killed (3)"; scancel $SLURM_JOBID; fi
+if [ $coupled = precursor ] && [ ! -d $precursorDir/postProcessing/boundaryData ]; then echo "Job killed (4)"; scancel $SLURM_JOBID; fi
+if [ $coupled = precursor ] && [ ! -d $precursorDir/$starTime ];                   then echo "Job killed (5)"; scancel $SLURM_JOBID; fi  
 # **************************************************************************************************** #
 
 # ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
