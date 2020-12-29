@@ -94,7 +94,6 @@ srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.saveBdData.sta
 
 echo "Ending OpenFOAM job at: " $(date)
 
-cp foam2run_${SLURM_JOBID}.log foam2run_startAt$continueTime
-rm foam2run_${SLURM_JOBID}.log
+mv foam2run_${SLURM_JOBID}.log foam2run_startAt$continueTime
 
 # **************************************************************************************************** #

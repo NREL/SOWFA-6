@@ -23,6 +23,7 @@ startTimeAvg=$endTimeBeforeAvg
 writeIntervalAvg=1000
 endTimeAvg=300000
 solver=superDeliciousVanilla
+coupled=WRFint                # precursor,WRFint,WRFbd. WRF-coupled uses the PAT method
 interp=linearupwind             # midpoint, linearupwind. divSchemes midpoint needed for gravity waves
 # **************************************************************************************************** #
 
@@ -31,11 +32,13 @@ if [ ! -f foam1preprocess.log ];                  then echo "Job killed (1)"; sc
 if [ ! -f system/controlDict.$solver ];           then echo "Job killed (2)"; scancel $SLURM_JOBID; fi
 if [ ! -f setUp ];                                then echo "Job killed (3)"; scancel $SLURM_JOBID; fi
 
-lastBdData=$(ls $(ls -d constant/boundaryData/* | head -1) | tail -2 | head -1)
-
 if [ $(echo "($endTimeBeforeAvg-$startTime)%$writeIntervalBeforeAvg" | bc) -ne 0 ];   then touch "WARNING_1"; fi
 if [ $(echo "($endTimeAvg-$startTimeAvg)%$writeIntervalAvg" | bc) -ne 0 ];            then touch "WARNING_2"; fi
-if [ $(echo "${lastBdData%/} <= $endTimeAvg"|bc) -ne 1 ];                             then touch "WARNING_3"; fi
+
+if [ $coupled = precursor ]; then
+    lastBdData=$(ls $(ls -d constant/boundaryData/* | head -1) | tail -2 | head -1)
+    if [ $(echo "${lastBdData%/} >= $endTimeAvg"|bc) -ne 1 ];                         then touch "WARNING_3"; fi
+fi
 # **************************************************************************************************** #
 
 # ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
@@ -48,10 +51,15 @@ latestTime=$(foamListTimes -processor -latestTime -withZero -noFunctionObjects| 
 # Split run to get to developed-flow stage
 if [ $latestTime -lt $endTimeBeforeAvg ]; then
     foamDictionary -entry "temporalAverages.enabled" -set "false" system/sampling/temporalAverages
+    foamDictionary -entry "boundaryData.enabled" -set "false" system/sampling/boundaryData
     foamDictionary -entry "startTime" -set $latestTime -disableFunctionEntries system/controlDict
     foamDictionary -entry "endTime" -set $endTimeBeforeAvg -disableFunctionEntries system/controlDict
     foamDictionary -entry "writeInterval" -set $writeIntervalBeforeAvg -disableFunctionEntries system/controlDict
     srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$latestTime 2>&1
+fi
+
+if [[ $coupled = WRF* ]]; then
+    foamDictionary -entry "boundaryData.enabled"       -set "true" system/sampling/boundaryData
 fi
 
 # Split run to save averages
@@ -65,7 +73,6 @@ srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$contin
 
 echo "Ending OpenFOAM job at: " $(date)
 
-cp foam2run_${SLURM_JOBID}.log foam2run_startAt$continueTime
-rm foam2run_${SLURM_JOBID}.log
+mv foam2run_${SLURM_JOBID}.log foam2run_startAt$continueTime
 
 # **************************************************************************************************** #

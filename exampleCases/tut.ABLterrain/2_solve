@@ -35,7 +35,7 @@ lastBdData=$(ls $(ls -d constant/boundaryData/* | head -1) | tail -2 | head -1)
 
 if [ $(echo "($endTimeBeforeAvg-$startTime)%$writeIntervalBeforeAvg" | bc) -ne 0 ];   then touch "WARNING_1"; fi
 if [ $(echo "($endTimeAvg-$startTimeAvg)%$writeIntervalAvg" | bc) -ne 0 ];            then touch "WARNING_2"; fi
-if [ $(echo "${lastBdData%/} <= $endTimeAvg"|bc) -ne 1 ];                             then touch "WARNING_3"; fi
+if [ $(echo "${lastBdData%/} >= $endTimeAvg"|bc) -ne 1 ];                             then touch "WARNING_3"; fi
 # **************************************************************************************************** #
 
 # ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
@@ -65,7 +65,6 @@ srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$contin
 
 echo "Ending OpenFOAM job at: " $(date)
 
-cp foam2run_${SLURM_JOBID}.log foam2run_startAt$continueTime
-rm foam2run_${SLURM_JOBID}.log
+mv foam2run_${SLURM_JOBID}.log foam2run_startAt$continueTime
 
 # **************************************************************************************************** #

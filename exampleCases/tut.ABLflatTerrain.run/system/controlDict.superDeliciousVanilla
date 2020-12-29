@@ -60,6 +60,7 @@ FoamFile
     #includeFunc Q
     #includeFunc vorticity
     #include "sampling/planarAveraging"
+    #include "sampling/boundaryData"
     #include "sampling/temporalAverages"
     #include "sampling/slicesWindFarm"
   }
