@@ -116,50 +116,47 @@ refineMeshLocal $refinementLevels
 
 # Save cell centers for mapping internal fields
 writeCellCenters > log.writeCellCenters 2>&1
-${SOWFA_DIR}/tools/compareValues.py \
-    constant/assumed_blockmesh_cc.csv \
-    constant/cellCenters.csv
 
 
-# If running in parallel from this point forward, then do the following:
-if [ $parallel -eq 1 ]
-   then
-   # Decompose the mesh and solution files (serial)
-   decomposePar -cellDist -force > log.decomposePar 2>&1
-
-   # Check the mesh
-   mpirun -np $cores checkMesh -parallel > log.checkMesh.1 2>&1
-
-   # Perform global refinement to desired resolution.
-   refineMeshGlobal $refinementLevels
-
-   # The mesh got globally refined, but the solution file did not, so
-   # the boundary fields may not have the correct number of entries.
-   # Use the changeDictionary utility to overwrite the spatially varying
-   # boundary data to a uniform single value.
-   if [ $updateBCType -eq 1 ]
-      then
-      mpirun -np $cores changeDictionary -dict system/changeDictionaryDict.updateBCs.$inflowDir -time $startTime -enableFunctionEntries -parallel > log.changeDictionary.updateBCs.$inflowDir.1 2>&1
-   fi
-
-   # Renumber the mesh for better matrix solver performance.
-   mpirun -np $cores renumberMesh -parallel -overwrite > log.renumberMesh 2>&1
-
-   # Do one last check on the mesh.
-   mpirun -np $cores checkMesh -parallel > log.checkMesh.3 2>&1
-
-
-# Otherwise, run in serial as follows:
-else
-   # Renumber the mesh.
-   echo "   -Renumbering the mesh with renumberMesh..."
-   renumberMesh -overwrite > log.renumberMesh 2>&1
-
-   # Decompose the mesh and solution files (serial)
-   echo "   -Decomposing the domain with decomposePar..."
-   decomposePar -cellDist -force > log.decomposePar 2>&1
-
-   # Check the mesh.
-   echo "   -Checking the mesh with checkMesh..."
-   checkMesh > log.checkMesh.1 2>&1
-fi
+# # If running in parallel from this point forward, then do the following:
+# if [ $parallel -eq 1 ]
+#    then
+#    # Decompose the mesh and solution files (serial)
+#    decomposePar -cellDist -force > log.decomposePar 2>&1
+# 
+#    # Check the mesh
+#    mpirun -np $cores checkMesh -parallel > log.checkMesh.1 2>&1
+# 
+#    # Perform global refinement to desired resolution.
+#    refineMeshGlobal $refinementLevels
+# 
+#    # The mesh got globally refined, but the solution file did not, so
+#    # the boundary fields may not have the correct number of entries.
+#    # Use the changeDictionary utility to overwrite the spatially varying
+#    # boundary data to a uniform single value.
+#    if [ $updateBCType -eq 1 ]
+#       then
+#       mpirun -np $cores changeDictionary -dict system/changeDictionaryDict.updateBCs.$inflowDir -time $startTime -enableFunctionEntries -parallel > log.changeDictionary.updateBCs.$inflowDir.1 2>&1
+#    fi
+# 
+#    # Renumber the mesh for better matrix solver performance.
+#    mpirun -np $cores renumberMesh -parallel -overwrite > log.renumberMesh 2>&1
+# 
+#    # Do one last check on the mesh.
+#    mpirun -np $cores checkMesh -parallel > log.checkMesh.3 2>&1
+# 
+# 
+# # Otherwise, run in serial as follows:
+# else
+#    # Renumber the mesh.
+#    echo "   -Renumbering the mesh with renumberMesh..."
+#    renumberMesh -overwrite > log.renumberMesh 2>&1
+# 
+#    # Decompose the mesh and solution files (serial)
+#    echo "   -Decomposing the domain with decomposePar..."
+#    decomposePar -cellDist -force > log.decomposePar 2>&1
+# 
+#    # Check the mesh.
+#    echo "   -Checking the mesh with checkMesh..."
+#    checkMesh > log.checkMesh.1 2>&1
+# fi
