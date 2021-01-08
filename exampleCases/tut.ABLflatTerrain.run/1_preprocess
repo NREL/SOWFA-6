@@ -88,7 +88,7 @@ rm -rf constant/boundaryData
 if [[ $coupled == WRF* ]]; then
     # If it is a wrf-coupled run, the mesh needs to be generated, instead of copied
     cp -rf 0.forWRFcoupled $startTime
-    mv $startTime/qwall.wrf $startTime
+    mv $startTime/qwall.wrf $startTime/qwall
 
     # Build the mesh and check it
     blockMesh -noFunctionObjects > log.1.blockMesh 2>&1
@@ -102,7 +102,7 @@ elif [ $coupled == precursor ]; then
    
     # Copy the mesh from precursor
     cp -rf $precursorDir/constant/polyMesh constant
-    #cp -rf $precursorDir/system/blockMeshDict system
+    cp -rf $precursorDir/system/blockMeshDict system
 
 fi
 
@@ -122,7 +122,9 @@ decomposePar -cellDist -force > log.1.decomposePar 2>&1
 refineMeshGlobal $nGlobalRefs
 
 # Change the boundary conditions from cyclic everywhere to TVMIO. See readme file
-srun -n $cores changeDictionary -dict system/changeDictionaryDict.TVMIO -time $startTime -subDict dictionaryReplacement -parallel > log.1.changeDictionary.TVMIO 2>&1
+if [ $coupled != WRFint ]; then
+    srun -n $cores changeDictionary -dict system/changeDictionaryDict.TVMIO -time $startTime -subDict dictionaryReplacement -parallel > log.1.changeDictionary.TVMIO 2>&1
+fi
 
 # Renumber the mesh for better matrix solver performance.
 if [ $(($nLocalRefs+$nGlobalRefs)) -gt 0 ]; then
@@ -131,7 +133,7 @@ fi
 
 # Run the flow field initializer
 if [[ $coupled == WRF** ]]; then
-   srun -n $cores --cpu_bind=cores setFieldsABL -parallel > log.2.setFieldsABL 2>&1
+   srun -n $cores --cpu_bind=cores setFieldsABL -parallel > log.1.setFieldsABL 2>&1
 fi
 
 # Do a final check on the mesh.

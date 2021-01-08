@@ -4,6 +4,8 @@
 #SBATCH --ntasks=288         # Change on setUp as well
 #SBATCH --time=1-00
 #SBATCH --account=mmc
+#SBATCH --mail-user=username@nrel.gov
+#SBATCH --mail-type=end
 
 source $HOME/.bash_profile
 cores=$SLURM_NTASKS
@@ -58,8 +60,8 @@ if [ $latestTime -lt $endTimeBeforeAvg ]; then
     srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$latestTime 2>&1
 fi
 
-if [[ $coupled = WRF* ]]; then
-    foamDictionary -entry "boundaryData.enabled"       -set "true" system/sampling/boundaryData
+if [ $coupled = WRFint ]; then
+    foamDictionary -entry "boundaryData.enabled"  -set "true" system/sampling/boundaryData
 fi
 
 # Split run to save averages
