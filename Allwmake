@@ -51,6 +51,7 @@ wmake src/functionObjects/utilities
 
 # Utility to set the initial fields for the ABL solver.
 wmake applications/utilities/setFieldsABL
+wmake applications/utilities/writeCellCenters
 
 
 # The atmospheric LES solver for precursors.
