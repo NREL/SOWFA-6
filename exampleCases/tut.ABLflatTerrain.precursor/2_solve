@@ -74,7 +74,7 @@ if [ -d processor0/$startTimeBdData ] && [ ! -f log.3.reconstructPar ]; then
     z0=$(foamDictionary -entry "z0" -value setUp)
     foamDictionary -entry "boundaryField.lower.z0" -set $z0 $startTimeBdData/Rwall
     for dir in north south east west; do
-        ln -sf $(ls postProcessing/boundaryData/$dir | head -1) postProcessing/boundaryData/$dir/$startTimeBdData
+        ln -sf $(ls -v postProcessing/boundaryData/$dir | head -1) postProcessing/boundaryData/$dir/$startTimeBdData
     done
     foamDictionary -entry "writeFormat" -set binary -disableFunctionEntries system/controlDict
 else
