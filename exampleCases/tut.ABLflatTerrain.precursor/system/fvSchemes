@@ -29,6 +29,7 @@ gradSchemes
 {
     default                        Gauss linear;
     grad(U)                        Gauss linear;
+    grad(T)                        Gauss linear;
 }
 
 divSchemes
@@ -38,6 +39,8 @@ divSchemes
   //div(phi,T)                     Gauss linear;
     div(phi,U)                     Gauss localBlended linear upwind;
     div(phi,T)                     Gauss localBlended linear upwind;
+  //div(phi,U)                     Gauss localBlended linear linearUpwind grad(U);
+  //div(phi,T)                     Gauss localBlended linear linearUpwind grad(T);
     div(R)                         Gauss linear;
     div(U)                         Gauss linear;
     div((nuEff*dev(grad(U).T())))  Gauss linear;
@@ -104,17 +107,17 @@ schemeBlending
 
     // Height above which blending factor begins to transition
     // from heightBlendingFactor_z1 to heightBlendingFactor_z2.
-    heightBlending_z1            #calc "$zMin+($zMax-$zMin)*0.8";
+    heightBlending_z1            #calc "$zMin+($zMax-$zMin)*0.55";
 
     // Height above which blending factor is heightBlendingFactor_z2.
-    heightBlending_z2            #calc "$zMin+($zMax-$zMin)*0.9";
+    heightBlending_z2            #calc "$zMin+($zMax-$zMin)*0.6";
 
 
     heightBlendingFactorU_z1     1.0;
-    heightBlendingFactorU_z2     0.9;
+    heightBlendingFactorU_z2     0.975;
 
     heightBlendingFactorT_z1     1.0;
-    heightBlendingFactorT_z2     0.9;
+    heightBlendingFactorT_z2     0.975;
 
 
     // In calculating height, use wall distance or absolute distance.

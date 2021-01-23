@@ -38,7 +38,7 @@ if [ $(echo "($endTimeBeforeAvg-$startTime)%$writeIntervalBeforeAvg" | bc) -ne 0
 if [ $(echo "($endTimeAvg-$startTimeAvg)%$writeIntervalAvg" | bc) -ne 0 ];            then touch "WARNING_2"; fi
 
 if [ $coupled = precursor ]; then
-    lastBdData=$(ls $(ls -d constant/boundaryData/* | head -1) | tail -2 | head -1)
+    lastBdData=$(ls -v $(ls -d constant/boundaryData/* | head -1) | tail -2 | head -1)
     if [ $(echo "${lastBdData%/} >= $endTimeAvg"|bc) -ne 1 ];                         then touch "WARNING_3"; fi
 fi
 # **************************************************************************************************** #
