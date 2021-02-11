@@ -14,7 +14,6 @@ FoamFile
     location    "0";
     object      qwall;
 }
-
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #include        "../setUp"
@@ -27,9 +26,13 @@ boundaryField
 {
     lower
     {
-        type            fixedHeatingRate;
-        heatingRate     uniform $heatingRate;
-        TSurface        uniform $TRef;
+        type            specifiedSurfaceTemperature;
+        TSurface        table
+        (
+            ( 0       $TRef)
+            ( 100000  #calc "$TRef + 100000*$heatingRate" )
+            # #include "../drivingData/surfaceSkinPotentialTemperatureTable"
+        );
         kappa           $kappa;
         z0              uniform $z0;
         betaM           $betaM;
@@ -38,7 +41,7 @@ boundaryField
         gammaH          $gammaH;
         alphaH          $alphaH;
         averageType     $wallModelAverageType;
-        value           uniform $qwall;
+        value           uniform (0 0 0);
     }
     upper
     {
