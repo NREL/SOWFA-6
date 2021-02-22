@@ -45,7 +45,6 @@ fi
 
 # ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
 cp system/controlDict.$solver                          system/controlDict
-cp system/fvSolution.flow                              system/fvSolution
 cp system/fvSchemes.flow.$interp                       system/fvSchemes
 latestTime=$(foamListTimes -processor -latestTime -withZero -noFunctionObjects| tail -1)
 # **************************************************************************************************** #
