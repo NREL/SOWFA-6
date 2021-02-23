@@ -59,7 +59,7 @@ void Foam::buoyancyModel::updateBackgroundPressure()
 {
     if (backgroundPressureType_ == "noSplit")
     {
-        pBackground_ = 0.0;
+        pBackground_ = 0.0 * gh_;
     }
     else if (backgroundPressureType_ == "rho0Split")
     {
@@ -156,7 +156,7 @@ Foam::buoyancyModel::buoyancyModel
     // - noSplit:   do not split out hydrostatic part; pressure is then perturbation pressure.
     // - rho0Split: split out the hydrostatic part; define hydrostatic as rho_0 * g * z.
     // - rhokSplit: split out the hydrostatic part; define hydrostatic as rho_k * g * z.
-    backgroundPressureType_ = ABLProperties.lookupOrDefault<word>("perturbationPressureType","rhokSplit");
+    backgroundPressureType_ = ABLProperties.lookupOrDefault<word>("perturbationPressureType","rho0Split");
     word backgroundOutput;
     if (backgroundPressureType_ == "noSplit")
     {
