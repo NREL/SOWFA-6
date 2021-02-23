@@ -61,7 +61,7 @@ refineMeshLocal()
    while [ $i -le $1 ]; do
       # Select cells, refine them, and check the new mesh. refineHexMesh refines mesh and solution
       topoSet -dict system/topoSetDict.$refLoc.$i -noFunctionObjects > log.1.toposet.$refLoc.$i 2>&1
-      refineHexMesh -region $refLoc -overwrite > log.1.refineHexMesh.$refLoc.$i 2>&1
+      refineHexMesh -overwrite $refLoc > log.1.refineHexMesh.$refLoc.$i 2>&1
       checkMesh -noFunctionObjects > log.1.checkMesh.local.$i 2>&1
       let i=i+1
    done
