@@ -1514,11 +1514,12 @@ void horizontalAxisWindTurbinesALMOpenFAST::getPositions()
    // Get the force points all updated and ordered nicely.
    // Find the start index in that list that belongs to this processor.
    startIndex = 0;
+
    if (p < numTurbines)
    {
       for(int i = 0; i < p; i++)
       {
-         startIndex += (numBl[i] * numBladePoints[i]) + numTowerPoints[i] + 1;
+          startIndex += (numBl[i] * numBladePoints[i]) + numTowerPoints[i] + 1;
       }
 
       // Call FAST to populate this processor's part of the FAST point list.
@@ -1528,11 +1529,11 @@ void horizontalAxisWindTurbinesALMOpenFAST::getPositions()
           points_[startIndex + i].x() = pointLocation[0];
           points_[startIndex + i].y() = pointLocation[1];
           points_[startIndex + i].z() = pointLocation[2];
-       }
+      }
 
-       // Call FAST to populate this processor's part of the orientation list.
-       for (int i = 0; i < localNumPoints; i++)
-       {
+      // Call FAST to populate this processor's part of the orientation list.
+      for (int i = 0; i < localNumPoints; i++)
+      {
        	  FAST->getForceNodeOrientation(pointOrientation,i,p);
           orientation_[startIndex + i].xx() = pointOrientation[0];
           orientation_[startIndex + i].xy() = pointOrientation[1];
@@ -1879,6 +1880,19 @@ void horizontalAxisWindTurbinesALMOpenFAST::getNumTowerPoints()
    Pstream::scatter(numTowerSamplePoints);
    Pstream::gather(numTowerPoints,sumOp<List<int> >());
    Pstream::scatter(numTowerPoints);
+
+   // Do a check to see if TwrAero is False in OpenFAST.  If it is set to false, the 
+   // number of tower sample points will be 0.  If that is the case, override the
+   // user's settings for tower force points in the SOWFA input and set it to 0.
+   forAll(numTowerSamplePoints,i)
+   {
+      if (numTowerSamplePoints[i] == 0)
+      {
+         Info << "Warning: TwrAero set to False in Aerodyn input for turbine " << i << "." << endl;
+         Info << "Overriding SOWFA numTowerPoints input and setting to 0." << endl;
+         numTowerPoints[i] = 0;
+      }
+   }
 }
 
 
