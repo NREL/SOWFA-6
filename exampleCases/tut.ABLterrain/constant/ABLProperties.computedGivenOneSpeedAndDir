@@ -97,14 +97,18 @@ spongeList
 //    }
 }
 
-// Properties of the Coriolis force
-planetaryRotationPeriod   $EarthPeriod;
-latitude                  $latitude;
+// Pressure splitting type
+// Note: before Feb/2021 the default was `rhokSplit`, and now the default is `rho0Split`
+perturbationPressureType  rho0Split;
+
+
+// Properties of the Coriolis force.
+planetaryRotationPeriod   $EarthPeriod;                // Earth's rotation period (hr).
+latitude                  $latitude;                   // Latitude on the Earth of this site (deg).
 
 
 // Write out postProcessing/sourceHistory
 writeSource             $writeSource;
 writeSourceInterval     $writeSourceInterval;
-
 
 // ************************************************************************* //
