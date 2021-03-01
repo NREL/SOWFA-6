@@ -54,8 +54,8 @@ deltaU                    0.25;
 deltaV                    0.25;
 
 // Total periods of perturbations in streamwise/spanwise in the domain.
-Uperiods                  #calc "4*($xMax - $xMin)/1000";
-Vperiods                  #calc "4*($yMax - $yMin)/1000";
+Uperiods                  #calc "std::round(4*($xMax - $xMin)/1000)";
+Vperiods                  #calc "std::round(4*($yMax - $yMin)/1000)";
 
 // Percentage of domain height (zMax) where peak in perturbation 
 // magnitude occurs.
