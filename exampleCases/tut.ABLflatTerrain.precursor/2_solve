@@ -70,8 +70,9 @@ fi
 if [ -d processor0/$startTimeBdData ] && [ ! -f log.3.reconstructPar ]; then
     foamDictionary -entry "writeFormat" -set ascii -disableFunctionEntries system/controlDict
     reconstructPar -time $startTimeBdData -fields '(U T k p_rgh kappat nut qwall Rwall)'> log.3.reconstructPar 2>&1
-    # The z0 gets recomposed as 0. This is a known bug. Workaround below
+    # The z0 gets recomposed as 0, sometimes with '-nan` values. This is a known bug. Workaround below
     z0=$(foamDictionary -entry "z0" -value setUp)
+    sed -i 's/-nan/0/g' $startTimeBdData/Rwall
     foamDictionary -entry "boundaryField.lower.z0" -set $z0 $startTimeBdData/Rwall
     foamDictionary -entry "writeFormat" -set binary -disableFunctionEntries system/controlDict
 else
