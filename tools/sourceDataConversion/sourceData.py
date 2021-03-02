@@ -56,7 +56,7 @@ def getOutputTimes(dir):
   
   
 # Assemble a complete source history.
-def assembleSourceHistory(inputDir):
+def assembleSourceHistory(inputDir,sourceName):
     # Import necessary modules
     import numpy as np
   
@@ -66,67 +66,41 @@ def assembleSourceHistory(inputDir):
     
     
     # Initialize the big arrays.
-    timeMomentum = []
-    timeTemperature = []
-    sourceMomentum = []
-    sourceTemperature = []
+    time = []
+    source = []
   
   
     # Loop through the time directories and get the source information.
     for n in range(nTimes):
-        sourceName = ['SourceMomentumHistory','SourceTemperatureHistory']
+        print('\n' + 'Reading ' + sourceName)
+        print('   -reading time: ' + str(outputTimes[n]) + ' s  [' + str(n+1) + '/' + str(nTimes) + ']...')
           
-        inputFile = inputDir + '/' + outputTimes[n] + '/' + sourceName[0]
+        inputFile = inputDir + '/' + outputTimes[n] + '/' + sourceName
   
-        heightMomentum, timeMomentumI, sourceMomentumI = readSourceHistoryFile(inputFile)
+        height, timeI, sourceI = readSourceHistoryFile(inputFile)
            
         if (n == 0):
-            timeMomentum = timeMomentumI
-            sourceMomentum = sourceMomentumI
+            time = timeI
+            source = sourceI
         else:
-            startTime = timeMomentumI[0]
+            startTime = timeI[0]
   
-            l = len(timeMomentum)
+            l = len(time)
   
-            if (timeMomentum[l-1] > startTime):
-                indEnd = (np.where(timeMomentum >= startTime))[0][0] - 1
+            if (time[l-1] >= startTime):
+                indEnd = (np.where(time >= startTime))[0][0] - 1
   
             else:
-                indEnd = l-1
+                indEnd = l
                  
-            timeMomentum = np.append(timeMomentum[0:indEnd],timeMomentumI)
-            sourceMomentum = np.append(sourceMomentum[0:indEnd][:],sourceMomentumI,axis=0)
+            time = np.append(time[0:indEnd],timeI)
+            source = np.append(source[0:indEnd][:],sourceI,axis=0)
                
-            timeMomentumI = []
-            sourceMomentumI = []
+            timeI = []
+            sourceI = []
                
-  
-        inputFile = inputDir + '/' + outputTimes[n] + '/' + sourceName[1]
-
-        [heightTemperature, timeTemperatureI, sourceTemperatureI] = readSourceHistoryFile(inputFile)  
-  
-        if (n == 0):
-            timeTemperature = timeTemperatureI
-            sourceTemperature = sourceTemperatureI
-        else:
-            startTime = timeTemperatureI[0]
-  
-            l = len(timeTemperature)
-  
-            if (timeTemperature[l-1] > startTime):
-                indEnd = (np.where(timeTemperature >= startTime))[0][0] - 1
-  
-            else:
-                indEnd = l-1
-  
-            timeTemperature = np.append(timeTemperature[0:indEnd],timeTemperatureI)
-            sourceTemperature = np.append(sourceTemperature[0:indEnd][:],sourceTemperatureI,axis=0)
-  
-            timeTemperatureI = []
-            sourceTemperatureI = []
     
-  
-    return heightMomentum,heightTemperature,timeMomentum,timeTemperature,sourceMomentum,sourceTemperature
+    return height,time,source
   
   
   
@@ -171,32 +145,43 @@ def readSourceHistoryFile(inputFile):
   
   
   
-  
-  
-  
-  
-  
-  
+
 
 # Write out a source file that will become SOWFA input.
-def writeSourceForInput(fileName,height,time,source,sourceName,verbose):
+def writeSourceForInput(fileName,height,time,source,sourceName,verbose=True,timeRange=[]):
+    import numpy as np
     
-    nTimes,nComponents = source.shape 
     nHeights = len(height)
+    nTimes,nComponents = source.shape 
+    nComponents = int(nComponents/nHeights)
     component = ['X','Y','Z']
 
+    indMin = 0
+    indMax = nTimes-1
+    if (bool(timeRange)):
+        indMin = np.argmax(time >= timeRange[0])
+        indMax = np.argmax(time >= timeRange[1])
+        if (indMax < indMin):
+            indMax = nTimes-1
+        nTimes = indMax - indMin + 1
+
     if (verbose):
-        print('Writing '+fileName+':')
-        print('   Source name = ',sourceName,' with ',nComponents,' components')
+        print('\n' + 'Writing '+fileName+':')
+        if (nComponents > 1):
+            print('   Source name = ',sourceName,' with ',nComponents,' components')
+        else:
+            print('   Source name = ',sourceName,' with ',nComponents,' component')
+
         if (nComponents > 1):
             for j in range(nComponents):
-                print('   Source - ',component[j],' range = ',source[0,j],'..',source[-1,j])
+                print('   Source - ' + str(component[j]) + ' range = ' + str(source[indMin,j]) + '..' + str(source[indMax,j]))
         else:
-            print('   Source range = ',source[0,0],'..',source[-1,0])
+            print('   Source range = ' + str(source[indMin,0]) + '..' + str(source[indMax,0]))
+
         print('   Number of heights = ',nHeights)
-        print('   Height range = ',height[0],'..',height[-1],'m')
+        print('   Height range = ' + str(height[0]) + '..' + str(height[-1]) + ' m')
         print('   Number of times = ',nTimes)
-        print('   Time range = ',time[0],'..',time[-1],'s')
+        print('   Time range = ' + str(time[indMin]) + '..' + str(time[indMax]) + ' s')
         print('\n')
     
     # Open the file.
@@ -219,10 +204,10 @@ def writeSourceForInput(fileName,height,time,source,sourceName,verbose):
         else:
             fid.write('sourceTable'+sourceName+'\n')
         fid.write('(\n')
-        for n in range(len(time)):
+        for n in range(indMin,indMax+1):
             textStr = '    (' + str(time[n])
-            for i in range(len(height)):
-                textStr = textStr + ' ' + str(source[n][3*i+j])
+            for i in range(nHeights):
+                textStr = textStr + ' ' + str(source[n][nComponents*i+j])
             
             textStr = textStr + ')\n'
             fid.write(textStr)

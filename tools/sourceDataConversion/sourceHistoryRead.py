@@ -11,14 +11,18 @@ import matplotlib.pyplot as plt
 inputDir = './sourceHistory'
 outputFileMomentum = './givenSourceU'
 outputFileTemperature = './givenSourceT'
-plotOn = True
+timeRange = [20000.0,110000.00]
+plotOn = False
 
 
 # Assemble the source information.
-[heightMomentum,heightTemperature,timeMomentum,timeTemperature,sourceMomentum,sourceTemperature] = sd.assembleSourceHistory(inputDir)
+[heightMomentum,timeMomentum,sourceMomentum] = sd.assembleSourceHistory(inputDir,'SourceMomentumHistory')
+[heightTemperature,timeTemperature,sourceTemperature] = sd.assembleSourceHistory(inputDir,'SourceTemperatureHistory')
 
 
 # Write the source file for input to the solver.
+#sd.writeSourceForInput(outputFileMomentum,heightMomentum,timeMomentum,sourceMomentum,'Momentum',True,timeRange)
+#sd.writeSourceForInput(outputFileTemperature,heightTemperature,timeTemperature,sourceTemperature,'Temperature',True,timeRange)
 sd.writeSourceForInput(outputFileMomentum,heightMomentum,timeMomentum,sourceMomentum,'Momentum',True)
 sd.writeSourceForInput(outputFileTemperature,heightTemperature,timeTemperature,sourceTemperature,'Temperature',True)
 
