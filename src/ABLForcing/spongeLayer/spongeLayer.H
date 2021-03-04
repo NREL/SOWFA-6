@@ -124,7 +124,9 @@ class spongeLayer
         word direction_;
 
         // Max damping coefficient
-        scalar viscosityMax_;
+        scalar dampCoeffMax_;
+        scalarField dampCoeffMaxTableTime_;
+        scalarField dampCoeffMaxTableCoeff_;
         
         // Components of the velocity to be damped -- `horizontal` or `vertical`
         word dampingComp_;
@@ -133,8 +135,9 @@ class spongeLayer
         scalar Ux_;
         scalar Uy_;
 
-        // Bool to indicate if layer has a time-varying width and thus needs update
-        bool needsLocationUpdating_; 
+        // Bool to indicate if layer has time-varying properties and thus
+        // needs to be updated at every time step
+        bool needsUpdating_; 
 
     // Private Member Functions
 

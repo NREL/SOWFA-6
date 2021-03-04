@@ -63,7 +63,7 @@ void Foam::spongeLayer::readSingleSpongeSubdict_(int s)
 
         width_ = interpolateXY(runTime_.value(),widthTableTime_, widthTableWidth_);
 
-        needsLocationUpdating_ = true;
+        needsUpdating_ = true;
     }
 
     // Sponge layer parameters
@@ -125,7 +125,26 @@ void Foam::spongeLayer::readSingleSpongeSubdict_(int s)
     }
 
     // Maximum viscosity
-    viscosityMax_ = currentSpongeDict.lookupOrDefault<scalar>("viscosityMax",0.01); 
+    if ( currentSpongeDict.found("dampCoeffMax") )
+    {
+        // Sponge layer has constant (in time) maximum damping coefficient
+        dampCoeffMax_ = currentSpongeDict.lookupOrDefault<scalar>("dampCoeffMax",0.01); 
+    }
+    else
+    {
+
+        // Sponge layer has variable damp coefficient. Read table and interpolate
+        List<List<scalar>> dampTable( currentSpongeDict.lookup("dampCoeffMaxTable") );
+        forAll(dampTable, i)
+        {
+            dampCoeffMaxTableTime_.append( dampTable[i][0] );
+            dampCoeffMaxTableCoeff_.append( dampTable[i][1] );
+        }
+
+        dampCoeffMax_ = interpolateXY(runTime_.value(),dampCoeffMaxTableTime_, dampCoeffMaxTableCoeff_);
+
+        needsUpdating_ = true;
+    }
     
     // Components to actively damp
     dampingComp_ = currentSpongeDict.lookupOrDefault<word>("dampingComp","vertical");
@@ -143,7 +162,7 @@ void Foam::spongeLayer::update()
     // field already summed all the layers of that type
 
     // First, update the widths of the layers by updating the viscosity/tau fields
-    if ( needsLocationUpdating_ )
+    if ( needsUpdating_ )
     {
         updateSpongeLocation_();
     }
@@ -221,7 +240,7 @@ void Foam::spongeLayer::addSponge_(int s)
         Info << "Adding " << currentSponge_  << ": " << type_ << " damping between ";
         Info << startLocation_ << " and " << startLocation_+width_ << " (" << direction_;
         Info << ") in " << xyzdir << " direction; " << dampingComp_ << " damping with ";
-        Info << viscosityMax_ << " max damping coefficient" << endl;
+        Info << dampCoeffMax_ << " max damping coefficient" << endl;
     }
     else
     {
@@ -232,7 +251,7 @@ void Foam::spongeLayer::addSponge_(int s)
     // Set viscosity to cosine profile between startLocation and startLocation+width,
     // For step up:   zero below startLocation and one  above startLocation+width
     // For step down: one  below startLocation and zero above startLocation+width
-    // viscosity is the percentage of the viscosityMax set in the dictionary
+    // viscosity is the percentage of the dampCoeffMax set in the dictionary
     scalar fact = 1.0; //stepUp
     if (direction_ == "stepDown")
     {
@@ -279,7 +298,7 @@ void Foam::spongeLayer::addSponge_(int s)
              )
             );
         temp += (loc>=startLocation_+width_) * (1.0 + fact);
-        temp *= 0.5 * viscosityMax_;
+        temp *= 0.5 * dampCoeffMax_;
         if (temp > viscosity_[cellI])
             viscosity_[cellI] = temp;
     }
@@ -301,7 +320,7 @@ void Foam::spongeLayer::addSponge_(int s)
 
                     );
                 temp += (loc>=startLocation_+width_) * (1.0 + fact);
-                temp *= 0.5 * viscosityMax_;
+                temp *= 0.5 * dampCoeffMax_;
                 if (temp > viscosity_.boundaryField()[i][j])
                     viscosity_.boundaryFieldRef()[i][j] = temp;
             }
@@ -543,7 +562,7 @@ Foam::spongeLayer::spongeLayer
     // not be updated during the main time loop. This variable will be set to true
     // if a widthTable is encontered and the loop on all sponges will be performed
     // at every time step.
-    needsLocationUpdating_ = false;
+    needsUpdating_ = false;
         
     // Loop over all sponge subdictionaries
     forAll(spongesList_, s)
