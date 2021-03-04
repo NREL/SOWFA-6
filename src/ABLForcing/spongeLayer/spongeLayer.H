@@ -93,20 +93,48 @@ class spongeLayer
         volVectorField bodyForce_;
 
         //- Sponge layer parameters
+        // Type of damping -- `Rayleigh` or `viscous`
         word type_;
-        word currentSponge_;
-        scalar startLocation_;
+        
+        // Patch in which the damping will be applied
+        // If specifying patch, specify width as well and the layer start and 
+        // end location will be determined automatically. If using standard
+        // patch names (west, east, north, south, upper), neither coordIndex
+        // nor direction are necessary to be specified. If not specifying the
+        // patch (i.e. a non-conventional layer), then all the other parameters
+        // need to be speficied
+        word patch_;
+
+        // The width of the layer. The user can either specify a constant width
+        // or a time-varying width table
         scalar width_;
-        scalar viscosityMax_;
         scalarField  widthTableTime_;
         scalarField  widthTableWidth_;
-        bool needsLocationUpdating_; 
+
+        // Name of the current sponge (for printing purposes)
+        word currentSponge_;
+
+        // Parameters of a generic layer. These do not need to be specified if
+        // a patch is given. If a non-conventional layer is needed, then:
+        // startLocation_: coordinate of the start of the layer
+        // coordIndex_: 0, 1, or 2, indicating the direction (x, y, z)
+        // direction_: `stepUp` or `stepDown`, indicating direction of cosine
+        scalar startLocation_;
         label coordIndex_;
         word direction_;
+
+        // Max damping coefficient
+        scalar viscosityMax_;
+        
+        // Components of the velocity to be damped -- `horizontal` or `vertical`
         word dampingComp_;
+
+        // Velocity in which horizontal damping will be damped towards
         scalar Ux_;
         scalar Uy_;
 
+        // Bool to indicate if layer has a time-varying width and thus needs update
+        bool needsLocationUpdating_; 
 
     // Private Member Functions
 

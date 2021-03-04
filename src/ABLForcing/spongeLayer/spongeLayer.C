@@ -45,11 +45,8 @@ void Foam::spongeLayer::readSingleSpongeSubdict_(int s)
     // Type of layer 
     type_ = currentSpongeDict.lookupOrDefault<word>("type","none");
 
-    // Sponge layer start location
-    startLocation_ = currentSpongeDict.lookupOrDefault<scalar>("startLocation",0.0);
-
     // Sponge layer width
-    if ( currentSpongeDict.isDict("width") )
+    if ( currentSpongeDict.found("width") )
     {
         // Sponge layer has constant width
         width_ = currentSpongeDict.lookupOrDefault<scalar>("width",5000.0);
@@ -69,15 +66,67 @@ void Foam::spongeLayer::readSingleSpongeSubdict_(int s)
         needsLocationUpdating_ = true;
     }
 
+    // Sponge layer parameters
+    if ( currentSpongeDict.found("patch") )
+    {
+        // Standard at-domain-boundary layer
+
+        // Patch to apply the layer
+        patch_ = currentSpongeDict.lookupOrDefault<word>("patch","null");
+
+        // Set standard parameters
+        const boundBox& bb = mesh_.bounds();
+        if (patch_ == "upper")
+        {
+            startLocation_ = bb.max()[2] - width_;
+            coordIndex_ = 2;
+            direction_ = "stepUp";
+        }
+        else if (patch_ == "north")
+        {
+            startLocation_ = bb.max()[1] - width_;
+            coordIndex_ = 1;
+            direction_ = "stepUp";
+        }
+        else if (patch_ == "south")
+        {
+            startLocation_ = bb.min()[0];
+            coordIndex_ = 1;
+            direction_ = "stepDown";
+        }
+        else if (patch_ == "west")
+        {
+            startLocation_ = bb.min()[0];
+            coordIndex_ = 0;
+            direction_ = "stepDown";
+        }
+        else if (patch_ == "east")
+        {
+            startLocation_ = bb.max()[0] - width_;
+            coordIndex_ = 0;
+            direction_ = "stepUp";
+        }
+        else
+            Info << "ERROR: patch does not exist or it is not valid." << endl;
+
+    }
+    else
+    {
+        // Non-standard (generic) layer specification
+
+        // Sponge layer start location
+        startLocation_ = currentSpongeDict.lookupOrDefault<scalar>("startLocation",0.0);
+
+        // Coordinate index
+        coordIndex_ = currentSpongeDict.lookupOrDefault<label>("coordIndex",2);
+
+        // Step up or step down
+        direction_ = currentSpongeDict.lookupOrDefault<word>("direction","stepUp");
+    }
+
     // Maximum viscosity
-    viscosityMax_ = currentSpongeDict.lookupOrDefault<scalar>("viscosityMax",0.0); 
+    viscosityMax_ = currentSpongeDict.lookupOrDefault<scalar>("viscosityMax",0.01); 
     
-    // Coordinate index
-    coordIndex_ = currentSpongeDict.lookupOrDefault<label>("coordIndex",2);
-
-    // Step up or step down
-    direction_ = currentSpongeDict.lookupOrDefault<word>("direction","stepUp");
-
     // Components to actively damp
     dampingComp_ = currentSpongeDict.lookupOrDefault<word>("dampingComp","vertical");
 
@@ -134,15 +183,15 @@ void Foam::spongeLayer::updateSpongeLocation_()
 {
     clearViscosityFields_();
 
-        // Update the viscosity/tau fields
-        forAll(spongesList_, s)
-        {
-            // Read the subdict of the current sponge
-            readSingleSpongeSubdict_(s);
+    // Update the viscosity/tau fields
+    forAll(spongesList_, s)
+    {
+        // Read the subdict of the current sponge
+        readSingleSpongeSubdict_(s);
 
-            // Add to the appropriate viscosity/tau field
-            addSponge_(s);
-        }
+        // Add to the appropriate viscosity/tau field
+        addSponge_(s);
+    }
 
     adjustOverlappingVisc_();
 }
@@ -169,14 +218,15 @@ void Foam::spongeLayer::addSponge_(int s)
             case 2: xyzdir='z'; break;
         }
 
-        Info << "Adding " << currentSponge_  << ": " << type_ << " damping between " << startLocation_;
-        Info << " and " << startLocation_+width_ << " (" << direction_ << ") in " << xyzdir << " direction; ";
-        Info << dampingComp_ << " damping with " << viscosityMax_ << " max damping coefficient" << endl;
+        Info << "Adding " << currentSponge_  << ": " << type_ << " damping between ";
+        Info << startLocation_ << " and " << startLocation_+width_ << " (" << direction_;
+        Info << ") in " << xyzdir << " direction; " << dampingComp_ << " damping with ";
+        Info << viscosityMax_ << " max damping coefficient" << endl;
     }
     else
     {
-        Info << "Sponge Layers: Updating " << currentSponge_ << " damping layer location to " << startLocation_;
-        Info << " to " << startLocation_+width_ << "." << endl;
+        Info << "Sponge Layers: Updating " << currentSponge_ << " damping layer location to ";
+        Info << startLocation_ << " to " << startLocation_+width_ << "." << endl;
     }
 
     // Set viscosity to cosine profile between startLocation and startLocation+width,
@@ -479,7 +529,8 @@ Foam::spongeLayer::spongeLayer
             IOobject::NO_WRITE
         )
     );
-    
+
+
     spongeDict_ = ABLProperties.subOrEmptyDict(name_);
     spongesList_ = spongeDict_.toc();
 
