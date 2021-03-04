@@ -36,11 +36,11 @@ namespace Foam
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-void Foam::spongeLayer::readSingleSpongeSubdict(int s)
+void Foam::spongeLayer::readSingleSpongeSubdict_(int s)
 {
     // Get current sponge and read the associated subdict
-    word currentSponge = spongesList_[s];
-    dictionary currentSpongeDict(spongeDict_.subDict(currentSponge));
+    currentSponge_ = spongesList_[s];
+    dictionary currentSpongeDict(spongeDict_.subDict(currentSponge_));
 
     // Type of layer 
     type_ = currentSpongeDict.lookupOrDefault<word>("type","none");
@@ -49,7 +49,25 @@ void Foam::spongeLayer::readSingleSpongeSubdict(int s)
     startLocation_ = currentSpongeDict.lookupOrDefault<scalar>("startLocation",0.0);
 
     // Sponge layer width
-    width_ = currentSpongeDict.lookupOrDefault<scalar>("width",5000.0);
+    if ( currentSpongeDict.isDict("width") )
+    {
+        // Sponge layer has constant width
+        width_ = currentSpongeDict.lookupOrDefault<scalar>("width",5000.0);
+    }
+    else
+    {
+        // Sponge layer has variable width. Read table and interpolate
+        List<List<scalar>> widthTable( currentSpongeDict.lookup("widthTable") );
+        forAll(widthTable, i)
+        {
+            widthTableTime_.append( widthTable[i][0] );
+            widthTableWidth_.append( widthTable[i][1] );
+        }
+
+        width_ = interpolateXY(runTime_.value(),widthTableTime_, widthTableWidth_);
+
+        needsLocationUpdating_ = true;
+    }
 
     // Maximum viscosity
     viscosityMax_ = currentSpongeDict.lookupOrDefault<scalar>("viscosityMax",0.0); 
@@ -75,6 +93,13 @@ void Foam::spongeLayer::update()
     // This approach is contrasted by solving an equation for each layer; however, a viscosity
     // field already summed all the layers of that type
 
+    // First, update the widths of the layers by updating the viscosity/tau fields
+    if ( needsLocationUpdating_ )
+    {
+        updateSpongeLocation_();
+    }
+
+    // Nest, calculate the damping force based on the new viscosity/tau fields
     if ( spongesList_.size() == 0 )
         return;
 
@@ -105,13 +130,54 @@ void Foam::spongeLayer::update()
 
 }
 
-
-void Foam::spongeLayer::addSponge(int s)
+void Foam::spongeLayer::updateSpongeLocation_()
 {
+    clearViscosityFields_();
 
-    Info << "Adding a " << type_ << " damping layer in coordinate direction " << coordIndex_;
-    Info << " between " << startLocation_ << " and " << startLocation_+width_ << " (" << direction_;
-    Info << ") with lambdaMax " << viscosityMax_ << " and " << dampingComp_ << " damping" << endl;
+        // Update the viscosity/tau fields
+        forAll(spongesList_, s)
+        {
+            // Read the subdict of the current sponge
+            readSingleSpongeSubdict_(s);
+
+            // Add to the appropriate viscosity/tau field
+            addSponge_(s);
+        }
+
+    adjustOverlappingVisc_();
+}
+
+
+void Foam::spongeLayer::clearViscosityFields_()
+{
+    tauV_ = 0.0 * tauV_;
+    tauH_ = 0.0 * tauH_;
+    viscosityV_ = 0.0 * viscosityV_;
+    viscosityH_ = 0.0 * viscosityH_;
+}
+
+
+void Foam::spongeLayer::addSponge_(int s)
+{
+    // Print information
+    if ( runTime_.timeIndex() == 0 ) // before time loop
+    {
+        char xyzdir='?';
+        switch(coordIndex_){
+            case 0: xyzdir='x'; break;
+            case 1: xyzdir='y'; break;
+            case 2: xyzdir='z'; break;
+        }
+
+        Info << "Adding " << currentSponge_  << ": " << type_ << " damping between " << startLocation_;
+        Info << " and " << startLocation_+width_ << " (" << direction_ << ") in " << xyzdir << " direction; ";
+        Info << dampingComp_ << " damping with " << viscosityMax_ << " max damping coefficient" << endl;
+    }
+    else
+    {
+        Info << "Sponge Layers: Updating " << currentSponge_ << " damping layer location to " << startLocation_;
+        Info << " to " << startLocation_+width_ << "." << endl;
+    }
 
     // Set viscosity to cosine profile between startLocation and startLocation+width,
     // For step up:   zero below startLocation and one  above startLocation+width
@@ -213,7 +279,7 @@ void Foam::spongeLayer::addSponge(int s)
 }
 
 
-void Foam::spongeLayer::adjustOverlappingVisc()
+void Foam::spongeLayer::adjustOverlappingVisc_()
 {
     // When two viscosity fields (vicosity*_ or tau*_) overlap, only the highest one
     // should be considered for the bodyForce computation. A linear sum will result 
@@ -422,17 +488,23 @@ Foam::spongeLayer::spongeLayer
         Info << "No sponge layers specified in ABLProperties. Skipping." << endl;
     }
   
+    // Unless there is a sponge layer with time-varying width, their location will
+    // not be updated during the main time loop. This variable will be set to true
+    // if a widthTable is encontered and the loop on all sponges will be performed
+    // at every time step.
+    needsLocationUpdating_ = false;
+        
     // Loop over all sponge subdictionaries
     forAll(spongesList_, s)
     {
         // Read the subdict of the current sponge
-        readSingleSpongeSubdict(s);
+        readSingleSpongeSubdict_(s);
 
         // Add to the appropriate viscosity/tau field
-        addSponge(s);
+        addSponge_(s);
     }
 
-    adjustOverlappingVisc();
+    adjustOverlappingVisc_();
 
 }
 

@@ -43,6 +43,7 @@ SourceFiles
 
 #include "fvCFD.H"
 #include "IOdictionary.H"
+#include "interpolateXY.H" 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -93,9 +94,13 @@ class spongeLayer
 
         //- Sponge layer parameters
         word type_;
+        word currentSponge_;
         scalar startLocation_;
         scalar width_;
         scalar viscosityMax_;
+        scalarField  widthTableTime_;
+        scalarField  widthTableWidth_;
+        bool needsLocationUpdating_; 
         label coordIndex_;
         word direction_;
         word dampingComp_;
@@ -103,7 +108,22 @@ class spongeLayer
         scalar Uy_;
 
 
+    // Private Member Functions
 
+        //- Read a subdict
+        void readSingleSpongeSubdict_(int s);
+
+        //- Loop through all sponges getting updated location 
+        void updateSpongeLocation_();
+
+        //- Zero out all tau/viscosity fields for updated locations
+        void clearViscosityFields_();
+
+        //- Add sponge to the viscosity field
+        void addSponge_(int s);
+
+        // - Fix viscosity field for overlapping regions
+        void adjustOverlappingVisc_();
 
 public:
 
@@ -124,17 +144,9 @@ public:
 
 
     // Public Member functions
-        //- Read a subdict
-        void readSingleSpongeSubdict(int s);
 
         //- Update sponge layer total force
         void update();
-
-        //- Add sponge to the viscosity field
-        void addSponge(int s);
-
-        // - Fix viscosity field for overlapping regions
-        void adjustOverlappingVisc();
 
         //- Return force
         volVectorField& force()
