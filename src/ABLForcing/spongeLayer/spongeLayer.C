@@ -54,16 +54,7 @@ void Foam::spongeLayer::readSingleSpongeSubdict_(int s)
     else
     {
         // Sponge layer has variable width. Read table and interpolate
-        List<List<scalar>> widthTable( currentSpongeDict.lookup("widthTable") );
-        forAll(widthTable, i)
-        {
-            widthTableTime_.append( widthTable[i][0] );
-            widthTableWidth_.append( widthTable[i][1] );
-        }
-
-        width_ = interpolateXY(runTime_.value(),widthTableTime_, widthTableWidth_);
-
-        needsUpdating_ = true;
+        width_ = readTableAndInterpolate_(currentSpongeDict, "widthTable");
     }
 
     // Sponge layer parameters
@@ -132,18 +123,8 @@ void Foam::spongeLayer::readSingleSpongeSubdict_(int s)
     }
     else
     {
-
         // Sponge layer has variable damp coefficient. Read table and interpolate
-        List<List<scalar>> dampTable( currentSpongeDict.lookup("dampCoeffMaxTable") );
-        forAll(dampTable, i)
-        {
-            dampCoeffMaxTableTime_.append( dampTable[i][0] );
-            dampCoeffMaxTableCoeff_.append( dampTable[i][1] );
-        }
-
-        dampCoeffMax_ = interpolateXY(runTime_.value(),dampCoeffMaxTableTime_, dampCoeffMaxTableCoeff_);
-
-        needsUpdating_ = true;
+        dampCoeffMax_ = readTableAndInterpolate_(currentSpongeDict, "dampCoeffMaxTable");
     }
     
     // Components to actively damp
@@ -153,6 +134,36 @@ void Foam::spongeLayer::readSingleSpongeSubdict_(int s)
     Ux_ = currentSpongeDict.lookupOrDefault<scalar>("Ux",0.0);
     Uy_ = currentSpongeDict.lookupOrDefault<scalar>("Uy",0.0);
 
+    // Fraction of the layer's width with a cosine distribution
+   if ( currentSpongeDict.found("cosFractionTable") )
+   {
+        // Sponge layer has variable cos fraction. Read table and interpolate
+        cosFraction_ = readTableAndInterpolate_(currentSpongeDict, "cosFractionTable");
+   }
+   else
+   {
+       // Sponge layer has constant (in time) fraction of cosine over its width
+       cosFraction_ = currentSpongeDict.lookupOrDefault<scalar>("cosFraction",1.0);
+   }
+   cosFraction_ = max(cosFraction_, SMALL);
+
+}
+
+scalar Foam::spongeLayer::readTableAndInterpolate_(dictionary& dict, word parameterTableName)
+{
+    scalarField paramTableTime_;
+    scalarField paramTableParam_;
+
+    List<List<scalar>> paramTable( dict.lookup(parameterTableName) );
+    forAll(paramTable, i)
+    {
+        paramTableTime_.append(  paramTable[i][0] );
+        paramTableParam_.append( paramTable[i][1] );
+    }
+
+    needsUpdating_ = true;
+
+    return interpolateXY(runTime_.value(),paramTableTime_, paramTableParam_);
 }
 
 void Foam::spongeLayer::update()
@@ -245,13 +256,22 @@ void Foam::spongeLayer::addSponge_(int s)
     else
     {
         Info << "Sponge Layers: Updating " << currentSponge_ << " damping layer location to ";
-        Info << startLocation_ << " to " << startLocation_+width_ << "." << endl;
+        Info << startLocation_ << " to " << startLocation_+width_ << " m";
+        if ( cosFraction_ == 1.0 )
+            Info << "." << endl;
+        else
+            Info<< "; outer " << (1-cosFraction_)*width_ << " m of constant maximum damping coefficient." <<endl;
+        Info << "               Updating " << currentSponge_ << " damping layer maximum damping coefficient to ";
+        Info << dampCoeffMax_ << endl;
     }
 
     // Set viscosity to cosine profile between startLocation and startLocation+width,
     // For step up:   zero below startLocation and one  above startLocation+width
     // For step down: one  below startLocation and zero above startLocation+width
     // viscosity is the percentage of the dampCoeffMax set in the dictionary
+    // Some part of the layer (indicated by cosFraction) will have a constant
+    // maximum damping, that is, the cosine will only take place on cosFraction
+    // portion of the layer
     scalar fact = 1.0; //stepUp
     if (direction_ == "stepDown")
     {
@@ -285,19 +305,22 @@ void Foam::spongeLayer::addSponge_(int s)
     }
 
     scalar temp;
+    scalar start, widthcos, endcos;
+
+    start = startLocation_ + (1.0-fact)/2 * width_*(1-cosFraction_);
+    widthcos = width_*cosFraction_;
+    endcos = start+widthcos;
+
     forAll(mesh_.cells(),cellI)
     {
         scalar loc = mesh_.C()[cellI][coordIndex_];
 
-        temp  = (loc<=startLocation_) * (1.0 - fact);
-        temp += ((loc>startLocation_) && (loc<startLocation_+width_)) *
+        temp  = (loc<=start) * (1.0 - fact);
+        temp += ((loc>start) && (loc<endcos)) *
             (
-             1.0 - fact * Foam::cos
-             (
-              Foam::constant::mathematical::pi * (loc - startLocation_)/width_
-             )
+             1.0 - fact * Foam::cos( Foam::constant::mathematical::pi * (loc - start)/widthcos )
             );
-        temp += (loc>=startLocation_+width_) * (1.0 + fact);
+        temp += (loc>=endcos) * (1.0 + fact);
         temp *= 0.5 * dampCoeffMax_;
         if (temp > viscosity_[cellI])
             viscosity_[cellI] = temp;
@@ -310,16 +333,12 @@ void Foam::spongeLayer::addSponge_(int s)
             forAll(viscosity_.boundaryField()[i],j)
             {
                 scalar loc = mesh_.boundary()[i].Cf()[j][coordIndex_];
-                temp  = (loc<=startLocation_) * (1.0 - fact);
-                temp += ((loc>startLocation_) && (loc<startLocation_+width_)) *
+                temp  = (loc<=start) * (1.0 - fact);
+                temp += ((loc>start) && (loc<endcos)) *
                     (
-                     1.0 - fact * Foam::cos
-                     (
-                      Foam::constant::mathematical::pi * (loc - startLocation_)/width_
-                     )
-
+                     1.0 - fact * Foam::cos ( Foam::constant::mathematical::pi * (loc - start)/widthcos )
                     );
-                temp += (loc>=startLocation_+width_) * (1.0 + fact);
+                temp += (loc>=endcos) * (1.0 + fact);
                 temp *= 0.5 * dampCoeffMax_;
                 if (temp > viscosity_.boundaryField()[i][j])
                     viscosity_.boundaryFieldRef()[i][j] = temp;
@@ -358,7 +377,6 @@ void Foam::spongeLayer::adjustOverlappingVisc_()
     forAll(mesh_.cells(),cellI)
     {
         maxVisc = max(max(viscosityH_[cellI], viscosityV_[cellI]),max(tauH_[cellI], tauV_[cellI]));
-        //gMax for parallel?
 
         if ( maxVisc == tauV_[cellI] )
         {

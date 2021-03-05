@@ -105,11 +105,8 @@ class spongeLayer
         // need to be speficied
         word patch_;
 
-        // The width of the layer. The user can either specify a constant width
-        // or a time-varying width table
+        // Width of the layer
         scalar width_;
-        scalarField  widthTableTime_;
-        scalarField  widthTableWidth_;
 
         // Name of the current sponge (for printing purposes)
         word currentSponge_;
@@ -125,8 +122,6 @@ class spongeLayer
 
         // Max damping coefficient
         scalar dampCoeffMax_;
-        scalarField dampCoeffMaxTableTime_;
-        scalarField dampCoeffMaxTableCoeff_;
         
         // Components of the velocity to be damped -- `horizontal` or `vertical`
         word dampingComp_;
@@ -134,6 +129,14 @@ class spongeLayer
         // Velocity in which horizontal damping will be damped towards
         scalar Ux_;
         scalar Uy_;
+
+        // Fraction of the width in which the cosine distribution will be
+        // applied. The rest of the layer will contain a constant value of 
+        // the damping coefficient, given by DampCoeffMax
+        // E.g.: if cosFraction = 0.8, then the cosine distribution will
+        // take place in 80% of the layer width and the ramaining outer 20% 
+        // of layer width will have the maximum damping coefficient
+        scalar cosFraction_; 
 
         // Bool to indicate if layer has time-varying properties and thus
         // needs to be updated at every time step
@@ -155,6 +158,9 @@ class spongeLayer
 
         // - Fix viscosity field for overlapping regions
         void adjustOverlappingVisc_();
+
+        // - Read simple <time> <value> table and interpolate in time
+        scalar readTableAndInterpolate_(dictionary& dict, word parameterTableName);
 
 public:
 
