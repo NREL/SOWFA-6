@@ -126,7 +126,7 @@ void Foam::spongeLayer::readSingleSpongeSubdict_(int s)
         // Sponge layer has variable damp coefficient. Read table and interpolate
         dampCoeffMax_ = readTableAndInterpolate_(currentSpongeDict, "dampCoeffMaxTable");
     }
-    
+
     // Components to actively damp
     dampingComp_ = currentSpongeDict.lookupOrDefault<word>("dampingComp","vertical");
 
@@ -135,17 +135,47 @@ void Foam::spongeLayer::readSingleSpongeSubdict_(int s)
     Uy_ = currentSpongeDict.lookupOrDefault<scalar>("Uy",0.0);
 
     // Fraction of the layer's width with a cosine distribution
-   if ( currentSpongeDict.found("cosFractionTable") )
-   {
+    if ( currentSpongeDict.found("cosFractionTable") )
+    {
         // Sponge layer has variable cos fraction. Read table and interpolate
         cosFraction_ = readTableAndInterpolate_(currentSpongeDict, "cosFractionTable");
-   }
-   else
-   {
-       // Sponge layer has constant (in time) fraction of cosine over its width
-       cosFraction_ = currentSpongeDict.lookupOrDefault<scalar>("cosFraction",1.0);
-   }
-   cosFraction_ = max(cosFraction_, SMALL);
+    }
+    else
+    {
+        // Sponge layer has constant (in time) fraction of cosine over its width
+        cosFraction_ = currentSpongeDict.lookupOrDefault<scalar>("cosFraction",1.0);
+    }
+    cosFraction_ = max(cosFraction_, SMALL);
+
+    // Whether or not vertical filter is enabled
+    verticalFilter_ = currentSpongeDict.lookupOrDefault<bool>("vertFilter",false);
+
+    // Bool to determine if absolute height or agl height are used
+    useWallDistZ_ = currentSpongeDict.lookupOrDefault<bool>("useWallDist", false);
+
+    // Vertical filter start location
+    if ( currentSpongeDict.found("vertFilterStartHeight") )
+    {
+        // Vertical filter has constant start location
+        vertFiltStartHeight_ = currentSpongeDict.lookupOrDefault<scalar>("vertFilterStartHeight",1500.0);
+    }
+    else
+    {
+        // Vertical filter has variable start location. Read table and interpolate
+        vertFiltStartHeight_ = readTableAndInterpolate_(currentSpongeDict, "vertFilterStartHeightTable");
+    }
+
+    // Vertical filter cosine transition thickness
+    if ( currentSpongeDict.found("vertFilterCosThickness") )
+    {
+        // Vertical filter has constant start location
+        vertFiltCosThickness_ = currentSpongeDict.lookupOrDefault<scalar>("vertFilterCosThickness",1500.0);
+    }
+    else
+    {
+        // Vertical filter has variable start location. Read table and interpolate
+        vertFiltCosThickness_ = readTableAndInterpolate_(currentSpongeDict, "vertFilterCosThicknessTable");
+    }
 
 }
 
@@ -260,7 +290,7 @@ void Foam::spongeLayer::addSponge_(int s)
         if ( cosFraction_ == 1.0 )
             Info << "." << endl;
         else
-            Info<< "; outer " << (1-cosFraction_)*width_ << " m of constant maximum damping coefficient." <<endl;
+            Info<< "; outer " << (1-cosFraction_)*width_ << " m of constant maximum damping coefficient (" << cosFraction_*100 << "%)"  <<endl;
         Info << "               Updating " << currentSponge_ << " damping layer maximum damping coefficient to ";
         Info << dampCoeffMax_ << endl;
     }
@@ -346,6 +376,17 @@ void Foam::spongeLayer::addSponge_(int s)
         }
     }
 
+    if (verticalFilter_)
+    {
+        if ( coordIndex_ == 2)
+            Info << "    WARNING: horizontal layers are incompatible with vertical filter" << endl;
+        else
+        {
+            Info << "applying vertical filter" << endl;
+            applyVerticalFilter_();
+        }
+    }
+
     // Add the viscosity into the correct variable
     if      (type_ == "Rayleigh" && dampingComp_ == "vertical")
     {
@@ -366,6 +407,61 @@ void Foam::spongeLayer::addSponge_(int s)
     
 }
 
+void Foam::spongeLayer::applyVerticalFilter_()
+{
+
+    // Compute wall distance
+    wallDist d(mesh_, "lower");
+    surfaceScalarField dFace = fvc::interpolate(d.y());
+
+    scalar height, temp;
+    scalar start, widthcos, endcos;
+
+    start = vertFiltStartHeight_;
+    widthcos = vertFiltCosThickness_;
+    endcos = start+widthcos;
+
+    forAll(mesh_.cells(),cellI)
+    {
+        if ( useWallDistZ_ )
+            height = d.y()[cellI];
+        else
+            height = mesh_.C()[cellI][2];
+
+        temp  = (height<=start) * 0;
+        temp += ((height>start) && (height<endcos)) * 0.5 *
+            (
+             1.0 - 1.0 * Foam::cos( Foam::constant::mathematical::pi * (height - start)/widthcos )
+            );
+        temp += (height>=endcos);
+        if (viscosity_[cellI] > 0)
+            viscosity_[cellI] *= temp;
+    }
+
+    forAll(viscosity_.boundaryField(),i)
+    {
+        if ( !mesh_.boundary()[i].coupled() )
+        {
+            forAll(viscosity_.boundaryField()[i],j)
+            {
+                if ( useWallDistZ_ )
+                    height = dFace.boundaryField()[i][j];
+                else
+                    height = mesh_.boundary()[i].Cf()[j][2];
+
+                temp  = (height<=start) * 0;
+                temp += ((height>start) && (height<endcos)) * 0.5 *
+                    (
+                     1.0 - 1.0 * Foam::cos ( Foam::constant::mathematical::pi * (height - start)/widthcos )
+                    );
+                temp += (height>=endcos);
+                if (viscosity_.boundaryField()[i][j] > 0)
+                    viscosity_.boundaryFieldRef()[i][j] *= temp;
+            }
+        }
+    }
+
+}
 
 void Foam::spongeLayer::adjustOverlappingVisc_()
 {

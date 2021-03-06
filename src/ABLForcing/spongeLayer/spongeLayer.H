@@ -43,6 +43,7 @@ SourceFiles
 
 #include "fvCFD.H"
 #include "IOdictionary.H"
+#include "wallDist.H"
 #include "interpolateXY.H" 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -138,6 +139,18 @@ class spongeLayer
         // of layer width will have the maximum damping coefficient
         scalar cosFraction_; 
 
+        // Vertical filter flat
+        bool verticalFilter_;
+
+        // Start location of the vertical filter (abs or agl)
+        scalar vertFiltStartHeight_;
+
+        // Thickness of the smooth transition of the vertical filter
+        scalar vertFiltCosThickness_;
+
+        // Whether to use abs or agl height for vertical filters
+        bool useWallDistZ_;
+
         // Bool to indicate if layer has time-varying properties and thus
         // needs to be updated at every time step
         bool needsUpdating_; 
@@ -155,6 +168,9 @@ class spongeLayer
 
         //- Add sponge to the viscosity field
         void addSponge_(int s);
+
+        // - Apply vertical filter to the side sponges
+        void applyVerticalFilter_();
 
         // - Fix viscosity field for overlapping regions
         void adjustOverlappingVisc_();
