@@ -154,27 +154,27 @@ void Foam::spongeLayer::readSingleSpongeSubdict_(int s)
     useWallDistZ_ = currentSpongeDict.lookupOrDefault<bool>("useWallDist", false);
 
     // Vertical filter start location
-    if ( currentSpongeDict.found("vertFilterStartHeight") )
-    {
-        // Vertical filter has constant start location
-        vertFiltStartHeight_ = currentSpongeDict.lookupOrDefault<scalar>("vertFilterStartHeight",1500.0);
-    }
-    else
+    if ( currentSpongeDict.found("vertFilterStartHeightTable") )
     {
         // Vertical filter has variable start location. Read table and interpolate
         vertFiltStartHeight_ = readTableAndInterpolate_(currentSpongeDict, "vertFilterStartHeightTable");
     }
-
-    // Vertical filter cosine transition thickness
-    if ( currentSpongeDict.found("vertFilterCosThickness") )
+    else
     {
         // Vertical filter has constant start location
-        vertFiltCosThickness_ = currentSpongeDict.lookupOrDefault<scalar>("vertFilterCosThickness",1500.0);
+        vertFiltStartHeight_ = currentSpongeDict.lookupOrDefault<scalar>("vertFilterStartHeight",0.0);
     }
-    else
+
+    // Vertical filter cosine transition thickness
+    if ( currentSpongeDict.found("vertFilterCosThicknessTable") )
     {
         // Vertical filter has variable start location. Read table and interpolate
         vertFiltCosThickness_ = readTableAndInterpolate_(currentSpongeDict, "vertFilterCosThicknessTable");
+    }
+    else
+    {
+        // Vertical filter has constant start location
+        vertFiltCosThickness_ = currentSpongeDict.lookupOrDefault<scalar>("vertFilterCosThickness",0.0);
     }
 
 }
