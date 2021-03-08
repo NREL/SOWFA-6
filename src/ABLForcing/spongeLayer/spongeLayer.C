@@ -145,7 +145,6 @@ void Foam::spongeLayer::readSingleSpongeSubdict_(int s)
         // Sponge layer has constant (in time) fraction of cosine over its width
         cosFraction_ = currentSpongeDict.lookupOrDefault<scalar>("cosFraction",1.0);
     }
-    cosFraction_ = max(cosFraction_, SMALL);
 
     // Whether or not vertical filter is enabled
     verticalFilter_ = currentSpongeDict.lookupOrDefault<bool>("vertFilter",false);
@@ -174,7 +173,7 @@ void Foam::spongeLayer::readSingleSpongeSubdict_(int s)
     else
     {
         // Vertical filter has constant start location
-        vertFiltCosThickness_ = currentSpongeDict.lookupOrDefault<scalar>("vertFilterCosThickness",0.0);
+        vertFiltCosThickness_ = currentSpongeDict.lookupOrDefault<scalar>("vertFilterCosThickness",100.0);
     }
 
 }
@@ -338,7 +337,7 @@ void Foam::spongeLayer::addSponge_(int s)
     scalar start, widthcos, endcos;
 
     start = startLocation_ + (1.0-fact)/2 * width_*(1-cosFraction_);
-    widthcos = width_*cosFraction_;
+    widthcos = max(width_*cosFraction_, SMALL);
     endcos = start+widthcos;
 
     forAll(mesh_.cells(),cellI)
@@ -418,7 +417,7 @@ void Foam::spongeLayer::applyVerticalFilter_()
     scalar start, widthcos, endcos;
 
     start = vertFiltStartHeight_;
-    widthcos = vertFiltCosThickness_;
+    widthcos = max(vertFiltCosThickness_, SMALL);
     endcos = start+widthcos;
 
     forAll(mesh_.cells(),cellI)
