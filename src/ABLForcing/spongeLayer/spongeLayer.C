@@ -644,7 +644,7 @@ Foam::spongeLayer::spongeLayer
             runTime_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE //NO_WRITE
+            IOobject::NO_WRITE
         ),
         mesh_,
         dimensionedScalar("viscosityH_", dimensionSet(0, 2, -1, 0, 0, 0, 0), 0.0)
@@ -657,7 +657,7 @@ Foam::spongeLayer::spongeLayer
             runTime_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE //NO_WRITE
+            IOobject::NO_WRITE
         ),
         mesh_,
         dimensionedScalar("viscosityV_", dimensionSet(0, 2, -1, 0, 0, 0, 0), 0.0)
@@ -670,7 +670,7 @@ Foam::spongeLayer::spongeLayer
             runTime_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE // NO_WRITE
+            IOobject::NO_WRITE
         ),
         mesh_,
         dimensionedScalar("tauH_", dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
@@ -683,7 +683,7 @@ Foam::spongeLayer::spongeLayer
             runTime_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE // NO_WRITE
+            IOobject::NO_WRITE
         ),
         mesh_,
         dimensionedScalar("tauV_", dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
