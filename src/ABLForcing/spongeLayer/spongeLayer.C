@@ -201,10 +201,12 @@ void Foam::spongeLayer::update()
     // This approach is contrasted by solving an equation for each layer; however, a viscosity
     // field already summed all the layers of that type
 
-    // First, update the widths of the layers by updating the viscosity/tau fields
+    // First, update the parameters of the layers by updating the viscosity/tau fields
     if ( needsUpdating_ )
     {
-        updateSpongeLocation_();
+        // Clear old viscosity field and get updated one
+        clearViscosityFields_();
+        getViscosityField_();
     }
 
     // Nest, calculate the damping force based on the new viscosity/tau fields
@@ -238,20 +240,24 @@ void Foam::spongeLayer::update()
 
 }
 
-void Foam::spongeLayer::updateSpongeLocation_()
+void Foam::spongeLayer::getViscosityField_()
 {
-    clearViscosityFields_();
+    // Main loop to read and apply all individual layer parameters
 
-    // Update the viscosity/tau fields
+    // Loop over all sponges subdictionaries and get viscosity field
     forAll(spongesList_, s)
     {
         // Read the subdict of the current sponge
         readSingleSpongeSubdict_(s);
 
+        // Determine current sponge's viscosity
+        calculateCurrentSpongeViscosity_();
+
         // Add to the appropriate viscosity/tau field
-        addSponge_(s);
+        addSponge_();
     }
 
+    // Adjust overlap between viscosity{H.V} and tau{H,V}
     adjustOverlappingVisc_();
 }
 
@@ -264,9 +270,139 @@ void Foam::spongeLayer::clearViscosityFields_()
     viscosityH_ = 0.0 * viscosityH_;
 }
 
-
-void Foam::spongeLayer::addSponge_(int s)
+void Foam::spongeLayer::calculateCurrentSpongeViscosity_()
 {
+    //currentViscosity_ = 0.0* currentViscosity_;
+
+    scalar temp;
+    scalar start, widthcos, endcos;
+
+
+    // Set viscosity to cosine profile between startLocation and startLocation+width,
+    // For step up:   zero below startLocation and one  above startLocation+width
+    // For step down: one  below startLocation and zero above startLocation+width
+    // viscosity is the percentage of the dampCoeffMax set in the dictionary
+    // Some part of the layer (indicated by cosFraction) will have a constant
+    // maximum damping, that is, the cosine will only take place on cosFraction
+    // portion of the layer
+    scalar fact = 1.0; //stepUp
+    if (direction_ == "stepDown")
+    {
+        fact = -1.0;
+    }
+
+
+    start = startLocation_ + (1.0-fact)/2 * width_*(1-cosFraction_);
+    widthcos = max(width_*cosFraction_, SMALL);
+    endcos = start+widthcos;
+
+    forAll(mesh_.cells(),cellI)
+    {
+        scalar loc = mesh_.C()[cellI][coordIndex_];
+
+        temp  = (loc<=start) * (1.0 - fact);
+        temp += ((loc>start) && (loc<endcos)) *
+            (
+             1.0 - fact * Foam::cos( Foam::constant::mathematical::pi * (loc - start)/widthcos )
+            );
+        temp += (loc>=endcos) * (1.0 + fact);
+        temp *= 0.5 * dampCoeffMax_;
+        currentViscosity_[cellI] = temp;
+    }
+
+    forAll(currentViscosity_.boundaryField(),i)
+    {
+        if ( !mesh_.boundary()[i].coupled() )
+        {
+            forAll(currentViscosity_.boundaryField()[i],j)
+            {
+                scalar loc = mesh_.boundary()[i].Cf()[j][coordIndex_];
+                temp  = (loc<=start) * (1.0 - fact);
+                temp += ((loc>start) && (loc<endcos)) *
+                    (
+                     1.0 - fact * Foam::cos ( Foam::constant::mathematical::pi * (loc - start)/widthcos )
+                    );
+                temp += (loc>=endcos) * (1.0 + fact);
+                temp *= 0.5 * dampCoeffMax_;
+                currentViscosity_.boundaryFieldRef()[i][j] = temp;
+            }
+        }
+    }
+
+    // Apply the vertical filter if needed
+    if (verticalFilter_)
+    {
+        if ( coordIndex_ == 2)
+            Info << "    WARNING: horizontal layers are incompatible with vertical filter" << endl;
+        else
+        {
+            applyVerticalFilter_();
+        }
+    }
+
+
+}
+
+void Foam::spongeLayer::applyVerticalFilter_()
+{
+    // Compute wall distance
+    wallDist d(mesh_);
+    surfaceScalarField dFace = fvc::interpolate(d.y());
+
+    scalar height, temp;
+    scalar start, widthcos, endcos;
+
+    start = vertFiltStartHeight_;
+    widthcos = max(vertFiltCosThickness_, SMALL);
+    endcos = start+widthcos;
+
+    forAll(mesh_.cells(),cellI)
+    {
+        if ( useWallDistZ_ )
+            height = d.y()[cellI];
+        else
+            height = mesh_.C()[cellI][2];
+
+        temp  = (height<=start) * 0;
+        temp += ((height>start) && (height<endcos)) * 0.5 *
+            (
+             1.0 - 1.0 * Foam::cos( Foam::constant::mathematical::pi * (height - start)/widthcos )
+            );
+        temp += (height>=endcos);
+        if (currentViscosity_[cellI] > 0)
+            currentViscosity_[cellI] *= temp;
+    }
+
+    forAll(currentViscosity_.boundaryField(),i)
+    {
+        if ( !mesh_.boundary()[i].coupled() )
+        {
+            forAll(currentViscosity_.boundaryField()[i],j)
+            {
+                if ( useWallDistZ_ )
+                    height = dFace.boundaryField()[i][j];
+                else
+                    height = mesh_.boundary()[i].Cf()[j][2];
+
+                temp  = (height<=start) * 0;
+                temp += ((height>start) && (height<endcos)) * 0.5 *
+                    (
+                     1.0 - 1.0 * Foam::cos ( Foam::constant::mathematical::pi * (height - start)/widthcos )
+                    );
+                temp += (height>=endcos);
+                if (currentViscosity_.boundaryField()[i][j] > 0)
+                    currentViscosity_.boundaryFieldRef()[i][j] *= temp;
+            }
+        }
+    }
+
+}
+
+
+void Foam::spongeLayer::addSponge_()
+{
+    // Adds the current sponge's viscosity to the appropriate field (viscosity{H,V}, or tau{H,V})
+
     // Print information
     if ( runTime_.timeIndex() == 0 ) // before time loop
     {
@@ -290,22 +426,21 @@ void Foam::spongeLayer::addSponge_(int s)
             Info << "." << endl;
         else
             Info<< "; outer " << (1-cosFraction_)*width_ << " m of constant maximum damping coefficient (" << cosFraction_*100 << "%)"  <<endl;
+
         Info << "               Updating " << currentSponge_ << " damping layer maximum damping coefficient to ";
         Info << dampCoeffMax_ << endl;
+
+        if ( verticalFilter_ ){
+            Info << "               Updating " << currentSponge_ << " vertical filter. No damping applied below ";
+            Info << vertFiltStartHeight_ << "; regular damping above " << vertFiltStartHeight_+vertFiltCosThickness_;
+            if ( useWallDistZ_ )
+                Info << " (agl height)" << endl;
+            else
+                Info << " (absolute height)" << endl;
+        }
     }
 
-    // Set viscosity to cosine profile between startLocation and startLocation+width,
-    // For step up:   zero below startLocation and one  above startLocation+width
-    // For step down: one  below startLocation and zero above startLocation+width
-    // viscosity is the percentage of the dampCoeffMax set in the dictionary
-    // Some part of the layer (indicated by cosFraction) will have a constant
-    // maximum damping, that is, the cosine will only take place on cosFraction
-    // portion of the layer
-    scalar fact = 1.0; //stepUp
-    if (direction_ == "stepDown")
-    {
-        fact = -1.0;
-    }
+
 
     // Get the current layer's type viscosity field from previously added layers
     if (type_ == "Rayleigh" && dampingComp_ == "vertical")
@@ -333,60 +468,35 @@ void Foam::spongeLayer::addSponge_(int s)
         Info << "^ The layer above has not been adeed. Invalid or \"none\" type added." << endl;
     }
 
-    scalar temp;
-    scalar start, widthcos, endcos;
 
-    start = startLocation_ + (1.0-fact)/2 * width_*(1-cosFraction_);
-    widthcos = max(width_*cosFraction_, SMALL);
-    endcos = start+widthcos;
-
-    forAll(mesh_.cells(),cellI)
+    // Now, add the current sponge's viscosity, mindful of overlaps in internalField
+    // The boundaries are usually not needed, but leaving here in the rare case of a custom
+    // layer that is in the middle of the domain but touches some boundaries
+    scalar maxVisc;
+    forAll (mesh_.cells(), cellI)
     {
-        scalar loc = mesh_.C()[cellI][coordIndex_];
-
-        temp  = (loc<=start) * (1.0 - fact);
-        temp += ((loc>start) && (loc<endcos)) *
-            (
-             1.0 - fact * Foam::cos( Foam::constant::mathematical::pi * (loc - start)/widthcos )
-            );
-        temp += (loc>=endcos) * (1.0 + fact);
-        temp *= 0.5 * dampCoeffMax_;
-        if (temp > viscosity_[cellI])
-            viscosity_[cellI] = temp;
+        maxVisc = max(viscosity_[cellI], currentViscosity_[cellI]);
+        if (maxVisc == currentViscosity_[cellI] )
+            viscosity_[cellI] = currentViscosity_[cellI];
     }
+    //forAll(viscosity_.boundaryField(), i)
+    //{
+    //    if ( !mesh_.boundary()[i].coupled() )
+    //    {
+    //        forAll(viscosity_.boundaryField()[i],j)
+    //        {
+    //            maxVisc = max(viscosity_.boundaryField()[i][j], currentViscosity_.boundaryField()[i][j]);
+    //            
+    //            if ( maxVisc == currentViscosity_.boundaryField()[i][j] )
+    //            {
+    //                viscosity_.boundaryFieldRef[i][j] = currentViscosity_.boundaryField[i][j];
+    //            }
+    //        }
+    //    }
+    //}
 
-    forAll(viscosity_.boundaryField(),i)
-    {
-        if ( !mesh_.boundary()[i].coupled() )
-        {
-            forAll(viscosity_.boundaryField()[i],j)
-            {
-                scalar loc = mesh_.boundary()[i].Cf()[j][coordIndex_];
-                temp  = (loc<=start) * (1.0 - fact);
-                temp += ((loc>start) && (loc<endcos)) *
-                    (
-                     1.0 - fact * Foam::cos ( Foam::constant::mathematical::pi * (loc - start)/widthcos )
-                    );
-                temp += (loc>=endcos) * (1.0 + fact);
-                temp *= 0.5 * dampCoeffMax_;
-                if (temp > viscosity_.boundaryField()[i][j])
-                    viscosity_.boundaryFieldRef()[i][j] = temp;
-            }
-        }
-    }
-
-    if (verticalFilter_)
-    {
-        if ( coordIndex_ == 2)
-            Info << "    WARNING: horizontal layers are incompatible with vertical filter" << endl;
-        else
-        {
-            Info << "applying vertical filter" << endl;
-            applyVerticalFilter_();
-        }
-    }
-
-    // Add the viscosity into the correct variable
+    
+    // Redefine the appropriate viscosity type field with the updated viscosity
     if      (type_ == "Rayleigh" && dampingComp_ == "vertical")
     {
             tauV_ = viscosity_;
@@ -403,68 +513,15 @@ void Foam::spongeLayer::addSponge_(int s)
     {
             viscosityH_ = viscosity_;
     }
-    
-}
 
-void Foam::spongeLayer::applyVerticalFilter_()
-{
-
-    // Compute wall distance
-    wallDist d(mesh_, "lower");
-    surfaceScalarField dFace = fvc::interpolate(d.y());
-
-    scalar height, temp;
-    scalar start, widthcos, endcos;
-
-    start = vertFiltStartHeight_;
-    widthcos = max(vertFiltCosThickness_, SMALL);
-    endcos = start+widthcos;
-
-    forAll(mesh_.cells(),cellI)
-    {
-        if ( useWallDistZ_ )
-            height = d.y()[cellI];
-        else
-            height = mesh_.C()[cellI][2];
-
-        temp  = (height<=start) * 0;
-        temp += ((height>start) && (height<endcos)) * 0.5 *
-            (
-             1.0 - 1.0 * Foam::cos( Foam::constant::mathematical::pi * (height - start)/widthcos )
-            );
-        temp += (height>=endcos);
-        if (viscosity_[cellI] > 0)
-            viscosity_[cellI] *= temp;
-    }
-
-    forAll(viscosity_.boundaryField(),i)
-    {
-        if ( !mesh_.boundary()[i].coupled() )
-        {
-            forAll(viscosity_.boundaryField()[i],j)
-            {
-                if ( useWallDistZ_ )
-                    height = dFace.boundaryField()[i][j];
-                else
-                    height = mesh_.boundary()[i].Cf()[j][2];
-
-                temp  = (height<=start) * 0;
-                temp += ((height>start) && (height<endcos)) * 0.5 *
-                    (
-                     1.0 - 1.0 * Foam::cos ( Foam::constant::mathematical::pi * (height - start)/widthcos )
-                    );
-                temp += (height>=endcos);
-                if (viscosity_.boundaryField()[i][j] > 0)
-                    viscosity_.boundaryFieldRef()[i][j] *= temp;
-            }
-        }
-    }
 
 }
+
 
 void Foam::spongeLayer::adjustOverlappingVisc_()
 {
-    // When two viscosity fields (vicosity*_ or tau*_) overlap, only the highest one
+    // Adjust the overlap between the different types of viscosities (viscosity{H,V},
+    // and tau{H,V}. When two of more viscosity fields overlap, only the highest one
     // should be considered for the bodyForce computation. A linear sum will result 
     // in a overestimation of the force field
 
@@ -631,6 +688,19 @@ Foam::spongeLayer::spongeLayer
         mesh_,
         dimensionedScalar("tauV_", dimensionSet(0, 0, -1, 0, 0, 0, 0), 0.0)
     ),
+    currentViscosity_
+    (
+        IOobject
+        (
+            name_ & "currentViscosity",
+            runTime_.timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh_,
+        dimensionedScalar("currentViscosity_", dimensionSet(0, 2, -1, 0, 0, 0, 0), 0.0)
+    ),
 
     // Initialize the body force field
     bodyForce_
@@ -646,8 +716,6 @@ Foam::spongeLayer::spongeLayer
         mesh_,
         dimensionedVector("bodyForce",dimensionSet(0, 1, -2, 0, 0, 0, 0),vector::zero)
     )
-
-
 {
     // Define dictionary with input data
     IOdictionary ABLProperties
@@ -671,23 +739,15 @@ Foam::spongeLayer::spongeLayer
         Info << "No sponge layers specified in ABLProperties. Skipping." << endl;
     }
   
-    // Unless there is a sponge layer with time-varying width, their location will
-    // not be updated during the main time loop. This variable will be set to true
-    // if a widthTable is encontered and the loop on all sponges will be performed
-    // at every time step.
+    // Unless there is a sponge layer with time-varying parameters, their viscosity
+    // field will not be updated during the main time loop. This variable will be 
+    // set to true if a time-varying field (identified by the *Table name) is found
+    // and thus a new determination of the current overall viscosity field will be
+    // performed at every time step.
     needsUpdating_ = false;
         
-    // Loop over all sponge subdictionaries
-    forAll(spongesList_, s)
-    {
-        // Read the subdict of the current sponge
-        readSingleSpongeSubdict_(s);
-
-        // Add to the appropriate viscosity/tau field
-        addSponge_(s);
-    }
-
-    adjustOverlappingVisc_();
+    // Determine the overall viscosity field where the body force will be applied
+    getViscosityField_();
 
 }
 

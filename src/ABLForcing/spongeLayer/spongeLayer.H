@@ -89,6 +89,7 @@ class spongeLayer
         volScalarField viscosityV_;
         volScalarField tauH_;
         volScalarField tauV_;
+        volScalarField currentViscosity_;
 
         //- Body force field of the sponge layer
         volVectorField bodyForce_;
@@ -160,14 +161,17 @@ class spongeLayer
         //- Read a subdict
         void readSingleSpongeSubdict_(int s);
 
-        //- Loop through all sponges getting updated location 
-        void updateSpongeLocation_();
+        //- Loop through all sponges getting updated viscosity field location
+        void getViscosityField_();
 
         //- Zero out all tau/viscosity fields for updated locations
         void clearViscosityFields_();
 
+        //- Determine viscosity of current layer
+        void calculateCurrentSpongeViscosity_();
+
         //- Add sponge to the viscosity field
-        void addSponge_(int s);
+        void addSponge_();
 
         // - Apply vertical filter to the side sponges
         void applyVerticalFilter_();
