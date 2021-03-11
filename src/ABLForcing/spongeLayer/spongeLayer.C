@@ -478,21 +478,21 @@ void Foam::spongeLayer::addSponge_()
         if (maxVisc == currentViscosity_[cellI] )
             viscosity_[cellI] = currentViscosity_[cellI];
     }
-    //forAll(viscosity_.boundaryField(), i)
-    //{
-    //    if ( !mesh_.boundary()[i].coupled() )
-    //    {
-    //        forAll(viscosity_.boundaryField()[i],j)
-    //        {
-    //            maxVisc = max(viscosity_.boundaryField()[i][j], currentViscosity_.boundaryField()[i][j]);
-    //            
-    //            if ( maxVisc == currentViscosity_.boundaryField()[i][j] )
-    //            {
-    //                viscosity_.boundaryFieldRef[i][j] = currentViscosity_.boundaryField[i][j];
-    //            }
-    //        }
-    //    }
-    //}
+    forAll(viscosity_.boundaryField(), i)
+    {
+        if ( !mesh_.boundary()[i].coupled() )
+        {
+            forAll(viscosity_.boundaryField()[i],j)
+            {
+                maxVisc = max(viscosity_.boundaryField()[i][j], currentViscosity_.boundaryField()[i][j]);
+                
+                if ( maxVisc == currentViscosity_.boundaryField()[i][j] )
+                {
+                    viscosity_.boundaryFieldRef()[i][j] = currentViscosity_.boundaryField()[i][j];
+                }
+            }
+        }
+    }
 
     
     // Redefine the appropriate viscosity type field with the updated viscosity
