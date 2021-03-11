@@ -1,0 +1,1 @@
+Example case for the use of time-varying sponge layers. Modify the sponge layer subdict inside `constant/ABLProperties`. Simple serial script provided. The geometry is a dummy steep hill to showcase the use of wall distance height vs absolute height.
