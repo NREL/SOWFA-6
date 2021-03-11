@@ -209,7 +209,7 @@ void Foam::spongeLayer::update()
         getViscosityField_();
     }
 
-    // Nest, calculate the damping force based on the new viscosity/tau fields
+    // Next, calculate the damping force based on the new viscosity/tau fields
     if ( spongesList_.size() == 0 )
         return;
 
@@ -272,11 +272,8 @@ void Foam::spongeLayer::clearViscosityFields_()
 
 void Foam::spongeLayer::calculateCurrentSpongeViscosity_()
 {
-    //currentViscosity_ = 0.0* currentViscosity_;
-
     scalar temp;
     scalar start, widthcos, endcos;
-
 
     // Set viscosity to cosine profile between startLocation and startLocation+width,
     // For step up:   zero below startLocation and one  above startLocation+width
@@ -333,7 +330,9 @@ void Foam::spongeLayer::calculateCurrentSpongeViscosity_()
     if (verticalFilter_)
     {
         if ( coordIndex_ == 2)
+        {
             Info << "    WARNING: horizontal layers are incompatible with vertical filter" << endl;
+        }
         else
         {
             applyVerticalFilter_();
