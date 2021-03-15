@@ -1,4 +1,4 @@
-slicesTerrain
+slicesAgnesi
 {
     type surfaces;
     functionObjectLibs ( "libsampling.so" );
@@ -19,13 +19,13 @@ slicesTerrain
 
      surfaces
      (
-        terrain.80
+        terrain.100
         {
             type            patchInternalField;
             patches         ( lower );
             interpolate     true;
             offsetMode      uniform;
-            offset          (0 0 80);
+            offset          (0 0 100);
             triangulate     true;
         }
         terrain.200
@@ -37,13 +37,13 @@ slicesTerrain
             offset          (0 0 200);
             triangulate     true;
         }
-        terrain.500
+        terrain.2000
         {
             type            patchInternalField;
             patches         ( lower );
             interpolate     true;
             offsetMode      uniform;
-            offset          (0 0 500);
+            offset          (0 0 2000);
             triangulate     true;
         }
         //
@@ -54,6 +54,17 @@ slicesTerrain
             pointAndNormalDict
             {
                 basePoint (0 -3000 0);
+                normalVector (0 1 0);
+            }
+            interpolate true;
+        }
+        yNormal.m1000
+        {
+            type cuttingPlane;
+            planeType pointAndNormal;
+            pointAndNormalDict
+            {
+                basePoint (0 -1000 0);
                 normalVector (0 1 0);
             }
             interpolate true;
@@ -79,48 +90,37 @@ slicesTerrain
                 normalVector (0 1 0);
             }
             interpolate true;
-        }    
-        yNormal.7500
-        {
-            type cuttingPlane;
-            planeType pointAndNormal;
-            pointAndNormalDict
-            {
-                basePoint (0 7500 0);
-                normalVector (0 1 0);
-            }
-            interpolate true;
         }
-        yNormal.5000
+        yNormal.3000
         {
             type cuttingPlane;
             planeType pointAndNormal;
             pointAndNormalDict
             {
-                basePoint (0 5000 0);
-                normalVector (0 1 0);
-            }
-            interpolate true;
-        }
-        yNormal.10000
-        {
-            type cuttingPlane;
-            planeType pointAndNormal;
-            pointAndNormalDict
-            {
-                basePoint (0 10000 0);
+                basePoint (0 3000 0);
                 normalVector (0 1 0);
             }
             interpolate true;
         }
         //
-        xNormal.m10000
+        xNormal.m3000
         {
             type cuttingPlane;
             planeType pointAndNormal;
             pointAndNormalDict
             {
-                basePoint (-10000 0  0);
+                basePoint (-3000 0  0);
+                normalVector (1 0 0);
+            }
+            interpolate true;
+        }
+        xNormal.m1000
+        {
+            type cuttingPlane;
+            planeType pointAndNormal;
+            pointAndNormalDict
+            {
+                basePoint (-1000 0  0);
                 normalVector (1 0 0);
             }
             interpolate true;
@@ -147,13 +147,13 @@ slicesTerrain
             }
             interpolate true;
         }
-        xNormal.5000
+        xNormal.3000
         {
             type cuttingPlane;
             planeType pointAndNormal;
             pointAndNormalDict
             {
-                basePoint (5000 0 0);
+                basePoint (3000 0 0);
                 normalVector (1 0 0);
             }
             interpolate true;
@@ -165,6 +165,17 @@ slicesTerrain
             pointAndNormalDict
             {
                 basePoint (10000 0 0);
+                normalVector (1 0 0);
+            }
+            interpolate true;
+        }
+        xNormal.20000
+        {
+            type cuttingPlane;
+            planeType pointAndNormal;
+            pointAndNormalDict
+            {
+                basePoint (20000 0 0);
                 normalVector (1 0 0);
             }
             interpolate true;

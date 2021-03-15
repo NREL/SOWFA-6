@@ -37,7 +37,7 @@ zMax                      $zMax;
 zRef                      $zMax;
 
 // Specify if distance from wall should be used as z.
-useWallDistZ              false;
+useWallDistZ              true;
 scaleVelocityWithHeight   false;
 
 
@@ -45,9 +45,11 @@ scaleVelocityWithHeight   false;
 //velocityInitType          "table";
 //velocityInitType          "log";
   velocityInitType          "geostrophic";
+//velocityInitType          "scaleGiven";
 
-//temperatureInitType       "table";
-  temperatureInitType       "simple";
+  temperatureInitType       "table";
+//temperatureInitType       "simple";
+//temperatureInitType       "none";
 
 // Maximum perturbation of streamwise/spanwise flow near surface.
 deltaU                    0.25;
@@ -93,12 +95,8 @@ kappa                     $kappa;
 profileTable
 (
 //   z          U       V        T
- // (0.0 0.0 0.0 273.121917725)
- // (5.0 1.82671529027 1.98969371553 282.524156211)
- // (10.0 2.52983624172 2.77228242751 283.156504284)
- // ...
- // (1995.0 9.9684979548 6.57921591612 304.553531428)
- // (2000.0 9.98013391268 6.55482917932 304.574451837)
+    (0.0        0.0     0.0     $TBottom)
+    (20000.0    0.0     0.0     $TBottom)
 );
 
 // Update internal field.

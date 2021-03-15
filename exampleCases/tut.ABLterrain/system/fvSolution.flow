@@ -117,8 +117,9 @@ PIMPLE
     momentumPredictor        yes;
     nOuterCorrectors         1;
     nCorrectors              3;
-    nNonOrthogonalCorrectors 2;
-    pRefPoint                (#calc "($xMax + $xMin)/2+53.5"    #calc "($yMax + $yMin)/2+53.5"    #calc "$zMin+303.5");
+    nNonOrthogonalCorrectors 1;
+    activatePressureRefCell  false;    // default: true
+    pRefPoint                (#calc "($xMax + $xMin)/2+0.001"    #calc "($yMax + $yMin)/2+0.001"    #calc "$zMin+85.001");
     pRefValue                0;
 }
 

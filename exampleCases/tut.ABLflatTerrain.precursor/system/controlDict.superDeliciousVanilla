@@ -23,17 +23,17 @@ FoamFile
 
   startFrom         startTime;
 
-  startTime         20000.0;
+  startTime         0.0;
 
   stopAt            endTime;
 
-  endTime           25000.0;
+  endTime           20000.0; // Will be overwritten by values in 2_solve. Modify there.
 
-  deltaT            0.5;
+  deltaT            1.0;
 
   writeControl      adjustableRunTime;
 
-  writeInterval     1000.0; 
+  writeInterval     2000.0;  // Will be overwritten by values in 2_solve. Modify there.
 
   purgeWrite        0;
 
@@ -60,9 +60,10 @@ FoamFile
     #includeFunc Q
     #includeFunc vorticity
     #include "sampling/planarAveraging"
-    #include "sampling/fieldAverages"
+    #include "sampling/boundaryData"
     #include "sampling/temporalAverages"
-    #include "sampling/slicesWindFarm"
+    #include "sampling/slicesPrecursor"
+ // #include "sampling/slicesWRF"
   }
 
 // ************************************************************************* //

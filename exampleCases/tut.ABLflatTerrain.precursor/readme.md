@@ -4,10 +4,7 @@
 - For precursor runs, the BC are cyclic and the flowfield is initialized through `setFieldsABL`.
 - For a crashed/restarted run, just re-submit 2_solve. No changing of the script is necessary whatsoever
 - At the end, run `foamOK` to quickly see if the runs were ok
+- Adjust domain size and limits accordingly.
+- Reference pressure handling has changed (Feb 2021)
 
-
-# To-do
-
-- Put (0,0) in the middle. Adjust terrainSlices accordingly
-- Add the statistics and statistics frequency back to ABLProperties
 

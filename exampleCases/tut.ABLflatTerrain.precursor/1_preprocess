@@ -1,8 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=setupTutPrec
 #SBATCH --output foam1preprocess.log
-#SBATCH --partition=debug
-#SBATCH --ntasks=1
+#SBATCH --ntasks=36
 #SBATCH --time=1:00:00
 #SBATCH --account=mmc
 
@@ -18,24 +17,24 @@ echo "using" $cores "core(s)"
 # ******************************************** USER INPUT ******************************************** #
 OpenFOAM-6-gcc-dev              # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
 startTime=0                     # Start time
-stabState=neutral               # neutral, stable, unstable
+stabState=neutral               # neutral, stable, unstable, wrf
 solver=superDeliciousVanilla
 # **************************************************************************************************** #
 
 # **************************************** PERFORM SOME CHECKS *************************************** #
-if [ ! -f system/controlDict.$solver.startAt$startTime ]; then echo "Job killed (1)"; scancel $SLURM_JOBID; fi
-if [ ! -f setUp.$stabState ];                             then echo "Job killed (2)"; scancel $SLURM_JOBID; fi
+if [ ! -f system/controlDict.$solver ];           then echo "Job killed (1)"; scancel $SLURM_JOBID; fi
+if [ ! -f setUp.$stabState ];                     then echo "Job killed (2)"; scancel $SLURM_JOBID; fi
 # **************************************************************************************************** #
 
-# ************************************ COPYING APPROPRIATE FILES ************************************* #
-cp system/controlDict.$solver.startAt$startTime        system/controlDict
+# ************************************** COPY APPROPRIATE FILES ************************************** #
+cp system/controlDict.$solver                          system/controlDict
 cp setUp.$stabState                                    setUp
-cp 0.original/qwall.$stabState                         0.original/qwall
 # **************************************************************************************************** #
 
 # Copy the "clean" .original initial fields to a working copy
 rm -rf $startTime
 cp -rf $startTime.original $startTime
+cp     $startTime/qwall.$stabState  $startTime/qwall
 rm     $startTime/qwall.*
 
 # Build the mesh and check it

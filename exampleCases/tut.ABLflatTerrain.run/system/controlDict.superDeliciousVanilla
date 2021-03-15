@@ -17,26 +17,23 @@ FoamFile
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-  application       ABLSolver;
+  application       superDeliciousVanilla;
 
   libs              ("libSOWFAboundaryConditions.so" "libSOWFAincompressibleTurbulenceModels.so");
 
   startFrom         startTime;
 
-//startTime         0.0;
-  startTime         20000.0;
+  startTime         20000.0;  // Will be overwritten by values in 2_solve. Modify there.
 
   stopAt            endTime;
 
-//endTime           20000.0;
-  endTime           23600.0;
+  endTime           25000.0;
 
   deltaT            0.5;
 
   writeControl      adjustableRunTime;
 
-//writeInterval     1000.0; 
-  writeInterval     3600.0; 
+  writeInterval     1000.0;  // Will be overwritten by values in 2_solve. Modify there.
 
   purgeWrite        0;
 
@@ -60,8 +57,12 @@ FoamFile
 
   functions
   {
-      #include "sampling/planarAveraging"
-      #include "sampling/boundaryData"
+    #includeFunc Q
+    #includeFunc vorticity
+    #include "sampling/planarAveraging"
+    #include "sampling/boundaryData"
+    #include "sampling/temporalAverages"
+    #include "sampling/slicesWindFarm"
   }
 
 // ************************************************************************* //

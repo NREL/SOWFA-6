@@ -29,9 +29,7 @@ boundaryField
         type            specifiedSurfaceTemperature;
         TSurface        table
         (
-            ( 0       $TRef)
-            ( 100000  #calc "$TRef + 100000*$heatingRate" )
-            # #include "../drivingData/surfaceSkinPotentialTemperatureTable"
+            #include "../../drivingData/surfaceSkinPotentialTemperatureTable"
         );
         kappa           $kappa;
         z0              uniform $z0;
@@ -40,8 +38,8 @@ boundaryField
         betaH           $betaH;
         gammaH          $gammaH;
         alphaH          $alphaH;
-        averageType     $wallModelAverageType;
-        value           uniform (0 0 0);
+        averageType     "planarAverage";
+        value           uniform $qwall;
     }
     upper
     {

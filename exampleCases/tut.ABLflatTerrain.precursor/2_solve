@@ -1,10 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name=runTutPrec
-#SBATCH --output foam2run_%a.log
+#SBATCH --output foam2run_%j.log
 #SBATCH --ntasks=288         # Change on setUp as well
 #SBATCH --time=2-00
 #SBATCH --account=car
-#SBATCH --qos=high
+#SBATCH --mail-user=registhedin@gmail.com
+#SBATCH --mail-type=ALL
 
 source $HOME/.bash_profile
 cores=$SLURM_NTASKS
@@ -17,37 +18,37 @@ echo "using" $cores "core(s)"
 
 # ******************************************** USER INPUT ******************************************** #
 OpenFOAM-6-gcc-dev              # OpenFOAM/SOWFA version. OpenFOAM-6-{gcc,intel}-{central,dev}
-startTime=0                     # Start time
-timeBdData=5000                 # Time executed further after endTime. Also saves averages
-stabState=neutral               # neutral, stable, unstable
+startTime=0                     # Start time (DO NOT change for restarted runs)
+writeIntervalBeforeBdData=5000  # Averages computation starts with "BdData" times
+endTimeBeforeBdData=20000
+startTimeBdData=$endTimeBeforeBdData
+writeIntervalBdData=1000
+endTimeBdData=25000
 solver=superDeliciousVanilla
 initializer=setFieldsABL
 # **************************************************************************************************** #
 
 # **************************************** PERFORM SOME CHECKS *************************************** #
 if [ ! -f foam1preprocess.log ];                                        then echo "Job killed (1)"; scancel $SLURM_JOBID; fi
-if [ ! -f system/controlDict.$solver.startAt$startTime ];               then echo "Job killed (2)"; scancel $SLURM_JOBID; fi
+if [ ! -f system/controlDict.$solver ];                                 then echo "Job killed (2)"; scancel $SLURM_JOBID; fi
 if [ $initializer = setFieldsABL ] && [ ! -f system/setFieldsABLDict ]; then echo "Job killed (3)"; scancel $SLURM_JOBID; fi
 if [ ! -f setUp ];                                                      then echo "Job killed (4)"; scancel $SLURM_JOBID; fi
-if [ $(foamDictionary -entry "nCores" -value setUp) -ne $cores ];       then echo "Job killed (5)"; scancel $SLURM_JOBID; fi
-if [ ! -f system/sampling/boundaryData ];                               then echo "Job killed (6)"; scancel $SLURM_JOBID; fi
+if [ ! -f system/sampling/boundaryData ];                               then echo "Job killed (5)"; scancel $SLURM_JOBID; fi
 
-endTime=$(foamDictionary -entry "endTime" -value system/controlDict.$solver.startAt$startTime)
-writeInterval=$(foamDictionary -entry "writeInterval" -value system/controlDict.$solver.startAt$startTime)
-latestTime=$(foamListTimes -processor -latestTime -withZero | tail -1)
-
-if [ $(echo "$endTime%$writeInterval" | bc) -ne 0 ]; then touch  "WARNING (1)"; fi
+if [ $(echo "($endTimeBeforeBdData-$startTime)%$writeIntervalBeforeBdData" | bc) -ne 0 ]; then touch  "WARNING_1"; fi
+if [ $(echo "($endTimeBdData-$startTimeBdData)%$writeIntervalBdData" | bc) -ne 0 ];       then touch  "WARNING_2"; fi
 # **************************************************************************************************** #
 
 # ***************************** COPY APPROPRIATE FILES AND SET VARIABLES ***************************** #
-cp system/controlDict.$solver.startAt$startTime        system/controlDict
-
-ln -f foam2run_${SLURM_JOBID}.log foam2run_startAt$latestTime
+cp system/controlDict.$solver                          system/controlDict
 # **************************************************************************************************** #
 
 # Run decomposePar if domain not yet decomposed
 if [ ! -d "processor0" ]; then
 	decomposePar -cellDist -force > log.2.decomposePar 2>&1
+    latestTime=$startTime
+else
+    latestTime=$(foamListTimes -processor -latestTime -withZero -noFunctionObjects | tail -1)
 fi
 
 # Run the flow field initializer
@@ -56,37 +57,48 @@ if [ $initializer = setFieldsABL ] && [ ! -f log.2.$initializer ];  then
 fi
 
 # Split run to get to developed-flow stage
-if [ $latestTime -lt $endTime ]; then
-    foamDictionary -entry "fieldAverages.enabled" -set "false" system/sampling/fieldAverages
+if [ $latestTime -lt $endTimeBeforeBdData ]; then
     foamDictionary -entry "temporalAverages.enabled" -set "false" system/sampling/temporalAverages
     foamDictionary -entry "boundaryData.enabled" -set "false" system/sampling/boundaryData
+    foamDictionary -entry "startTime" -set $latestTime -disableFunctionEntries system/controlDict
+    foamDictionary -entry "endTime" -set $endTimeBeforeBdData -disableFunctionEntries system/controlDict
+    foamDictionary -entry "writeInterval" -set $writeIntervalBeforeBdData -disableFunctionEntries system/controlDict
     srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$latestTime 2>&1
 fi
 
+# Make the precursor data ready for future mapping 
+if [ -d processor0/$startTimeBdData ] && [ ! -f log.3.reconstructPar ]; then
+    foamDictionary -entry "writeFormat" -set ascii -disableFunctionEntries system/controlDict
+    reconstructPar -time $startTimeBdData -fields '(U T k p_rgh kappat nut qwall Rwall)'> log.3.reconstructPar 2>&1
+    # The z0 gets recomposed as 0, sometimes with '-nan` values. This is a known bug. Workaround below
+    z0=$(foamDictionary -entry "z0" -value setUp)
+    sed -i 's/-nan/0/g' $startTimeBdData/Rwall
+    foamDictionary -entry "boundaryField.lower.z0" -set $z0 $startTimeBdData/Rwall
+    foamDictionary -entry "writeFormat" -set binary -disableFunctionEntries system/controlDict
+else
+    touch "WARNING_4"
+    echo "Case not reconstructed and first time of boundaryData not fixed. Check if endTime dir exists."
+fi
+
 # Split run to save boundaryData and averages
-continueTime=$(( $latestTime > $endTime ? $latestTime : $endTime ))
-foamDictionary -entry "fieldAverages.timeStart"    -set $endTime system/sampling/fieldAverages
-foamDictionary -entry "temporalAverages.timeStart" -set $endTime system/sampling/temporalAverages
-foamDictionary -entry "fieldAverages.enabled"      -set "true" system/sampling/fieldAverages
+continueTime=$(( $latestTime > $endTimeBeforeBdData ? $latestTime : $startTimeBdData ))
+foamDictionary -entry "temporalAverages.timeStart" -set $startTimeBdData system/sampling/temporalAverages
 foamDictionary -entry "temporalAverages.enabled"   -set "true" system/sampling/temporalAverages
 foamDictionary -entry "boundaryData.enabled"       -set "true" system/sampling/boundaryData
 foamDictionary -entry "startTime" -set $continueTime -disableFunctionEntries system/controlDict
-foamDictionary -entry "endTime" -set $(echo $endTime+$timeBdData | bc) -disableFunctionEntries system/controlDict
+foamDictionary -entry "endTime" -set $endTimeBdData -disableFunctionEntries system/controlDict
+foamDictionary -entry "writeInterval" -set $writeIntervalBdData -disableFunctionEntries system/controlDict
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.saveBdData.startAt$continueTime 2>&1
 
-# Make the precursor data ready for future mapping and adjust the initial time of boundaryData
-if [ -d processor0/$endTime ] && [ ! -f log.3.reconstructPar ]; then
-    reconstructPar -time $endTime > log.3.reconstructPar 2>&1
+# Adjust the initial time of boundaryData if it hasn't been adjusted yet
+if [ ! -d postProcessing/boundaryData/north/$startTimeBdData ]; then
     for dir in north south east west; do
-        ln -sf $(ls postProcessing/boundaryData/$dir | head -1) postProcessing/boundaryData/$dir/$endTime
+        ln -sf $(ls -v postProcessing/boundaryData/$dir | head -1) postProcessing/boundaryData/$dir/$startTimeBdData
     done
-else
-    touch "WARNING (2)"
-    echo "Case not reconstructed and first time of boundaryData not fixed. Check if endTime dir exists."
 fi
 
 echo "Ending OpenFOAM job at: " $(date)
 
-rm foam2run_${SLURM_JOBID}.log
+mv foam2run_${SLURM_JOBID}.log foam2run_startAt$continueTime
 
 # **************************************************************************************************** #

@@ -27,13 +27,13 @@ FoamFile
 
   stopAt            endTime;
 
-  endTime           20000.0;
+  endTime           20000.0; // Will be overwritten by values in 2_solve. Modify there.
 
-  deltaT            0.5;
+  deltaT            1.0;
 
   writeControl      adjustableRunTime;
 
-  writeInterval     2000.0; 
+  writeInterval     2000.0;  // Will be overwritten by values in 2_solve. Modify there.
 
   purgeWrite        0;
 
@@ -59,12 +59,10 @@ FoamFile
   {
     #includeFunc Q
     #includeFunc vorticity
-    #include "sampling/planarAveraging"
-    #include "sampling/boundaryData"
-    #include "sampling/fieldAverages"
     #include "sampling/temporalAverages"
-    #include "sampling/slicesPrecursor"
+    #include "sampling/slicesTerrain"
+//  #include "sampling/slicesAgnesi"
+//  #include "sampling/slicesBump.h40"
   }
 
 // ************************************************************************* //
-
