@@ -77,6 +77,11 @@ temperatureSource
     );
 }
 
+// Pressure splitting type
+// Note: before Feb/2021 the default was `rhokSplit`, and now the default is `rho0Split`
+perturbationPressureType  rho0Split;
+
+
 // Properties of the Coriolis force
 planetaryRotationPeriod   $EarthPeriod;
 latitude                  $latitude;

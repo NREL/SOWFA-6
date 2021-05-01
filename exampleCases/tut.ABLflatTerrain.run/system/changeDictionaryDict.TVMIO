@@ -253,7 +253,7 @@ dictionaryReplacement
             //    type            fixedValue;
             //    value           uniform (0 0 0);
             //}
-            //upper
+            upper
             {
                 type            fixedValue;
                 value           uniform (0 0 0);

@@ -1,0 +1,132 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  6
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      changeDictionaryDict;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#include "../setUp";
+
+
+dictionaryReplacement
+{
+
+    T
+    {
+        boundaryField
+        {
+            south
+            {
+                type            codedFixedValue;
+                value           uniform 0;
+                redirectType    stableThroughout;
+                code
+                #{
+                    scalar TBottom = 300.0;
+                    scalar dTdz = 0.003;
+                    scalar zMin = 0.0;
+                    const fvPatch& boundaryPatch = patch();
+                    const vectorField& Cf = boundaryPatch.Cf();
+                    scalarField& field = *this;
+                    forAll(Cf, faceI)
+                    {
+                        scalar z = Cf[faceI].z();
+                        field[faceI] = TBottom + dTdz * (z-zMin);
+                    }
+                #};
+            }
+            north
+            {
+                type            zeroGradient;
+            }
+            west
+            {
+                type            codedFixedValue;
+                value           uniform 0;
+                redirectType    stableThroughout;
+                code
+                #{
+                    scalar TBottom = 300.0;
+                    scalar dTdz = 0.003;
+                    scalar zMin = 0.0;
+                    const fvPatch& boundaryPatch = patch();
+                    const vectorField& Cf = boundaryPatch.Cf();
+                    scalarField& field = *this;
+                    forAll(Cf, faceI)
+                    {
+                        scalar z = Cf[faceI].z();
+                        field[faceI] = TBottom + dTdz * (z-zMin);
+                    }
+                #};
+            }
+            east
+            {
+                type            zeroGradient;
+            }
+        }
+    }
+    U
+    {
+        boundaryField
+        {
+            south
+            {
+                type            fixedValue;
+                value           uniform $U0;
+            }
+            north
+            {
+                type            inletOutlet;
+                inletValue      uniform $U0; 
+                value           uniform $U0;
+            }
+            west
+            {
+                type            fixedValue;
+                value           uniform $U0;
+            }
+            east
+            {   
+                type            inletOutlet;
+                inletValue      uniform $U0; 
+                value           uniform $U0;
+            }
+        }
+    }
+    k
+    {
+        boundaryField
+        {
+            south
+            {
+                type            fixedValue;
+                value           uniform $k0;
+            }
+            north
+            {
+                type            zeroGradient;
+            }
+            west
+            {
+                type            fixedValue;
+                value           uniform $k0;
+            }
+            east
+            {
+                type            zeroGradient;
+            }
+        }
+    }
+}
+// ************************************************************************* //

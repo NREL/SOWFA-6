@@ -1,0 +1,101 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  6
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      changeDictionaryDict;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#include "../setUp";
+
+
+dictionaryReplacement
+{
+
+    T
+    {
+        boundaryField
+        {
+            south
+            {
+                type            zeroGradient;
+            }
+            north
+            {
+                type            zeroGradient;
+            }
+            west
+            {
+                type            zeroGradient;
+            }
+            east
+            {
+                type            fixedValue;
+                value           uniform $T0;
+            }
+        }
+    }
+    U
+    {
+        boundaryField
+        {
+            south
+            {
+                type            inletOutlet;
+                inletValue      uniform $U0; 
+                value           uniform $U0;
+            }
+            north
+            {
+                type            inletOutlet;
+                inletValue      uniform $U0; 
+                value           uniform $U0;
+            }
+            west
+            {
+                type            inletOutlet;
+                inletValue      uniform $U0; 
+                value           uniform $U0;
+            }
+            east
+            {   
+                type            fixedValue;
+                value           uniform $U0;
+            }
+        }
+    }
+    k
+    {
+        boundaryField
+        {
+            south
+            {
+                type            zeroGradient;
+            }
+            north
+            {
+                type            zeroGradient;
+            }
+            west
+            {
+                type            zeroGradient;
+            }
+            east
+            {
+                type            fixedValue;
+                value           uniform $k0;
+            }
+        }
+    }
+}
+// ************************************************************************* //

@@ -3,7 +3,7 @@ slicesPrecursor
     type surfaces;
     functionObjectLibs ( "libsampling.so" );
     writeControl        adjustableRunTime;
-    writeInterval       500;
+    writeInterval       100;
     fields
     (
       U
@@ -11,6 +11,7 @@ slicesPrecursor
       p_rgh
       UMean
       UPrime2Mean
+      TPrimeUPrimeMean
     );
     interpolationScheme cell;      // cell, cellPoint, cellPointCell
     surfaceFormat           vtk;
