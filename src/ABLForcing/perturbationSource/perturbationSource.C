@@ -38,7 +38,7 @@ Foam::perturbationSource<Type>::perturbationSource
 (
     const IOdictionary& dict,
     const word& name,
-    const GeometricField<Type, fvPatchField, volMesh>& field
+    const volFieldType& field
 )
 :
     // Set name
@@ -50,26 +50,30 @@ Foam::perturbationSource<Type>::perturbationSource
     // Set the pointer to the mesh
     mesh_(field.mesh()),
 
-    // Set the pointer to the velocity field
+    // Set the pointer to the field being perturbed
     field_(field),
 
-    // Initialize the body force field
+    // Initialize the perturbation source field
     source_
     (
         IOobject
         (
-            "source" & name_,
+            "perturbationSource" & name_,
             runTime_.timeName(),
             mesh_,
             IOobject::READ_IF_PRESENT,
             IOobject::AUTO_WRITE
         ),
         mesh_,
-        dimensioned<Type>("source" & name_,dimensionSet(field_.dimensions()/dimTime),zeroTensor_())
+      //dimensioned<Type>("perturbationSource" & name_,dimensionSet(field_.dimensions()/dimTime),zeroTensor_())
+        dimensioned<Type>("perturbationSource" & name_,dimensionSet(field_.dimensions()/dimTime),zero)
 
     )
 {
    Info << "Do nothing right now." << endl;
+
+   const Patch& a = field_.patch().lookUpPatchField("upper")
+   Info << "a = " << a << endl;
 }
 
 

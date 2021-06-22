@@ -125,6 +125,11 @@ Info << "Creating sponge layer(s)" << endl;
 spongeLayer spongeLayers("spongeList",U);
 
 
+// Create inflow perturbation objects.
+perturbationSource<vector> perturbationSourceMomentum(ABLProperties,"momentum",U);
+perturbationSource<scalar> perturbationSourceTemperature(ABLProperties,"temperature",T);
+
+
 // Create and read the kinematic turbulent thermal conductivity [m2/s].
 Info << "Creating and reading turbulent thermal conductivity field, kappat" << endl;
 volScalarField kappat

@@ -5,5 +5,6 @@
 #include "CoriolisForce.H"
 #include "buoyancyModel.H"
 #include "drivingForce.H"
+#include "perturbationSource.H"
 
 #endif
