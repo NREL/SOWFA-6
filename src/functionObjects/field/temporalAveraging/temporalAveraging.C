@@ -96,6 +96,26 @@ void Foam::functionObjects::temporalAveraging::initialize()
         }
     }
 
+    if (!totalTimeCorr_.size())
+    {   if (evalCorrelationFields_){
+            totalTimeCorr_.setSize(faItems_.size(), obr_.time().deltaTValue());
+        }
+        else{
+          totalTimeCorr_.setSize(faItems_.size(),-1);
+        }
+    }
+    else
+    {
+        // Check if totalTime_ has been set otherwise initialize
+        forAll(totalTimeCorr_, fieldi)
+        {
+            if ((totalTimeCorr_[fieldi] < 0) && evalCorrelationFields_)
+            {
+                totalTimeCorr_[fieldi] = obr_.time().deltaTValue();
+            }
+        }
+    }
+
     resetFields();
 
     // Add mean fields to the field lists
@@ -136,6 +156,7 @@ void Foam::functionObjects::temporalAveraging::restart()
 
     totalIter_.clear();
     totalTime_.clear();
+    totalTimeCorr_.clear();
 
     initialize();
 }
@@ -169,10 +190,10 @@ void Foam::functionObjects::temporalAveraging::calcAverages()
     Log << type() << " " << name() << " write:" << nl
         << "    Calculating averages" << nl;
 
-    addMeanSqrToPrime2Mean<scalar, scalar>();
-    addMeanSqrToPrime2Mean<vector, symmTensor>();
+    //addMeanSqrToPrime2Mean<scalar, scalar>();
+    //addMeanSqrToPrime2Mean<vector, symmTensor>();
 
-    addMeanUMeanToPrimeUPrimeMean<scalar, vector>();
+    //addMeanUMeanToPrimeUPrimeMean<scalar, vector>();
 
     calculateMeanFields<scalar>();
     calculateMeanFields<vector>();
@@ -189,6 +210,9 @@ void Foam::functionObjects::temporalAveraging::calcAverages()
     {
         totalIter_[fieldi]++;
         totalTime_[fieldi] += obr_.time().deltaTValue();
+        if (evalCorrelationFields_){
+          totalTimeCorr_[fieldi] += obr_.time().deltaTValue();
+        }
     }
 
     Log << endl;
@@ -231,6 +255,7 @@ void Foam::functionObjects::temporalAveraging::writeAveragingProperties() const
         propsDict.add(fieldName, dictionary());
         propsDict.subDict(fieldName).add("totalIter", totalIter_[fieldi]);
         propsDict.subDict(fieldName).add("totalTime", totalTime_[fieldi]);
+        propsDict.subDict(fieldName).add("totalTimeCorr", totalTimeCorr_[fieldi]);
     }
 
     propsDict.regIOobject::write();
@@ -276,6 +301,7 @@ void Foam::functionObjects::temporalAveraging::readAveragingProperties()
         // Initialize totalTime with negative values
         // to indicate that it has not been set
         totalTime_.setSize(faItems_.size(), -1);
+        totalTimeCorr_.setSize(faItems_.size(), -1);
 
         forAll(faItems_, fieldi)
         {
@@ -286,10 +312,13 @@ void Foam::functionObjects::temporalAveraging::readAveragingProperties()
 
                 totalIter_[fieldi] = readLabel(fieldDict.lookup("totalIter"));
                 totalTime_[fieldi] = readScalar(fieldDict.lookup("totalTime"));
+                totalTimeCorr_[fieldi] = readScalar(fieldDict.lookup("totalTimeCorr"));
 
                 Log << "        " << fieldName
                     << " iters = " << totalIter_[fieldi]
-                    << " time = " << totalTime_[fieldi] << nl;
+                    << " time = " << totalTime_[fieldi]
+                    << " timeCorr = " << totalTimeCorr_[fieldi] << nl;
+
             }
         }
     }
@@ -315,7 +344,9 @@ Foam::functionObjects::temporalAveraging::temporalAveraging
     faItems_(),
     totalIter_(),
     totalTime_(),
-    periodIndex_(1)
+    totalTimeCorr_(),
+    periodIndex_(1),
+    evalCorrelationFields_(false)
 {
     read(dict);
 }
@@ -341,6 +372,12 @@ bool Foam::functionObjects::temporalAveraging::read(const dictionary& dict)
     dict.readIfPresent("restartOnOutput", restartOnOutput_);
     dict.readIfPresent("periodicRestart", periodicRestart_);
     dict.lookup("fields") >> faItems_;
+
+    forAll(faItems_,fieldi){
+        if (faItems_[fieldi].prime2Mean() || faItems_[fieldi].primeUPrimeMean()){
+           evalCorrelationFields_ = true;
+        }
+    }
 
     if (periodicRestart_)
     {

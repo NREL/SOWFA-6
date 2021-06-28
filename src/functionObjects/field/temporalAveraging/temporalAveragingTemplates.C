@@ -291,6 +291,9 @@ void Foam::functionObjects::temporalAveraging::calculateMeanFieldType
         scalar dt = obr_.time().deltaTValue();
         scalar Dt = totalTime_[fieldi];
 
+        Info << "totalTime/totalTimeCorr: " << totalTime_[fieldi] << "/"
+             << totalTimeCorr_[fieldi] << endl;
+
         if (faItems_[fieldi].iterBase())
         {
             dt = 1;
@@ -349,7 +352,7 @@ void Foam::functionObjects::temporalAveraging::calculatePrime2MeanFieldType
             obr_.lookupObjectRef<Type2>(faItems_[fieldi].prime2MeanFieldName());
 
         scalar dt = obr_.time().deltaTValue();
-        scalar Dt = totalTime_[fieldi];
+        scalar Dt = totalTimeCorr_[fieldi]; //totalTime_[fieldi];
 
         if (faItems_[fieldi].iterBase())
         {
@@ -371,8 +374,9 @@ void Foam::functionObjects::temporalAveraging::calculatePrime2MeanFieldType
 
         prime2MeanField =
             (1 - beta)*prime2MeanField
-          + beta*sqr(baseField)
-          - sqr(meanField);
+               + beta *sqr(baseField-meanField);
+          //+ beta*sqr(baseField)
+          //- sqr(meanField);
     }
 }
 
@@ -417,11 +421,11 @@ void Foam::functionObjects::temporalAveraging::calculatePrimeUPrimeMeanFieldType
         const volVectorField& UField = obr_.lookupObject<volVectorField>("U");
         const volVectorField& UMeanField = obr_.lookupObject<volVectorField>("UMean");
 
-        Type2& primeUPrimeMeanField = 
+        Type2& primeUPrimeMeanField =
             obr_.lookupObjectRef<Type2>(faItems_[fieldi].primeUPrimeMeanFieldName());
 
         scalar dt = obr_.time().deltaTValue();
-        scalar Dt = totalTime_[fieldi];
+        scalar Dt = totalTimeCorr_[fieldi]; //totalTime_[fieldi];
 
         if (faItems_[fieldi].iterBase())
         {
@@ -430,7 +434,7 @@ void Foam::functionObjects::temporalAveraging::calculatePrimeUPrimeMeanFieldType
         }
 
         scalar alpha = (Dt - dt)/Dt;
-        scalar beta = dt/Dt;
+        scalar beta = dt/Dt; // alpha+beta=1
 
         if (faItems_[fieldi].window() > 0)
         {
@@ -445,8 +449,9 @@ void Foam::functionObjects::temporalAveraging::calculatePrimeUPrimeMeanFieldType
 
         primeUPrimeMeanField =
             alpha*primeUPrimeMeanField
-          + beta*baseField*UField
-          - meanField*UMeanField;
+            +beta*(UField-UMeanField)*(baseField-meanField);
+          //+ beta*baseField*UField
+          //- meanField*UMeanField;
     }
 }
 
