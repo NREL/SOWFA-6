@@ -60,7 +60,21 @@ if [ $latestTime -lt $endTimeBeforeAvg ]; then
 fi
 
 if [ $coupled = WRFint ]; then
+    # If WRFint, then this case is acting like a WRF-driven precursor
+
     foamDictionary -entry "boundaryData.enabled"  -set "true" system/sampling/boundaryData
+    # Make the "precursor" data ready for future mapping
+    if [ -d processor0/$startTimeAvg ] && [ ! -f log.3.reconstructPar ]; then
+        foamDictionary -entry "writeFormat" -set ascii -disableFunctionEntries system/controlDict
+        reconstructPar -time $startTimeAvg -fields '(U T k p_rgh kappat nut qwall Rwall)'> log.3.reconstructPar 2>&1
+        # The z0 gets recomposed as 0, sometimes with '-nan` values. This is a known bug. Workaround below
+        z0=$(foamDictionary -entry "z0" -value setUp)
+        sed -i 's/-nan/0/g' $startTimeAvg/Rwall
+        foamDictionary -entry "boundaryField.lower.z0" -set $z0 $startTimeAvg/Rwall
+        foamDictionary -entry "writeFormat" -set binary -disableFunctionEntries system/controlDict
+    else
+        touch "WARNING_4"
+    fi
 fi
 
 # Split run to save averages
@@ -71,6 +85,16 @@ foamDictionary -entry "startTime" -set $continueTime -disableFunctionEntries sys
 foamDictionary -entry "endTime" -set $endTimeAvg -disableFunctionEntries system/controlDict 
 foamDictionary -entry "writeInterval" -set $writeIntervalAvg -disableFunctionEntries system/controlDict
 srun -n $cores --cpu_bind=cores $solver -parallel > log.2.$solver.startAt$continueTime 2>&1
+
+
+if [ $coupled = WRFint ]; then
+    # Adjust the initial time of boundaryData if it hasn't been adjusted yet
+    if [ ! -d postProcessing/boundaryData/north/$startTimeAvg ]; then
+        for dir in north south east west; do
+            ln -sf $(ls -v postProcessing/boundaryData/$dir | head -1) postProcessing/boundaryData/$dir/$startTimeAvg
+        done
+    fi
+fi
 
 echo "Ending OpenFOAM job at: " $(date)
 
