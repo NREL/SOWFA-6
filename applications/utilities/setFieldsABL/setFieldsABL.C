@@ -176,8 +176,8 @@ word tableInterpTypeT(setFieldsABLDict.lookupOrDefault<word>("tableInterpTypeT",
 scalar deltaU(setFieldsABLDict.lookupOrDefault<scalar>("deltaU",1.0));
 scalar deltaV(setFieldsABLDict.lookupOrDefault<scalar>("deltaV",1.0));
 scalar zPeak(setFieldsABLDict.lookupOrDefault<scalar>("zPeak",0.03));
-scalar Uperiods(setFieldsABLDict.lookupOrDefault<scalar>("Uperiods",4));
-scalar Vperiods(setFieldsABLDict.lookupOrDefault<scalar>("Vperiods",4));
+scalar Uperiods(round(setFieldsABLDict.lookupOrDefault<scalar>("Uperiods",4)));
+scalar Vperiods(round(setFieldsABLDict.lookupOrDefault<scalar>("Vperiods",4)));
 scalar xMin(setFieldsABLDict.lookupOrDefault<scalar>("xMin",0.0));
 scalar yMin(setFieldsABLDict.lookupOrDefault<scalar>("yMin",0.0));
 scalar zMin(setFieldsABLDict.lookupOrDefault<scalar>("zMin",0.0));
