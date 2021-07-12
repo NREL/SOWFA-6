@@ -129,6 +129,7 @@ betaH                9.0;                         // Monin-Obukhov wall temperat
 gammaH               7.8;                         // Monin-Obukhov wall temperature flux model constant.
 alphaH               1.0;                         // Monin-Obukhov wall temperature flux model constant.
 heatingRate          -1.38889e-4;                 // Surface temperature change rate (when not directly setting temperature flux) (K/s).
+                                                  // See 0.original/qwall.stable. It uses $TRef as surface temperature. 
 
 
 

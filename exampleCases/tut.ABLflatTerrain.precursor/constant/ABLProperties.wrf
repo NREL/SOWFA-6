@@ -1,0 +1,86 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  6
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    version         2.0;
+    format          ascii;
+
+    root            "";
+    case            "";
+    instance        "";
+    local           "";
+
+    class           dictionary;
+    object          ABLProperties;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#include        "../setUp"
+
+// Properties of the mesoscale source terms.  
+// - Momentum source term.
+momentumSource
+{
+    type        "computed";                            // The source terms will be computed given velocity values.
+    inputType   "component";                           // Velocity component (u_x, u_y, u_z) will be given.
+    #include "../../drivingData/fieldTable"            // Table of velocity versus time and height.
+
+    // This case will use the profile assimilation technique which employs a PI controller based on a polynomial
+    // fit of the error profile with height. The controller form is s = gain*(alpha*e + (1-alpha)*int_e).
+    gain        0.2;                                   // Overall gain of controller.
+    setVerticalCompZero true;                          // Explicitly set the vertical source term to zero.
+    regSmoothing        true;                          // Employ smoothing of error profile with height by polynomial fitting.
+    regOrder    3;                                     // Set the polynomial to cubic.
+    alpha       1.0;                                   // Make this a pure proportional controller.
+    timeWindow  1800.0;                                // Time window for integral control.
+    writeError  false;                                 // Do not write out the error time-height history.
+    weightsTable                                       // Define a weighting profile for the cubic fit.  Here weighting is equal everywhere.
+    (
+        (0.0    1.0)
+        (1000.0 1.0)
+        (4000.0 1.0)
+    );
+}
+
+// - Temperature source term (same approach as with momentum).
+temperatureSource
+{
+    type        "computed";
+    #include "../../drivingData/fieldTable"
+
+    gain        0.2;
+    regSmoothing    true;
+    regOrder    3;
+    alpha       1.0;
+    timeWindow  1800.0;
+    writeError  false;
+    weightsTable
+    (
+        (0.0    1.0)
+        (1000.0 1.0)
+        (4000.0 1.0)
+    );
+}
+
+// Pressure splitting type
+// Note: before Feb/2021 the default was `rhokSplit`, and now the default is `rho0Split`
+perturbationPressureType  rho0Split;
+
+
+// Properties of the Coriolis force.
+planetaryRotationPeriod   $EarthPeriod;                // Earth's rotation period (hr).
+latitude                  $latitude;                   // Latitude on the Earth of this site (deg).
+
+
+// Write out postProcessing/sourceHistory
+writeSource             $writeSource;
+writeSourceInterval     $writeSourceInterval;
+
+// ************************************************************************* //

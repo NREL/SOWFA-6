@@ -41,7 +41,8 @@ SourceFiles
 #ifndef spinnerLidar_H
 #define spinnerLidar_H
 
-#include "functionObject.H"
+//#include "functionObject.H"
+#include "fvMeshFunctionObject.H"
 #include "fvCFD.H"
 #include "Random.H"
 
@@ -50,11 +51,8 @@ SourceFiles
 
 namespace Foam
 {
-
-// Forward declaration of classes
-class objectRegistry;
-class dictionary;
-class mapPolyMesh;
+namespace functionObjects
+{
 
 /*---------------------------------------------------------------------------*\
                        Class spinnerLidar Declaration
@@ -62,12 +60,9 @@ class mapPolyMesh;
 
 class spinnerLidar
 :
-    public functionObject
+    public fvMeshFunctionObject
 {
     // Private data
-
-        //- Reference to the mesh database
-        const fvMesh& mesh_;
 
         //- Runtime pointer.
         const Time& runTime_;
@@ -226,9 +221,8 @@ public:
         spinnerLidar
         (
             const word& name,
-            const objectRegistry&,
-            const dictionary&,
-            const bool loadFromFiles = false
+            const Time& runTime,
+            const dictionary& dict
         );
 
 
@@ -278,6 +272,7 @@ public:
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+} // End namespace functionObjects
 } // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

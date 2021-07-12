@@ -1,0 +1,194 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  6
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    version         2.0;
+    format          ascii;
+
+    root            "";
+    case            "";
+    instance        "";
+    local           "";
+
+    class           dictionary;
+    object          ABLProperties;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#include        "../setUp"
+
+spongeList
+{
+upperSponge
+{
+   type           "Rayleigh";
+   patch          "upper";
+   width          150;
+   //widthTable
+   //(
+   //    (0  100)
+   //    (5  150)
+   //    (10 250)
+   //);
+   //dampCoeffMaxTable
+   //(
+   //    (0  0.1)
+   //    (5  0.1)
+   //    (10 0.15)
+   //);
+   //cosFractionTable
+   //(
+   //    (0   1.0)
+   //    (5   1.0)
+   //    (10  0.5)
+   //);
+   Ux             8; // only needed for Rayleigh horizontal
+   Uy             8; // only needed for Rayleigh horizontal
+   dampCoeffMax   0.1;
+   dampingComp    "vertical";
+}
+//eastSponge
+//{
+//    type           "Rayleigh";
+//    patch          "east";
+//    width          100;
+//    cosFraction    1.0;
+//    dampCoeffMax   0.1;
+//    dampingComp    "vertical";
+//    verticalFilter true;
+//    verticalStartHeight  100;
+//}
+//northSponge
+//{
+//   type           "Rayleigh";
+//   patch          "north";
+//   //width          100;
+//   widthTable
+//   (
+//     (0  100)
+//     (5 100)
+//     (10 150)
+//   );
+//   cosFraction    1;
+//   //cosFractionTable
+//   //(
+//   //     (0   1)
+//   //     (5   1)
+//   //     (10  0.8)
+//   //);
+//   dampCoeffMax   0.1;
+//   dampingComp   "vertical";
+//   vertFilter true;
+//   vertFilterStartHeight 150;
+//   vertFilterCosThickness 50;
+//   useWallDist   true;
+//}
+southSponge
+{
+   type           "Rayleigh";
+   patch          "south";
+   width          100;
+   //widthTable
+   //(
+   // (0 100)
+   // (10 200)
+   //);
+   dampCoeffMax   0.1;
+   cosFraction    0.5;
+   vertFilter     true;
+   vertFilterStartHeightTable
+   (
+     ( 0  50 )
+     ( 5 50 )
+     ( 10 100)
+   );
+   vertFilterCosThickness 50;
+   //useWallDist    true;
+   dampingComp    "vertical";
+}
+westSponge
+{
+   type           "Rayleigh";
+   patch          "west";
+   width          100;
+   dampCoeffMax   0.1;
+   cosFraction    0.8;
+   vertFilter     true;
+   vertFilterStartHeightTable
+   (
+     ( 0  100 )
+     ( 5  150)
+     ( 10 150)
+   );
+   vertFilterCosThickness 30;
+   useWallDist    true;
+   dampingComp    "vertical";
+
+}
+}
+
+
+// Properties of the background forcing source term
+momentumSource
+{
+    type        "given";
+    inputType   "speedAndDirection";
+
+    //Relaxation factor (only used when type is "computed")
+    gain        0.7;
+
+    sourceHeightsMomentum
+    (
+        $windControlHeight
+    );
+    
+    sourceTableMomentumX
+    (
+        (    0.0 $windSpeed)
+        (90000.0 $windSpeed)
+    );
+    
+    sourceTableMomentumY
+    (
+        (    0.0 $windDir)
+        (90000.0 $windDir)
+    );
+    
+    sourceTableMomentumZ
+    (
+        (    0.0 0.0)
+        (90000.0 0.0)
+    );
+}
+
+temperatureSource
+{
+    type        "given";
+
+    //Relaxation factor (only used when type is "computed")
+    gain        0.7;
+
+    sourceHeightsTemperature
+    (
+        $windControlHeight
+    );
+    
+    sourceTableTemperature
+    (
+        (    0.0 0.0)
+        (90000.0 0.0)
+    );
+}
+
+// Properties of the Coriolis force
+planetaryRotationPeriod   $EarthPeriod;
+latitude                  $latitude;
+
+// ************************************************************************* //

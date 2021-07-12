@@ -184,6 +184,12 @@ void Foam::drivingForce<Type>::updateComputedTimeHeightDepSource_(bool writeIter
         }
     }
 
+    // Blend source terms to constant
+    if (blendToConst_)
+    {
+        blendLinearSlopeDecay_(source);
+    }
+
     // Now go by cell levels and apply the source term
     forAllPlanes(zPlanes_,planeI)
     {
@@ -327,6 +333,36 @@ Type Foam::drivingForce<Type>::subtractVerticalPart_
 }
 
 
+template<class Type>
+void Foam::drivingForce<Type>::blendLinearSlopeDecay_
+(
+    List<Type>& source
+)
+{
+    Type slope0 = (source[hLevelBlend1] - source[hLevelBlend0])
+                / (  zPlanes_.planeLocationValues()[hLevelBlend1]
+                   - zPlanes_.planeLocationValues()[hLevelBlend0]);
+    Type dslope = -slope0
+                / (  zPlanes_.planeLocationValues()[hLevelBlendMax]
+                   - zPlanes_.planeLocationValues()[hLevelBlend1]);
+    // march from hLevelBlend1 (z >= maxAssimHeight)
+    // up to hLevelBlendMax (z >= maxAssimheight + blendThickness)
+    // as the slope decreases linearly to 0
+    for (label lvl=hLevelBlend1; lvl <= hLevelBlendMax; lvl++)
+    {
+        Type slope = slope0 + dslope*(  zPlanes_.planeLocationValues()[lvl]
+                                      - zPlanes_.planeLocationValues()[hLevelBlend1]);
+        source[lvl] = source[lvl-1] + slope*(  zPlanes_.planeLocationValues()[lvl]
+                                             - zPlanes_.planeLocationValues()[lvl-1]);
+    }
+    // set the remaining levels above hLevelBlendMax to the last value
+    for (label lvl=hLevelBlendMax+1; lvl < zPlanes_.numberOfPlanes(); lvl++)
+    {
+        source[lvl] = source[hLevelBlendMax];
+    }
+}
+
+
 // Specialization for Type vector
 // - input type speedAndDirection is supported
 // - subtractVerticalPart is supported
@@ -428,6 +464,16 @@ void Foam::drivingForce<Type>::readInputData_(const IOdictionary& ABLProperties)
         scalar timeWindow(sourceDict.lookupOrDefault<scalar>("timeWindow",3600.0));
         timeWindow_ = timeWindow;
 
+        // Transition to constant source terms with height for partial profile assimilation
+        blendToConst_ = sourceDict.lookupOrDefault<bool>("blendToConst",false);
+    
+        if (blendToConst_)
+        {
+            assimMaxHeight_ = readScalar(sourceDict.lookup("assimMaxHeight"));
+            blendThickness_ = sourceDict.lookupOrDefault<scalar>("blendThickness",100.0);
+            findBlendLevels_();
+        }
+
         // Smoothing by means of regression curve fitting
         bool regSmoothing(sourceDict.lookupOrDefault<bool>("regSmoothing",true));
         regSmoothing_ = regSmoothing;
@@ -504,11 +550,13 @@ void Foam::drivingForce<Type>::readSourceTables_
 
     // Assuming that the specified times are the same for all components
     label nSourceTimes = sourceTables[0].size();
+    Info<< "Processing " << nSourceTimes << " " << name_ << " source times" << endl;
+    sourceTimesSpecified_.setSize(nSourceTimes);
+    sourceSpecified_ = List<List<Type> >(nSourceTimes, List<Type>(nSourceHeights, Type::zero));
 
     for(int i = 0; i < nSourceTimes; i++)
     {
-        sourceTimesSpecified_.append(sourceTables[0][i][0]);
-        sourceSpecified_.append(List<Type>(nSourceHeights,Type::zero));
+        sourceTimesSpecified_[i] = sourceTables[0][i][0];
 
         for(int j = 0; j < nSourceHeights; j++)
         {
@@ -545,11 +593,13 @@ namespace Foam
     
         // Assuming that the specified times are the same for all components
         label nSourceTimes = sourceTable.size();
+        Info<< "Processing " << nSourceTimes << " " << name_ << " source times" << endl;
+        sourceTimesSpecified_.setSize(nSourceTimes);
+        sourceSpecified_ = List<List<scalar> >(nSourceTimes, List<scalar>(nSourceHeights, 0.0));
     
         for(int i = 0; i < nSourceTimes; i++)
         {
-            sourceTimesSpecified_.append(sourceTable[i][0]);
-            sourceSpecified_.append(List<scalar>(nSourceHeights,0.0));
+            sourceTimesSpecified_[i] = sourceTable[i][0];
 
             for(int j = 0; j < nSourceHeights; j++)
             {
@@ -639,6 +689,36 @@ void Foam::drivingForce<Type>::findSingleForcingHeight_()
             j++;
         }
     }
+}
+
+
+template<class Type>
+void Foam::drivingForce<Type>::findBlendLevels_()
+{
+    hLevelBlend0 = -1;
+    hLevelBlend1 = -1;
+    hLevelBlendMax = -1;
+
+    // Find the two levels closest to the specified height
+    // Find the closest level
+    forAllPlanes(zPlanes_,planeI)
+    {
+        if ( (hLevelBlend1 < 0) &&
+             (zPlanes_.planeLocationValues()[planeI] >= assimMaxHeight_) )
+        {
+            hLevelBlend1 = planeI;
+            hLevelBlend0 = planeI - 1;
+        }
+        else if ( zPlanes_.planeLocationValues()[planeI] >= assimMaxHeight_+blendThickness_ )
+        {
+            hLevelBlendMax = planeI;
+            break;
+        }
+    }
+    Info<< "Blending source terms to constant between z= "
+        << zPlanes_.planeLocationValues()[hLevelBlend1] <<  " and "
+        << zPlanes_.planeLocationValues()[hLevelBlendMax]
+        << endl;
 }
 
 

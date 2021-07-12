@@ -34,6 +34,8 @@ License
 
 namespace Foam
 {
+namespace functionObjects
+{
     defineTypeNameAndDebug(spinnerLidar, 0);
 
     addToRunTimeSelectionTable
@@ -43,6 +45,7 @@ namespace Foam
         dictionary
     );
 }
+}
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -51,16 +54,14 @@ namespace Foam
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::spinnerLidar::spinnerLidar
+Foam::functionObjects::spinnerLidar::spinnerLidar
 (
     const word& name,
-    const objectRegistry& obr,
-    const dictionary& dict,
-    const bool loadFromFiles
+    const Time& runTime,
+    const dictionary& dict
 )
 :
-    functionObject(name),
-    mesh_(refCast<const fvMesh>(obr)),
+    fvMeshFunctionObject(name, runTime, dict),
     runTime_(mesh_.time()),
     active_(true),
     degRad((Foam::constant::mathematical::pi)/180.0),
@@ -169,13 +170,13 @@ Foam::spinnerLidar::spinnerLidar
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::spinnerLidar::~spinnerLidar()
+Foam::functionObjects::spinnerLidar::~spinnerLidar()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-bool Foam::spinnerLidar::read(const dictionary& dict)
+bool Foam::functionObjects::spinnerLidar::read(const dictionary& dict)
 {
     if (active_)
     {
@@ -237,7 +238,7 @@ bool Foam::spinnerLidar::read(const dictionary& dict)
 }
 
 
-void Foam::spinnerLidar::resetAxes()
+void Foam::functionObjects::spinnerLidar::resetAxes()
 {
     // Reset the beam position and create the initial prism rotation axis vectors.
     vector up = vector::zero;
@@ -262,7 +263,7 @@ void Foam::spinnerLidar::resetAxes()
 }
 
 
-void Foam::spinnerLidar::createScanPattern()
+void Foam::functionObjects::spinnerLidar::createScanPattern()
 {
     Info << type() << ": Computing scan pattern..." << endl;
 
@@ -323,7 +324,7 @@ void Foam::spinnerLidar::createScanPattern()
 }
 
 
-void Foam::spinnerLidar::findControlProcAndCell()
+void Foam::functionObjects::spinnerLidar::findControlProcAndCell()
 {
     Info << type() << ": Searching for interpolation cells in ";
 
@@ -392,7 +393,7 @@ void Foam::spinnerLidar::findControlProcAndCell()
 }
 
 
-void Foam::spinnerLidar::sampleWinds(label i, volTensorField& gradU)
+void Foam::functionObjects::spinnerLidar::sampleWinds(label i, volTensorField& gradU)
 {
     label nBeamPoints = beamDistribution.size();
     label iter = i * nBeamPoints;
@@ -420,7 +421,7 @@ void Foam::spinnerLidar::sampleWinds(label i, volTensorField& gradU)
 }
 
 
-vector Foam::spinnerLidar::rotateVector(vector v, vector rotationPoint, vector axis, scalar angle)
+vector Foam::functionObjects::spinnerLidar::rotateVector(vector v, vector rotationPoint, vector axis, scalar angle)
 {
     // Declare and define the rotation matrix.
     tensor RM;
@@ -449,7 +450,7 @@ vector Foam::spinnerLidar::rotateVector(vector v, vector rotationPoint, vector a
 
 
 
-void Foam::spinnerLidar::rotateLidar()
+void Foam::functionObjects::spinnerLidar::rotateLidar()
 {
     // Store the old beam angles.
     scalar rotationOld = rotationCurrent;
@@ -510,7 +511,7 @@ void Foam::spinnerLidar::rotateLidar()
 }
 
 
-bool Foam::spinnerLidar::execute()
+bool Foam::functionObjects::spinnerLidar::execute()
 {
     if (active_)
     {
@@ -621,7 +622,7 @@ bool Foam::spinnerLidar::execute()
 }
 
 
-bool Foam::spinnerLidar::end()
+bool Foam::functionObjects::spinnerLidar::end()
 {
     if (active_)
     {
@@ -632,13 +633,13 @@ bool Foam::spinnerLidar::end()
 }
 
 
-bool Foam::spinnerLidar::write()
+bool Foam::functionObjects::spinnerLidar::write()
 {
     return true;
 }
 
 
-void Foam::spinnerLidar::writeBeamDataFormatted()
+void Foam::functionObjects::spinnerLidar::writeBeamDataFormatted()
 {
     Info << type() << ": Writing the sampled data in ";
 
@@ -749,7 +750,7 @@ void Foam::spinnerLidar::writeBeamDataFormatted()
 }
 
 
-void Foam::spinnerLidar::writeVariables()
+void Foam::functionObjects::spinnerLidar::writeVariables()
 {
     Info << "name_: " << name() << endl;
     Info << "active_: " << active_ << endl;

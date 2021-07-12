@@ -1,0 +1,184 @@
+slicesAgnesi
+{
+    type surfaces;
+    functionObjectLibs ( "libsampling.so" );
+    writeControl        adjustableRunTime;
+    writeInterval       100;
+    fields
+    (
+      U
+      T
+      p_rgh
+      UMean
+      UPrime2Mean
+      TPrimeUPrimeMean
+    );
+    interpolationScheme cell;      // cell, cellPoint, cellPointCell
+    surfaceFormat           vtk;
+
+
+     surfaces
+     (
+        terrain.100
+        {
+            type            patchInternalField;
+            patches         ( lower );
+            interpolate     true;
+            offsetMode      uniform;
+            offset          (0 0 100);
+            triangulate     true;
+        }
+        terrain.200
+        {
+            type            patchInternalField;
+            patches         ( lower );
+            interpolate     true;
+            offsetMode      uniform;
+            offset          (0 0 200);
+            triangulate     true;
+        }
+        terrain.2000
+        {
+            type            patchInternalField;
+            patches         ( lower );
+            interpolate     true;
+            offsetMode      uniform;
+            offset          (0 0 2000);
+            triangulate     true;
+        }
+        //
+        yNormal.m3000
+        {
+            type cuttingPlane;
+            planeType pointAndNormal;
+            pointAndNormalDict
+            {
+                basePoint (0 -3000 0);
+                normalVector (0 1 0);
+            }
+            interpolate true;
+        }
+        yNormal.m1000
+        {
+            type cuttingPlane;
+            planeType pointAndNormal;
+            pointAndNormalDict
+            {
+                basePoint (0 -1000 0);
+                normalVector (0 1 0);
+            }
+            interpolate true;
+        }
+        yNormal.0
+        {
+            type cuttingPlane;
+            planeType pointAndNormal;
+            pointAndNormalDict
+            {
+                basePoint (0 0 0);
+                normalVector (0 1 0);
+            }
+            interpolate true;
+        }
+        yNormal.1000
+        {
+            type cuttingPlane;
+            planeType pointAndNormal;
+            pointAndNormalDict
+            {
+                basePoint (0 1000 0);
+                normalVector (0 1 0);
+            }
+            interpolate true;
+        }
+        yNormal.3000
+        {
+            type cuttingPlane;
+            planeType pointAndNormal;
+            pointAndNormalDict
+            {
+                basePoint (0 3000 0);
+                normalVector (0 1 0);
+            }
+            interpolate true;
+        }
+        //
+        xNormal.m3000
+        {
+            type cuttingPlane;
+            planeType pointAndNormal;
+            pointAndNormalDict
+            {
+                basePoint (-3000 0  0);
+                normalVector (1 0 0);
+            }
+            interpolate true;
+        }
+        xNormal.m1000
+        {
+            type cuttingPlane;
+            planeType pointAndNormal;
+            pointAndNormalDict
+            {
+                basePoint (-1000 0  0);
+                normalVector (1 0 0);
+            }
+            interpolate true;
+        }
+        xNormal.0
+        {
+            type cuttingPlane;
+            planeType pointAndNormal;
+            pointAndNormalDict
+            {
+                basePoint (0 0 0);
+                normalVector (1 0 0);
+            }
+            interpolate true;
+        }
+        xNormal.1000
+        {
+            type cuttingPlane;
+            planeType pointAndNormal;
+            pointAndNormalDict
+            {
+                basePoint (1000 0 0);
+                normalVector (1 0 0);
+            }
+            interpolate true;
+        }
+        xNormal.3000
+        {
+            type cuttingPlane;
+            planeType pointAndNormal;
+            pointAndNormalDict
+            {
+                basePoint (3000 0 0);
+                normalVector (1 0 0);
+            }
+            interpolate true;
+        }
+        xNormal.10000
+        {
+            type cuttingPlane;
+            planeType pointAndNormal;
+            pointAndNormalDict
+            {
+                basePoint (10000 0 0);
+                normalVector (1 0 0);
+            }
+            interpolate true;
+        }
+        xNormal.20000
+        {
+            type cuttingPlane;
+            planeType pointAndNormal;
+            pointAndNormalDict
+            {
+                basePoint (20000 0 0);
+                normalVector (1 0 0);
+            }
+            interpolate true;
+        }
+      );
+}

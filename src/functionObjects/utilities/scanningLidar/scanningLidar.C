@@ -33,6 +33,8 @@ License
 
 namespace Foam
 {
+namespace functionObjects
+{
     defineTypeNameAndDebug(scanningLidar, 0);
 
     addToRunTimeSelectionTable
@@ -42,6 +44,7 @@ namespace Foam
         dictionary
     );
 }
+}
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -50,17 +53,15 @@ namespace Foam
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::scanningLidar::scanningLidar
+Foam::functionObjects::scanningLidar::scanningLidar
 (
     const word& name,
-    const objectRegistry& obr,
-    const dictionary& dict,
-    const bool loadFromFiles
+    const Time& runTime,
+    const dictionary& dict
 )
 :
-    functionObject(name),
-    mesh_(refCast<const fvMesh>(obr)),
-    runTime_(mesh_.time()),
+    fvMeshFunctionObject(name, runTime, dict),
+    runTime_(time_),
     active_(true),
     degRad((Foam::constant::mathematical::pi)/180.0),
     UName_("U"),
@@ -94,13 +95,13 @@ Foam::scanningLidar::scanningLidar
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::scanningLidar::~scanningLidar()
+Foam::functionObjects::scanningLidar::~scanningLidar()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-bool Foam::scanningLidar::read(const dictionary& dict)
+bool Foam::functionObjects::scanningLidar::read(const dictionary& dict)
 {
     if (active_)
     {
@@ -157,7 +158,7 @@ bool Foam::scanningLidar::read(const dictionary& dict)
 }
 
 
-void Foam::scanningLidar::createBeams()
+void Foam::functionObjects::scanningLidar::createBeams()
 {
     label nBeams = beamScanPatternTime.size();
     label nSamplePoints = beamDistribution.size();
@@ -201,7 +202,7 @@ void Foam::scanningLidar::createBeams()
 }
 
 
-void Foam::scanningLidar::findControlProcAndCell()
+void Foam::functionObjects::scanningLidar::findControlProcAndCell()
 {
     label nBeams = beamScanPatternTime.size();
     label nSamplePoints = beamDistribution.size();
@@ -251,7 +252,7 @@ void Foam::scanningLidar::findControlProcAndCell()
 }
 
 
-void Foam::scanningLidar::sampleWinds(label i, volTensorField& gradU)
+void Foam::functionObjects::scanningLidar::sampleWinds(label i, volTensorField& gradU)
 {
     label nSamplePoints = beamDistribution.size();
     label iter = i * nSamplePoints;
@@ -279,7 +280,7 @@ void Foam::scanningLidar::sampleWinds(label i, volTensorField& gradU)
 }
 
 
-vector Foam::scanningLidar::rotateVector(vector v, vector rotationPoint, vector axis, scalar angle)
+vector Foam::functionObjects::scanningLidar::rotateVector(vector v, vector rotationPoint, vector axis, scalar angle)
 {
     // Declare and define the rotation matrix.
     tensor RM;
@@ -308,7 +309,7 @@ vector Foam::scanningLidar::rotateVector(vector v, vector rotationPoint, vector 
 
 
 
-void Foam::scanningLidar::rotateLidar()
+void Foam::functionObjects::scanningLidar::rotateLidar()
 {
     // Store the old beam angles.
     scalar rotationOld = rotationCurrent;
@@ -346,7 +347,7 @@ void Foam::scanningLidar::rotateLidar()
 }
 
 
-bool Foam::scanningLidar::execute()
+bool Foam::functionObjects::scanningLidar::execute()
 {
     if (active_)
     {
@@ -453,7 +454,7 @@ bool Foam::scanningLidar::execute()
 }
 
 
-bool Foam::scanningLidar::end()
+bool Foam::functionObjects::scanningLidar::end()
 {
     if (active_)
     {
@@ -464,13 +465,13 @@ bool Foam::scanningLidar::end()
 }
 
 
-bool Foam::scanningLidar::write()
+bool Foam::functionObjects::scanningLidar::write()
 {
     return true;
 }
 
 
-void Foam::scanningLidar::writeBeamData()
+void Foam::functionObjects::scanningLidar::writeBeamData()
 {
     if (Pstream::master())
     {
@@ -571,7 +572,7 @@ void Foam::scanningLidar::writeBeamData()
 }
 
 
-void Foam::scanningLidar::writeVariables()
+void Foam::functionObjects::scanningLidar::writeVariables()
 {
     Info << "name_: " << name() << endl;
     Info << "active_: " << active_ << endl;

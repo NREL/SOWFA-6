@@ -47,20 +47,32 @@ Description
 
     - when name equals "momentum:
         - \c inputType: specify how the velocity is given
-                        - "component" means the x, y and z components are specified,
-                        - "speedAndDirection" means horizontal wind speed and cardinal direction,
-                          and vertical component are specified
+            - "component" means the x, y and z components are specified,
+            - "speedAndDirection" means horizontal wind speed, cardinal
+              direction, and vertical component are specified
         - \c setVerticalCompZero: set vertical part of source term to zero
 
     - when multiple source heights are specified:
-        - \c writeError: Write out error between horizontal averaged profile and given input profile
-        - \c alpha: Weights of proportional and integral actions are alpha and (1-alpha), respectively
-        - \c timeWindow: Time window of exponential time filter in integral action (s)
+        - \c writeError: Write out error between horizontal averaged profile
+          and given input profile
+        - \c alpha: Weights of proportional and integral actions are alpha and
+          (1-alpha), respectively
+        - \c timeWindow: Time window of exponential time filter in integral
+          action (s)
         - \c regSmoothing: smooth error by fitting a regression curve
-
         - when \c regSmoothing is set to true
             - \c regOrder: Order of regression polynomial
             - \c weightsTable: Table with weights versus height
+        - \c blendToConst: Blend source terms to a (time-varying) constant
+          value above a certain height, to permit assimilation of a partial
+          profile; may be applied with direct or indirect profile assimilation
+        - when \c blendToConst is set to true
+            - \c assimMaxHeight: Height above which the sources are constant
+            - \c blendThickness: The vertical distance over which the source
+              term transitions to constant with height; the slope changes
+              linearly, from the finite difference between the cell at
+              assimMaxHeight and just below, to 0 at assimMaxHeight +
+              blendThickness
 
 Usage
     \table
@@ -74,6 +86,9 @@ Usage
         writeError                  | Write out error profile   | no        | false
         alpha                       | Ratio of P to I action    | no        | 1.0
         timeWindow                  | Time filter window        | no        | 3600.0
+        blendToConst                | Constant sources above assimMaxHeight | no | false
+        assimMaxHeight              | Constant sources above assimMaxHeight | no | 
+        blendThickness              | Vertical distance over which to blend to constant | no |
         regSmoothing                | Regression smoothing      | no        | true
         regOrder                    | Regression order          | no        | 1
         weightsTable                | Table with weights        | no        |
@@ -144,7 +159,12 @@ class drivingForce
         //- Height levels for forcing at one height
         scalar hLevels1;
         scalar hLevels2;
-        
+
+        //- Height level indices for blending
+        label hLevelBlend0;
+        label hLevelBlend1;
+        label hLevelBlendMax;
+
         //- Output file pointer
         autoPtr<OFstream> sourceHistoryFile_;
 
@@ -180,6 +200,11 @@ class drivingForce
 
         //- Integrated error
         List<Type> errorInt_;
+
+        //- Direct assimilation of partial profile
+        bool blendToConst_;
+        scalar assimMaxHeight_;
+        scalar blendThickness_;
 
         //- Weighted regression
         bool regSmoothing_;
@@ -237,6 +262,9 @@ class drivingForce
         //- Find grid levels closest to specified height
         void findSingleForcingHeight_();
 
+        //- Find grid levels closest to specified height
+        void findBlendLevels_();
+
         //- Open file streams
         void openFiles_();
 
@@ -280,6 +308,9 @@ class drivingForce
 
         //- Subtract off vertical part (only for Type vector)
         Type subtractVerticalPart_(Type source);
+
+        //- Blend source terms to constant
+        void blendLinearSlopeDecay_(List<Type>& source);
 
 public:
 
