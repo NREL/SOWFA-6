@@ -2,6 +2,5 @@ spongeLayer/spongeLayer.C
 CoriolisForce/CoriolisForce.C
 buoyancyModel/buoyancyModel.C
 drivingForce/drivingForces.C
-perturbationSource/perturbationSources.C
 
 LIB = $(SOWFA_LIBBIN)/libSOWFAABLForcing
