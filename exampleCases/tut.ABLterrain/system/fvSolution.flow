@@ -119,7 +119,7 @@ PIMPLE
     nCorrectors              3;
     nNonOrthogonalCorrectors 1;
     activatePressureRefCell  false;    // default: true
-    pRefPoint                (#calc "($xMax + $xMin)/2+0.001"    #calc "($yMax + $yMin)/2+0.001"    #calc "$zMin+85.001");
+    pRefPoint                (#calc "($xMax + $xMin)/2+0.001"    #calc "($yMax + $yMin)/2+0.001"    #calc "$zMax-100.001");
     pRefValue                0;
 }
 
