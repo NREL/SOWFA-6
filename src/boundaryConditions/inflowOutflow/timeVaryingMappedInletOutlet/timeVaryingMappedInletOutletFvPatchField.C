@@ -558,13 +558,25 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::updateCoeffs()
         return;
     }
 
-    // The inletOutlet part of the update, which determines whether direction
-    // of the massflow from phi and updates the valueFraction variable
+    // The inletOutlet part of the update, which determines the direction of
+    // the massflow from phi and updates the valueFraction variable
     updateInletOutlet();
 
     // The fixedValue part of the update, closely following the updateCoeffs
     // function from timeVaryingMappedFixedValue to update the refValue variable
     updateFixedValue();
+
+    if (debug)
+    {
+        Info<< "updateCoeffs : " << this->patch().name() << " refValue"
+            << " min:" << gMin(this->refValue())
+            << " max:" << gMax(this->refValue())
+            << " avg:" << gAverage(this->refValue()) << endl;
+        Info<< "updateCoeffs : " << this->patch().name() << " valueFraction"
+            << " min:" << gMin(this->valueFraction())
+            << " max:" << gMax(this->valueFraction())
+            << " avg:" << gAverage(this->valueFraction()) << endl;
+    }
 
     // Instead of applying operator==, as is done in the timeVaryingMappedFixedValue,
     // let the field assignment take place in evaluate()
@@ -668,8 +680,7 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::updateFixedValue()
                 Pout<< "updateFixedValue :"
                     << " offsetting with:" << offset << endl;
             }
-            //this->operator==(fld + offset);
-            this->refValue() = (fld + offset);
+            this->refValue() += offset;
         }
         else
         {
@@ -680,17 +691,22 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::updateFixedValue()
                 Pout<< "updateFixedValue :"
                     << " scaling with:" << scale << endl;
             }
-            //this->operator==(scale*fld);
-            this->refValue() = (scale*fld);
+            this->refValue() *= scale;
         }
     }
 
     // Apply offset to mapped values
+    //Info<< "updateFixedValue BEFORE offset: refValue min:" << gMin(this->refValue())
+    //    << " max:" << gMax(this->refValue())
+    //    << " avg:" << gAverage(this->refValue()) << endl;
     if (offset_.valid())
     {
         const scalar t = this->db().time().timeOutputValue();
-        //this->operator==(*this + offset_->value(t));
-        this->refValue() = (*this + offset_->value(t));
+        this->refValue() += offset_->value(t);
+        //Info<< "updateFixedValue AFTER adding " << offset_->value(t)
+        //    << " : refValue min:" << gMin(this->refValue())
+        //    << " max:" << gMax(this->refValue())
+        //    << " avg:" << gAverage(this->refValue()) << endl;
     }
 
     if (debug)
