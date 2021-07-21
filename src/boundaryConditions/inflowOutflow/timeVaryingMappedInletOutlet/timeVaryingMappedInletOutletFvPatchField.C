@@ -680,8 +680,7 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::updateFixedValue()
                 Pout<< "updateFixedValue :"
                     << " offsetting with:" << offset << endl;
             }
-            //this->operator==(fld + offset);
-            this->refValue() = (fld + offset);
+            this->refValue() += offset;
         }
         else
         {
@@ -692,8 +691,7 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::updateFixedValue()
                 Pout<< "updateFixedValue :"
                     << " scaling with:" << scale << endl;
             }
-            //this->operator==(scale*fld);
-            this->refValue() = (scale*fld);
+            this->refValue() *= scale;
         }
     }
 
@@ -704,8 +702,6 @@ void Foam::timeVaryingMappedInletOutletFvPatchField<Type>::updateFixedValue()
     if (offset_.valid())
     {
         const scalar t = this->db().time().timeOutputValue();
-        //this->operator==(*this + offset_->value(t));
-        //this->refValue() = (*this + offset_->value(t)); // this results in unexpected behavior!
         this->refValue() += offset_->value(t);
         //Info<< "updateFixedValue AFTER adding " << offset_->value(t)
         //    << " : refValue min:" << gMin(this->refValue())

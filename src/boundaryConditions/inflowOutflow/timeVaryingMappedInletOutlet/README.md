@@ -2,7 +2,7 @@
 
 ## Changelog
 
-- 2021-06-20 - fixed mysterious offset bug
+- 2021-06-20 - fixed offset and setAverage bug
 - 2020-06-03 - initial implementation in OpenFOAM-6
 
 
