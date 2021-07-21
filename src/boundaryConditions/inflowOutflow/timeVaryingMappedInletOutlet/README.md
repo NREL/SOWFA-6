@@ -1,5 +1,13 @@
 # Changes from v2.4.x
 
+## Changelog
+
+- 2021-06-20 - fixed mysterious offset bug
+- 2020-06-03 - initial implementation in OpenFOAM-6
+
+
+## Details
+
 - Constructor from patch, internal field, and dictionary: If a value is provided in the BC dict,
   then apply operator== instead of operator= (change in OpenFOAM-6). Otherwise, call update the
   fixed values and then apply operator== instead of calling evaluate(). Evaluate() calls:
