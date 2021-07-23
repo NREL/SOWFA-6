@@ -26,6 +26,16 @@ boundaryField
 {
     lower
     {
+        // ---------------------------------------------
+        // Use `uniformFixedValue` if giving a q history
+        //  type             uniformFixedValue;
+        //  uniformValue     table
+        //  (
+        //      #include "../constant/drivingData/qwallTable"
+        //  );
+
+        // -----------------------------------------------------------
+        // Use `specifiedSurfaceTemperature` if giving a theta history
         type            specifiedSurfaceTemperature;
         TSurface        table
         (

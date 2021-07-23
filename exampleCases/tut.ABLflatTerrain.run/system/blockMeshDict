@@ -140,7 +140,8 @@ boundary
     }
     west
     { 
-        type patch;
+        type cyclic;
+        neighbourPatch east;
         faces
         (
             ( 0  4  7  3)
@@ -151,7 +152,8 @@ boundary
     }
     east
     { 
-        type patch;
+        type cyclic;
+        neighbourPatch west;
         faces
         (
             ( 1  2  6  5)
@@ -162,7 +164,8 @@ boundary
     }
     north
     { 
-        type patch;
+        type cyclic;
+        neighbourPatch south;
         faces
         (
             ( 3  7  6  2)
@@ -173,7 +176,8 @@ boundary
     }
     south
     { 
-        type patch;
+        type cyclic;
+        neighbourPatch north;
         faces
         (
             ( 0  1  5  4)

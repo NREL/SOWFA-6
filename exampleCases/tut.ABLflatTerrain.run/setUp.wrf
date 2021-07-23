@@ -61,6 +61,8 @@ decompOrder          (6 6 6);                     // Order of the decomposition 
 
 // Planar averaging and source term statistics options.
 // * Used by the planarAveraging function object in 'system/sampling/planarAveraging'
+writeSource                 true;
+writeSourceInterval         1;
 writePlanarAverage          true;
 writePlanarAverageInterval  1;
 
