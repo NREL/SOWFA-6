@@ -244,7 +244,7 @@ void Foam::functionObjects::temporalAveraging::addPrimeUPrimeMeanField(const lab
 
     const word& fieldName = faItems_[fieldi].fieldName();
 
-    if (faItems_[fieldi].primeUPrimeMean() && !(fieldName=="U"))
+    if (faItems_[fieldi].primeUPrimeMean())
     {
 
         if (!faItems_[fieldi].mean())
