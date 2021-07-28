@@ -118,8 +118,11 @@ void Foam::functionObjects::temporalAveraging::initialize()
     // Add prime-Uprime mean fields to the field lists
     forAll(faItems_, fieldi)
     {
-        // Currently only implemented for scalar field like T or p
         addPrimeUPrimeMeanField<scalar, vector>(fieldi);
+        // Note: A likely use case would be sampling <u_i'u_j'>, which is a
+        // symmetric tensor; however, for generality, the outer product of U
+        // and an arbitrary vector gives an asymmetric tensor.
+        addPrimeUPrimeMeanField<vector, tensor>(fieldi);
     }
 
     // ensure first averaging works unconditionally
