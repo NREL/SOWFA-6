@@ -165,7 +165,15 @@ void Foam::vtkStructuredSetWriter<Type>::write
     {
         dz = pointsUnique_z[1] - pointsUnique_z[0];
     }
-
+    
+    if (nx*ny*nz != points.size())
+    {
+        FatalErrorIn("vtkStructuredSetWriter<Type>::write(..)")
+            << "Input points are not structured?" << endl
+            << "  nx, ny, nz: " << nx << " " << ny << " " << nz << endl
+            << "  number of input points: " << points.size() << endl
+            << exit(FatalError);
+    }
 
     // Header of the file.
     os.setf(ios_base::fmtflags(ios_base::fixed), ios_base::floatfield);
