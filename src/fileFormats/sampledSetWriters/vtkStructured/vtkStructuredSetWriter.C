@@ -106,9 +106,10 @@ void Foam::vtkStructuredSetWriter<Type>::write
 
     forAll(points, i)
     {
-        points_x[i] = points[i].x();
-        points_y[i] = points[i].y();
-        points_z[i] = points[i].z();
+        // round to 3 decimal places to help ID unique points
+        points_x[i] = std::round(1000.0*points[i].x()) / 1000.0;
+        points_y[i] = std::round(1000.0*points[i].y()) / 1000.0;
+        points_z[i] = std::round(1000.0*points[i].z()) / 1000.0;
     }
 
     uniqueOrder(points_x,indicesUnique_x);
@@ -156,16 +157,39 @@ void Foam::vtkStructuredSetWriter<Type>::write
     if (nx > 1)
     {
         dx = pointsUnique_x[1] - pointsUnique_x[0];
+
+        if (dx < 1e-12)
+        {
+            FatalErrorIn("vtkStructuredSetWriter<Type>::write(..)")
+                << "poinstUnique_x not unique :" << pointsUnique_x
+                << exit(FatalError);
+        }
     }
+
     if (ny > 1)
     {
         dy = pointsUnique_y[1] - pointsUnique_y[0];
+
+        if (dy < 1e-12)
+        {
+            FatalErrorIn("vtkStructuredSetWriter<Type>::write(..)")
+                << "poinstUnique_y not unique :" << pointsUnique_y
+                << exit(FatalError);
+        }
     }
+
     if (nz > 1)
     {
         dz = pointsUnique_z[1] - pointsUnique_z[0];
+
+        if (dz < 1e-12)
+        {
+            FatalErrorIn("vtkStructuredSetWriter<Type>::write(..)")
+                << "poinstUnique_z not unique :" << pointsUnique_z
+                << exit(FatalError);
+        }
     }
-    
+
     if (nx*ny*nz != points.size())
     {
         WarningInFunction
