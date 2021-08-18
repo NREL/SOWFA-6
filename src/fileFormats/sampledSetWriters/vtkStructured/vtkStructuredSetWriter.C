@@ -106,9 +106,64 @@ void Foam::vtkStructuredSetWriter<Type>::write
 
     forAll(points, i)
     {
-        points_x[i] = points[i].x();
-        points_y[i] = points[i].y();
-        points_z[i] = points[i].z();
+        // round to 3 decimal places to help ID unique points
+        points_x[i] = std::round(1000.0*points[i].x()) / 1000.0;
+        points_y[i] = std::round(1000.0*points[i].y()) / 1000.0;
+        points_z[i] = std::round(1000.0*points[i].z()) / 1000.0;
+    }
+
+    // Perform sequential stable sorts to get Fortran ordering
+    // (x changes fastest, then y, then z)
+    List<label> tmpOrder;
+    sortedOrder(points_x, tmpOrder);
+    List<scalar> new0_points_x(points.size(),0.0);
+    List<scalar> new0_points_y(points.size(),0.0);
+    List<scalar> new0_points_z(points.size(),0.0);
+    List<label> new0_sortOrder(points.size());
+    forAll(points, i)
+    {
+        new0_points_x[i] = points_x[tmpOrder[i]];
+        new0_points_y[i] = points_y[tmpOrder[i]];
+        new0_points_z[i] = points_z[tmpOrder[i]];
+        new0_sortOrder[i] = tmpOrder[i];
+        //Info<< "(vtkStructured) x-sorted point " << i
+        //    << " (" << new0_points_x[i]
+        //    <<  " " << new0_points_y[i]
+        //    <<  " " << new0_points_z[i]
+        //    << ")" << endl;
+    }
+
+    sortedOrder(new0_points_y, tmpOrder);
+    List<scalar> new1_points_x(points.size(),0.0);
+    List<scalar> new1_points_y(points.size(),0.0);
+    List<scalar> new1_points_z(points.size(),0.0);
+    List<label> new1_sortOrder(points.size());
+    forAll(points, i)
+    {
+        new1_points_x[i] = new0_points_x[tmpOrder[i]];
+        new1_points_y[i] = new0_points_y[tmpOrder[i]];
+        new1_points_z[i] = new0_points_z[tmpOrder[i]];
+        new1_sortOrder[i] = new0_sortOrder[tmpOrder[i]];
+        //Info<< "(vtkStructured) y-sorted point " << i
+        //    << " (" << new1_points_x[i]
+        //    <<  " " << new1_points_y[i]
+        //    <<  " " << new1_points_z[i]
+        //    << ")" << endl;
+    }
+
+    sortedOrder(new1_points_z, tmpOrder);
+    List<label> xyzsort(points.size()); // orig order --> final sorted order
+    forAll(points, i)
+    {
+        points_x[i] = new1_points_x[tmpOrder[i]];
+        points_y[i] = new1_points_y[tmpOrder[i]];
+        points_z[i] = new1_points_z[tmpOrder[i]];
+        xyzsort[i] = new1_sortOrder[tmpOrder[i]];
+        //Info<< "(vtkStructured) z-sorted point " << i
+        //    << " (" << points_x[i]
+        //    <<  " " << points_y[i]
+        //    <<  " " << points_z[i]
+        //    << ")" << endl;
     }
 
     uniqueOrder(points_x,indicesUnique_x);
@@ -133,17 +188,20 @@ void Foam::vtkStructuredSetWriter<Type>::write
         pointsUnique_z[i] = points_z[indicesUnique_z[i]];
     }
 
+    // for calculating origin, spacing
+    //Info<< "(vtkStructured) pointsUnique_x: " << pointsUnique_x << endl;
+    //Info<< "(vtkStructured) pointsUnique_y: " << pointsUnique_y << endl;
+    //Info<< "(vtkStructured) pointsUnique_z: " << pointsUnique_z << endl;
 
     vector minCoords(vector::zero);
-    vector maxCoords(vector::zero);
-   
     minCoords.x() = min(pointsUnique_x);
     minCoords.y() = min(pointsUnique_y);
     minCoords.z() = min(pointsUnique_z);
 
-    maxCoords.x() = max(pointsUnique_x);
-    maxCoords.y() = max(pointsUnique_y);
-    maxCoords.z() = max(pointsUnique_z);
+    //vector maxCoords(vector::zero);
+    //maxCoords.x() = max(pointsUnique_x);
+    //maxCoords.y() = max(pointsUnique_y);
+    //maxCoords.z() = max(pointsUnique_z);
 
     label nx = pointsUnique_x.size();
     label ny = pointsUnique_y.size();
@@ -156,16 +214,46 @@ void Foam::vtkStructuredSetWriter<Type>::write
     if (nx > 1)
     {
         dx = pointsUnique_x[1] - pointsUnique_x[0];
+
+        if (dx < 1e-12)
+        {
+            FatalErrorIn("vtkStructuredSetWriter<Type>::write(..)")
+                << "poinstUnique_x not unique :" << pointsUnique_x
+                << exit(FatalError);
+        }
     }
+
     if (ny > 1)
     {
         dy = pointsUnique_y[1] - pointsUnique_y[0];
+
+        if (dy < 1e-12)
+        {
+            FatalErrorIn("vtkStructuredSetWriter<Type>::write(..)")
+                << "poinstUnique_y not unique :" << pointsUnique_y
+                << exit(FatalError);
+        }
     }
+
     if (nz > 1)
     {
         dz = pointsUnique_z[1] - pointsUnique_z[0];
+
+        if (dz < 1e-12)
+        {
+            FatalErrorIn("vtkStructuredSetWriter<Type>::write(..)")
+                << "poinstUnique_z not unique :" << pointsUnique_z
+                << exit(FatalError);
+        }
     }
 
+    if (nx*ny*nz != points.size())
+    {
+        WarningInFunction
+            << "Input points are not structured?" << endl
+            << "  nx, ny, nz: " << nx << " " << ny << " " << nz << endl
+            << "  number of input points: " << points.size() << endl;
+    }
 
     // Header of the file.
     os.setf(ios_base::fmtflags(ios_base::fixed), ios_base::floatfield);
@@ -219,7 +307,7 @@ void Foam::vtkStructuredSetWriter<Type>::write
             }
             
             os.precision(3);
-            writer<Type>::write(fld[pointI], os);
+            writer<Type>::write(fld[xyzsort[pointI]], os);
             os << nl;
         }
         os << nl;
