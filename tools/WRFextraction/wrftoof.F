@@ -578,13 +578,14 @@ SUBROUTINE write_header_scalar( unit, n, bc , location, objectname )
    INTEGER,  INTENT(IN) :: location
    CHARACTER*(*),  INTENT(IN) :: objectname
 
-   WRITE(unit,*)'/*--------------------------------*- C++ -*----------------------------------*\'
-   WRITE(unit,*)'| =========                 |                                                 |'
-   WRITE(unit,*)'| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |'
-   WRITE(unit,*)'|  \\    /   O peration     | Version:  1.6                                   |'
-   WRITE(unit,*)'|   \\  /    A nd           | Web:      http://www.OpenFOAM.org               |'
-   WRITE(unit,*)'|    \\/     M anipulation  |                                                 |'
+   WRITE(unit,*)'/*---------------------------------------------------------------------------*\'
+   WRITE(unit,*)'=========                 |                                                    '
+   WRITE(unit,*)'\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox              '
+   WRITE(unit,*)' \\    /   O peration     | Website:  https://openfoam.org                     '
+   WRITE(unit,*)'  \\  /    A nd           | Version:  6                                        '
+   WRITE(unit,*)'   \\/     M anipulation  |                                                    '
    WRITE(unit,*)'\*---------------------------------------------------------------------------*/'
+   WRITE(unit,*)' '
    WRITE(unit,*)'FoamFile'
    WRITE(unit,*)'{'
    WRITE(unit,*)'    version     2.0;'
@@ -632,13 +633,14 @@ SUBROUTINE write_header_vector( unit, n, bc, location, objectname )
    INTEGER,  INTENT(IN) :: location
    CHARACTER*(*),  INTENT(IN) :: objectname
 
-   WRITE(unit,*)'/*--------------------------------*- C++ -*----------------------------------*\'
-   WRITE(unit,*)'| =========                 |                                                 |'
-   WRITE(unit,*)'| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |'
-   WRITE(unit,*)'|  \\    /   O peration     | Version:  1.6                                   |'
-   WRITE(unit,*)'|   \\  /    A nd           | Web:      http://www.OpenFOAM.org               |'
-   WRITE(unit,*)'|    \\/     M anipulation  |                                                 |'
+   WRITE(unit,*)'/*---------------------------------------------------------------------------*\'
+   WRITE(unit,*)'=========                 |                                                    '
+   WRITE(unit,*)'\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox              '
+   WRITE(unit,*)' \\    /   O peration     | Website:  https://openfoam.org                     '
+   WRITE(unit,*)'  \\  /    A nd           | Version:  6                                        '
+   WRITE(unit,*)'   \\/     M anipulation  |                                                    '
    WRITE(unit,*)'\*---------------------------------------------------------------------------*/'
+   WRITE(unit,*)' '
    WRITE(unit,*)'FoamFile'
    WRITE(unit,*)'{'
    WRITE(unit,*)'    version     2.0;'
@@ -652,6 +654,7 @@ SUBROUTINE write_header_vector( unit, n, bc, location, objectname )
      WRITE(unit,*)'    object      ',TRIM(objectname),';'
    ENDIF
    WRITE(unit,*)'}'
+   WRITE(unit,*)' '
    WRITE(unit,*)'// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //'
    WRITE(unit,*)' '
    IF ( bc ) THEN
