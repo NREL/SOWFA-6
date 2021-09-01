@@ -383,7 +383,7 @@ PROGRAM toof
          DO jj = 0,1
            DO ii = 0,1
              IF (zzcol(ii,jj,1).LE.of_lz.AND.of_lz.LT.zcol(ii,jj,1))THEN  ! special case, of_lz is below first half-level
-               kzz(ii,jj) = 1                                             ! ignore other special case since open foam won.t go that high
+               kzz(ii,jj) = 1                              ! ignore other special case since open foam won.t go that high
                kz(ii,jj) = 0
              ELSE
                DO k = kps+1,kpe
@@ -440,14 +440,18 @@ PROGRAM toof
 
        ENDDO
         ! close the unit and then run a system command to strip off the first space that Fortran insists on writing
-       CALL write_trailer_T(76,ibdy.EQ.INTERIOR) ; CLOSE( 76 ) ; comstr = "sed 's/^ //' "//TRIM(outnameT) //"> foo_ ; /bin/mv -f foo_ "// TRIM(outnameT)
+       CALL write_trailer_T(76,ibdy.EQ.INTERIOR) ; CLOSE( 76 ) ; & 
+            comstr = "sed 's/^ //' "//TRIM(outnameT) //"> foo_ ; /bin/mv -f foo_ "// TRIM(outnameT)
        CALL system(TRIM(comstr)) 
-       CALL write_trailer_pd(77,ibdy.EQ.INTERIOR) ; CLOSE( 77 ) ; comstr = "sed 's/^ //' "//TRIM(outnamePd) //"> foo_ ; /bin/mv -f foo_ "// TRIM(outnamePd)
+       CALL write_trailer_pd(77,ibdy.EQ.INTERIOR) ; CLOSE( 77 ) ; & 
+            comstr = "sed 's/^ //' "//TRIM(outnamePd) //"> foo_ ; /bin/mv -f foo_ "// TRIM(outnamePd)
        CALL system(TRIM(comstr)) 
-       CALL write_trailer_U(78,ibdy.EQ.INTERIOR) ;  CLOSE( 78 ) ; comstr = "sed 's/^ //' "//TRIM(outnameU) //"> foo_ ; /bin/mv -f foo_ "// TRIM(outnameU)
+       CALL write_trailer_U(78,ibdy.EQ.INTERIOR) ;  CLOSE( 78 ) ; & 
+            comstr = "sed 's/^ //' "//TRIM(outnameU) //"> foo_ ; /bin/mv -f foo_ "// TRIM(outnameU)
        CALL system(TRIM(comstr)) 
        IF ( ibdy .EQ. BDY_ZS .AND. have_hfx .AND. use_hfx ) THEN
-         CALL write_trailer_HFX(79,.FALSE.) ;  CLOSE( 79 ) ; comstr = "sed 's/^ //' "//TRIM(outnameU) //"> foo_ ; /bin/mv -f foo_ "// TRIM(outnameU)
+         CALL write_trailer_HFX(79,.FALSE.) ;  CLOSE( 79 ) ; & 
+              comstr = "sed 's/^ //' "//TRIM(outnameU) //"> foo_ ; /bin/mv -f foo_ "// TRIM(outnameU)
          CALL system(TRIM(comstr)) 
        ENDIF
      ENDIF
