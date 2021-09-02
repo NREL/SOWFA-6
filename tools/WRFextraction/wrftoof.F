@@ -578,39 +578,25 @@ SUBROUTINE write_header_scalar( unit, n, bc , location, objectname )
    INTEGER,  INTENT(IN) :: location
    CHARACTER*(*),  INTENT(IN) :: objectname
 
-   WRITE(unit,*)'/*---------------------------------------------------------------------------*\'
-   WRITE(unit,*)'=========                 |                                                    '
-   WRITE(unit,*)'\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox              '
-   WRITE(unit,*)' \\    /   O peration     | Website:  https://openfoam.org                     '
-   WRITE(unit,*)'  \\  /    A nd           | Version:  6                                        '
-   WRITE(unit,*)'   \\/     M anipulation  |                                                    '
-   WRITE(unit,*)'\*---------------------------------------------------------------------------*/'
-   WRITE(unit,*)' '
-   WRITE(unit,*)'FoamFile'
-   WRITE(unit,*)'{'
-   WRITE(unit,*)'    version     2.0;'
-   WRITE(unit,*)'    format      ascii;'
-   IF ( bc ) THEN
-     WRITE(unit,*)'    class       scalarAverageField;'
-     WRITE(unit,*)'    object      values;'
-   ELSE
+   if ( .NOT. bc ) THEN
+     WRITE(unit,*)'/*---------------------------------------------------------------------------*\'
+     WRITE(unit,*)'=========                 |                                                    '
+     WRITE(unit,*)'\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox              '
+     WRITE(unit,*)' \\    /   O peration     | Website:  https://openfoam.org                     '
+     WRITE(unit,*)'  \\  /    A nd           | Version:  6                                        '
+     WRITE(unit,*)'   \\/     M anipulation  |                                                    '
+     WRITE(unit,*)'\*---------------------------------------------------------------------------*/'
+     WRITE(unit,*)' '
+     WRITE(unit,*)'FoamFile'
+     WRITE(unit,*)'{'
+     WRITE(unit,*)'    version     2.0;'
+     WRITE(unit,*)'    format      ascii;'
      WRITE(unit,*)'    class       volScalarField;'
      WRITE(unit,'("    location    """,i4.4,""";")')location
      WRITE(unit,*)'    object      ',TRIM(objectname),' ;'
-   ENDIF
-   WRITE(unit,*)'}'
-   WRITE(unit,*)'// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //'
-   WRITE(unit,*)' '
-   IF ( bc ) THEN
-     WRITE(unit,*)'// Average'
-     IF      ( TRIM(objectname).EQ.'U' ) THEN
-       WRITE(unit,*)'(0 0 0)'
-     ELSE
-       WRITE(unit,*)'0'
-     ENDIF
+     WRITE(unit,*)'}'
+     WRITE(unit,*)'// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //'
      WRITE(unit,*)' '
-     WRITE(unit,*)' '
-   ELSE
      IF      ( TRIM(objectname).EQ.'p_rgh' ) THEN
        WRITE(unit,*)'dimensions      [0 2 -2 0 0 0 0];'  ! And this means m^2/s^2 !
      ELSE IF ( TRIM(objectname).EQ.'T' ) THEN
@@ -633,36 +619,26 @@ SUBROUTINE write_header_vector( unit, n, bc, location, objectname )
    INTEGER,  INTENT(IN) :: location
    CHARACTER*(*),  INTENT(IN) :: objectname
 
-   WRITE(unit,*)'/*---------------------------------------------------------------------------*\'
-   WRITE(unit,*)'=========                 |                                                    '
-   WRITE(unit,*)'\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox              '
-   WRITE(unit,*)' \\    /   O peration     | Website:  https://openfoam.org                     '
-   WRITE(unit,*)'  \\  /    A nd           | Version:  6                                        '
-   WRITE(unit,*)'   \\/     M anipulation  |                                                    '
-   WRITE(unit,*)'\*---------------------------------------------------------------------------*/'
-   WRITE(unit,*)' '
-   WRITE(unit,*)'FoamFile'
-   WRITE(unit,*)'{'
-   WRITE(unit,*)'    version     2.0;'
-   WRITE(unit,*)'    format      ascii;'
-   IF ( bc ) THEN
-     WRITE(unit,*)'    class       vectorAverageField;'
-     WRITE(unit,*)'    object      values;'
-   ELSE
+   IF ( .NOT. bc ) THEN
+     WRITE(unit,*)'/*---------------------------------------------------------------------------*\'
+     WRITE(unit,*)'=========                 |                                                    '
+     WRITE(unit,*)'\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox              '
+     WRITE(unit,*)' \\    /   O peration     | Website:  https://openfoam.org                     '
+     WRITE(unit,*)'  \\  /    A nd           | Version:  6                                        '
+     WRITE(unit,*)'   \\/     M anipulation  |                                                    '
+     WRITE(unit,*)'\*---------------------------------------------------------------------------*/'
+     WRITE(unit,*)' '
+     WRITE(unit,*)'FoamFile'
+     WRITE(unit,*)'{'
+     WRITE(unit,*)'    version     2.0;'
+     WRITE(unit,*)'    format      ascii;'
      WRITE(unit,*)'    class       volVectorField;'
      WRITE(unit,'("    location    """,i4.4,""";")')location
      WRITE(unit,*)'    object      ',TRIM(objectname),';'
-   ENDIF
-   WRITE(unit,*)'}'
-   WRITE(unit,*)' '
-   WRITE(unit,*)'// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //'
-   WRITE(unit,*)' '
-   IF ( bc ) THEN
-     WRITE(unit,*)'// Average'
-     WRITE(unit,*)'(0 0 0)'
+     WRITE(unit,*)'}'
      WRITE(unit,*)' '
+     WRITE(unit,*)'// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //'
      WRITE(unit,*)' '
-   ELSE
      IF      ( TRIM(objectname).EQ.'U' ) THEN
        WRITE(unit,*)'dimensions      [0 1 -1 0 0 0 0];'     ! this means m/s
      ELSE IF ( TRIM(objectname).EQ.'qwall' ) THEN
