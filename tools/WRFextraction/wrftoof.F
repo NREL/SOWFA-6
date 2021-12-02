@@ -383,7 +383,7 @@ PROGRAM toof
          DO jj = 0,1
            DO ii = 0,1
              IF (zzcol(ii,jj,1).LE.of_lz.AND.of_lz.LT.zcol(ii,jj,1))THEN  ! special case, of_lz is below first half-level
-               kzz(ii,jj) = 1                                             ! ignore other special case since open foam won.t go that high
+               kzz(ii,jj) = 1                              ! ignore other special case since open foam won.t go that high
                kz(ii,jj) = 0
              ELSE
                DO k = kps+1,kpe
@@ -440,14 +440,18 @@ PROGRAM toof
 
        ENDDO
         ! close the unit and then run a system command to strip off the first space that Fortran insists on writing
-       CALL write_trailer_T(76,ibdy.EQ.INTERIOR) ; CLOSE( 76 ) ; comstr = "sed 's/^ //' "//TRIM(outnameT) //"> foo_ ; /bin/mv -f foo_ "// TRIM(outnameT)
+       CALL write_trailer_T(76,ibdy.EQ.INTERIOR) ; CLOSE( 76 ) ; & 
+            comstr = "sed 's/^ //' "//TRIM(outnameT) //"> foo_ ; /bin/mv -f foo_ "// TRIM(outnameT)
        CALL system(TRIM(comstr)) 
-       CALL write_trailer_pd(77,ibdy.EQ.INTERIOR) ; CLOSE( 77 ) ; comstr = "sed 's/^ //' "//TRIM(outnamePd) //"> foo_ ; /bin/mv -f foo_ "// TRIM(outnamePd)
+       CALL write_trailer_pd(77,ibdy.EQ.INTERIOR) ; CLOSE( 77 ) ; & 
+            comstr = "sed 's/^ //' "//TRIM(outnamePd) //"> foo_ ; /bin/mv -f foo_ "// TRIM(outnamePd)
        CALL system(TRIM(comstr)) 
-       CALL write_trailer_U(78,ibdy.EQ.INTERIOR) ;  CLOSE( 78 ) ; comstr = "sed 's/^ //' "//TRIM(outnameU) //"> foo_ ; /bin/mv -f foo_ "// TRIM(outnameU)
+       CALL write_trailer_U(78,ibdy.EQ.INTERIOR) ;  CLOSE( 78 ) ; & 
+            comstr = "sed 's/^ //' "//TRIM(outnameU) //"> foo_ ; /bin/mv -f foo_ "// TRIM(outnameU)
        CALL system(TRIM(comstr)) 
        IF ( ibdy .EQ. BDY_ZS .AND. have_hfx .AND. use_hfx ) THEN
-         CALL write_trailer_HFX(79,.FALSE.) ;  CLOSE( 79 ) ; comstr = "sed 's/^ //' "//TRIM(outnameU) //"> foo_ ; /bin/mv -f foo_ "// TRIM(outnameU)
+         CALL write_trailer_HFX(79,.FALSE.) ;  CLOSE( 79 ) ; & 
+              comstr = "sed 's/^ //' "//TRIM(outnameU) //"> foo_ ; /bin/mv -f foo_ "// TRIM(outnameU)
          CALL system(TRIM(comstr)) 
        ENDIF
      ENDIF
@@ -574,38 +578,25 @@ SUBROUTINE write_header_scalar( unit, n, bc , location, objectname )
    INTEGER,  INTENT(IN) :: location
    CHARACTER*(*),  INTENT(IN) :: objectname
 
-   WRITE(unit,*)'/*--------------------------------*- C++ -*----------------------------------*\'
-   WRITE(unit,*)'| =========                 |                                                 |'
-   WRITE(unit,*)'| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |'
-   WRITE(unit,*)'|  \\    /   O peration     | Version:  1.6                                   |'
-   WRITE(unit,*)'|   \\  /    A nd           | Web:      http://www.OpenFOAM.org               |'
-   WRITE(unit,*)'|    \\/     M anipulation  |                                                 |'
-   WRITE(unit,*)'\*---------------------------------------------------------------------------*/'
-   WRITE(unit,*)'FoamFile'
-   WRITE(unit,*)'{'
-   WRITE(unit,*)'    version     2.0;'
-   WRITE(unit,*)'    format      ascii;'
-   IF ( bc ) THEN
-     WRITE(unit,*)'    class       scalarAverageField;'
-     WRITE(unit,*)'    object      values;'
-   ELSE
+   if ( .NOT. bc ) THEN
+     WRITE(unit,*)'/*---------------------------------------------------------------------------*\'
+     WRITE(unit,*)'=========                 |                                                    '
+     WRITE(unit,*)'\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox              '
+     WRITE(unit,*)' \\    /   O peration     | Website:  https://openfoam.org                     '
+     WRITE(unit,*)'  \\  /    A nd           | Version:  6                                        '
+     WRITE(unit,*)'   \\/     M anipulation  |                                                    '
+     WRITE(unit,*)'\*---------------------------------------------------------------------------*/'
+     WRITE(unit,*)' '
+     WRITE(unit,*)'FoamFile'
+     WRITE(unit,*)'{'
+     WRITE(unit,*)'    version     2.0;'
+     WRITE(unit,*)'    format      ascii;'
      WRITE(unit,*)'    class       volScalarField;'
      WRITE(unit,'("    location    """,i4.4,""";")')location
      WRITE(unit,*)'    object      ',TRIM(objectname),' ;'
-   ENDIF
-   WRITE(unit,*)'}'
-   WRITE(unit,*)'// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //'
-   WRITE(unit,*)' '
-   IF ( bc ) THEN
-     WRITE(unit,*)'// Average'
-     IF      ( TRIM(objectname).EQ.'U' ) THEN
-       WRITE(unit,*)'(0 0 0)'
-     ELSE
-       WRITE(unit,*)'0'
-     ENDIF
+     WRITE(unit,*)'}'
+     WRITE(unit,*)'// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //'
      WRITE(unit,*)' '
-     WRITE(unit,*)' '
-   ELSE
      IF      ( TRIM(objectname).EQ.'p_rgh' ) THEN
        WRITE(unit,*)'dimensions      [0 2 -2 0 0 0 0];'  ! And this means m^2/s^2 !
      ELSE IF ( TRIM(objectname).EQ.'T' ) THEN
@@ -628,34 +619,26 @@ SUBROUTINE write_header_vector( unit, n, bc, location, objectname )
    INTEGER,  INTENT(IN) :: location
    CHARACTER*(*),  INTENT(IN) :: objectname
 
-   WRITE(unit,*)'/*--------------------------------*- C++ -*----------------------------------*\'
-   WRITE(unit,*)'| =========                 |                                                 |'
-   WRITE(unit,*)'| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |'
-   WRITE(unit,*)'|  \\    /   O peration     | Version:  1.6                                   |'
-   WRITE(unit,*)'|   \\  /    A nd           | Web:      http://www.OpenFOAM.org               |'
-   WRITE(unit,*)'|    \\/     M anipulation  |                                                 |'
-   WRITE(unit,*)'\*---------------------------------------------------------------------------*/'
-   WRITE(unit,*)'FoamFile'
-   WRITE(unit,*)'{'
-   WRITE(unit,*)'    version     2.0;'
-   WRITE(unit,*)'    format      ascii;'
-   IF ( bc ) THEN
-     WRITE(unit,*)'    class       vectorAverageField;'
-     WRITE(unit,*)'    object      values;'
-   ELSE
+   IF ( .NOT. bc ) THEN
+     WRITE(unit,*)'/*---------------------------------------------------------------------------*\'
+     WRITE(unit,*)'=========                 |                                                    '
+     WRITE(unit,*)'\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox              '
+     WRITE(unit,*)' \\    /   O peration     | Website:  https://openfoam.org                     '
+     WRITE(unit,*)'  \\  /    A nd           | Version:  6                                        '
+     WRITE(unit,*)'   \\/     M anipulation  |                                                    '
+     WRITE(unit,*)'\*---------------------------------------------------------------------------*/'
+     WRITE(unit,*)' '
+     WRITE(unit,*)'FoamFile'
+     WRITE(unit,*)'{'
+     WRITE(unit,*)'    version     2.0;'
+     WRITE(unit,*)'    format      ascii;'
      WRITE(unit,*)'    class       volVectorField;'
      WRITE(unit,'("    location    """,i4.4,""";")')location
      WRITE(unit,*)'    object      ',TRIM(objectname),';'
-   ENDIF
-   WRITE(unit,*)'}'
-   WRITE(unit,*)'// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //'
-   WRITE(unit,*)' '
-   IF ( bc ) THEN
-     WRITE(unit,*)'// Average'
-     WRITE(unit,*)'(0 0 0)'
+     WRITE(unit,*)'}'
      WRITE(unit,*)' '
+     WRITE(unit,*)'// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //'
      WRITE(unit,*)' '
-   ELSE
      IF      ( TRIM(objectname).EQ.'U' ) THEN
        WRITE(unit,*)'dimensions      [0 1 -1 0 0 0 0];'     ! this means m/s
      ELSE IF ( TRIM(objectname).EQ.'qwall' ) THEN
@@ -788,39 +771,27 @@ SUBROUTINE write_trailer_pd( unit, interior )
      WRITE(unit,*)'{'
      WRITE(unit,*)'    lower'
      WRITE(unit,*)'    {'
-     WRITE(unit,*)'        type            buoyantPressureMod;'
-     WRITE(unit,*)'        rho             rhok;'
-     WRITE(unit,*)'        value           uniform 0;'
+     WRITE(unit,*)'        type            fixedFluxPressure;'
      WRITE(unit,*)'    }'
      WRITE(unit,*)'    upper'
      WRITE(unit,*)'    {'
-     WRITE(unit,*)'        type            buoyantPressureMod;'
-     WRITE(unit,*)'        rho             rhok;'
-     WRITE(unit,*)'        value           uniform 0;'
+     WRITE(unit,*)'        type            fixedFluxPressure;'
      WRITE(unit,*)'    }'
      WRITE(unit,*)'    east'
      WRITE(unit,*)'    {'
-     WRITE(unit,*)'        type            buoyantPressureMod;'
-     WRITE(unit,*)'        rho             rhok;'
-     WRITE(unit,*)'        value           uniform 0;'
+     WRITE(unit,*)'        type            fixedFluxPressure;'
      WRITE(unit,*)'    }'
      WRITE(unit,*)'    west'
      WRITE(unit,*)'    {'
-     WRITE(unit,*)'        type            buoyantPressureMod;'
-     WRITE(unit,*)'        rho             rhok;'
-     WRITE(unit,*)'        value           uniform 0;'
+     WRITE(unit,*)'        type            fixedFluxPressure;'
      WRITE(unit,*)'    }'
      WRITE(unit,*)'    south'
      WRITE(unit,*)'    {'
-     WRITE(unit,*)'        type            buoyantPressureMod;'
-     WRITE(unit,*)'        rho             rhok;'
-     WRITE(unit,*)'        value           uniform 0;'
+     WRITE(unit,*)'        type            fixedFluxPressure;'
      WRITE(unit,*)'    }'
      WRITE(unit,*)'    north'
      WRITE(unit,*)'    {'
-     WRITE(unit,*)'        type            buoyantPressureMod;'
-     WRITE(unit,*)'        rho             rhok;'
-     WRITE(unit,*)'        value           uniform 0;'
+     WRITE(unit,*)'        type            fixedFluxPressure;'
      WRITE(unit,*)'    }'
      WRITE(unit,*)'}'
      WRITE(unit,*)
