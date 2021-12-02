@@ -13,6 +13,7 @@
       + fvc::div(Rwall)
       - momentumSourceTerm.force()
       - Coriolis.force()
+      - spongeLayers.force()
       - (1.0 - scalar(bodyForceStabilization)) * turbines.force()
      ==
         fvOptions(U)
