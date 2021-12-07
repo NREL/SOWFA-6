@@ -11,8 +11,29 @@ IOdictionary ABLProperties
     )
 );
 
+
 //- Automatically update fixesValue for timeVaryingMappedInletOutlet BC?
 bool updateFixesValue(ABLProperties.lookupOrDefault<bool>("updateFixesValue",false));
+
+
+  // This switch dictates whether or not the pressure reference cell is set explicitly
+  // in the p_rgh solve.  If true, pressure is constrained at the pressure reference
+  // cell by manipulating the matrix row for that cell to remove the null space.  This
+  // assures that the pressure level is constrained, but it also means the continuity
+  // equation is no longer solved at that cell, so the divergence error can be significant
+  // enough there to cause localized oscillations.  Iterative solvers can still converge
+  // even with a null space, but more iterations may be needed, so this switch can be
+  // set to false.
+  bool activatePressureRefCell(pimple.dict().lookupOrDefault<bool>("activatePressureRefCell", true));
+  if (activatePressureRefCell)
+  {
+       Info << "Pressure reference cell matrix row modification enabled" << endl;
+  }
+  else
+  {
+       Info << "Pressure reference cell matrix row modification NOT enabled" << endl;
+  }
+
 
 
 // Create and read the potential temperature field [K].
@@ -100,6 +121,11 @@ drivingForce<vector> momentumSourceTerm(ABLProperties, "momentum",U);
 drivingForce<scalar> temperatureSourceTerm(ABLProperties, "temperature",T);
 
 
+// Create list of sponge layer object
+  Info << "Creating sponge layer(s)" << endl;
+  spongeLayer spongeLayers("spongeList",U);
+
+
 // Create and read the kinematic turbulent thermal conductivity [m2/s].
 Info << "Creating and reading turbulent thermal conductivity field, kappat" << endl;
 volScalarField kappat
@@ -182,12 +208,19 @@ setRefCell
 // the pressure reference cell.
 Info << "Creating the Boussinesq buoyancy model" << endl;
 vector hRef_ = vector::zero;
+label pRefCellGlobal = 0;
+label pRefCellProc = 0;
 if (pRefCell != -1)
 {
     hRef_ = mesh.C()[pRefCell];
+    pRefCellGlobal = pRefCell;
+    pRefCellProc = Pstream::myProcNo();
 }
 reduce(hRef_,sumOp<vector>());
+reduce(pRefCellGlobal,sumOp<label>());
+reduce(pRefCellProc,sumOp<label>());
 dimensionedVector hRef("hRef",dimLength,hRef_);
+Info << "Pressure reference location is " << hRef.value() << " m at cell " << pRefCellGlobal << " on processor " << pRefCellProc << endl;
     
 buoyancyModel Boussinesq(T, TRef, hRef);
 

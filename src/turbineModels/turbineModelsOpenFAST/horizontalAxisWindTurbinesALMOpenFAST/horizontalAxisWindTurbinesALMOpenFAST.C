@@ -2200,10 +2200,10 @@ void horizontalAxisWindTurbinesALMOpenFAST::computeTipRootLossCorrectedVelocity(
             {
                 scalar g = 1.0;
 
-                scalar ftip  = (tipRadius - bladeSamplePointRadius[i][j][k])/(bladeSamplePointRadius[i][j][k] * sin(mag(windAng)*degRad));
+                scalar ftip  = (tipRadius - bladeSamplePointRadius[i][j][k])/(bladeSamplePointRadius[i][j][k] * sin(max(0.1,mag(windAng))*degRad));
                 scalar Ftip  = (2.0/(Foam::constant::mathematical::pi)) * acos(min(1.0, exp(-g * (numBl[i] / 2.0) * ftip)));
 
-                scalar froot = (bladeSamplePointRadius[i][j][k] - rootRadius)/(bladeSamplePointRadius[i][j][k] * sin(mag(windAng)*degRad));
+                scalar froot = (bladeSamplePointRadius[i][j][k] - rootRadius)/(bladeSamplePointRadius[i][j][k] * sin(max(0.1,mag(windAng))*degRad));
                 scalar Froot = (2.0/(Foam::constant::mathematical::pi)) * acos(min(1.0, exp(-g * (numBl[i] / 2.0) * froot)));
 
                 F = Ftip * Froot;
@@ -2243,10 +2243,10 @@ void horizontalAxisWindTurbinesALMOpenFAST::computeTipRootLossCorrectedForce(int
             {
                 scalar g = 1.0;
 
-                scalar ftip  = (tipRadius - bladePointRadius[i][j][k])/(bladePointRadius[i][j][k] * sin(mag(windAng)*degRad));
+                scalar ftip  = (tipRadius - bladePointRadius[i][j][k])/(bladePointRadius[i][j][k] * sin(max(0.1,mag(windAng))*degRad));
                 scalar Ftip  = (2.0/(Foam::constant::mathematical::pi)) * acos(min(1.0, exp(-g * (numBl[i] / 2.0) * ftip)));
 
-                scalar froot = (bladePointRadius[i][j][k] - rootRadius)/(bladePointRadius[i][j][k] * sin(mag(windAng)*degRad));
+                scalar froot = (bladePointRadius[i][j][k] - rootRadius)/(bladePointRadius[i][j][k] * sin(max(0.1,mag(windAng))*degRad));
                 scalar Froot = (2.0/(Foam::constant::mathematical::pi)) * acos(min(1.0, exp(-g * (numBl[i] / 2.0) * froot)));
 
                 F = Ftip * Froot;

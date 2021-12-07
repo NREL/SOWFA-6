@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
         );
         Info<< "Writing mesh cell centers to " << outputFile << endl;
         OFstream os(outputFile);
-        os.format("binary");
+        os.format("ascii");
         os << mesh.cellCentres();
 
         fileName outputCSVFile

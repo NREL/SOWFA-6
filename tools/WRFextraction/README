@@ -2,6 +2,7 @@
 README, created 2009 12 29, J. Michalakes
        modified 2014 09 17, M. Churchfield
        modified 2017 11 07, E. Quon
+       modified 2021 09 02, R. Thedin
 
 Gunzip and untar the file, which creates a directory WRFTOOF ("WRF to OpenFOAM").
 Cd into WRFTOOF and type make.  Then cd into run and refer to that README
@@ -66,6 +67,8 @@ The value of the offset is added to the difference between the start time
 
 will cause the resulting time directory name to be 2000.00 .  
 
+To generate internal fields, add the option -ic to the wrfout call. It uses
+the file interior.dat to obtain the list of lat/lon of all internal points
 
 For solution subsets that do not contain latitude/longitude information, this
 can be extracted from the original WRF solution file as follows:
