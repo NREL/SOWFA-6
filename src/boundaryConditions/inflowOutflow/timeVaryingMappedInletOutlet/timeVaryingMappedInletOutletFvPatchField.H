@@ -192,6 +192,8 @@ protected:
         Type endAverage_;
 
         //- Time varying offset values to interpolated data
+        // Note: Valid Function1 types are:
+        // ( constant csvFile one polynomial scale sine square table tableFile uniform zero )
         autoPtr<Function1<Type>> offset_;
 
         //- Helper function to find the field files

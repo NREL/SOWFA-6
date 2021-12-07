@@ -81,7 +81,7 @@ void Foam::spongeLayer::readSingleSpongeSubdict_(int s)
         }
         else if (patch_ == "south")
         {
-            startLocation_ = bb.min()[0];
+            startLocation_ = bb.min()[1];
             coordIndex_ = 1;
             direction_ = "stepDown";
         }
