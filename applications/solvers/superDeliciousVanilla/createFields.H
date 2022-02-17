@@ -114,15 +114,23 @@ Info << "Creating Coriolis force" << endl;
 CoriolisForce Coriolis(U);
 
 
-// Create external source term objects [m/s^2 and K/s].
-Info << "Creating and reading volumetric source terms for momentum and temperature" << endl;
-drivingForce<vector> momentumSourceTerm(ABLProperties, "momentum",U);
-drivingForce<scalar> temperatureSourceTerm(ABLProperties, "temperature",T);
+// Create external source term objects [<field units>/s].
+Info << "Creating geostrophic/mesoscale source term(s)" << endl;
+drivingForce<vector> momentumGeoMesoTerm(ABLProperties, "momentum",U);
+drivingForce<scalar> temperatureGeoMesoTerm(ABLProperties, "temperature",T);
 
 
-// Create list of sponge layer object
-Info << "Creating sponge layer(s)" << endl;
-spongeLayer spongeLayers("spongeList",U);
+// Create list of Rayleigh/viscouls damping layer object [<field units>/s].
+Info << "Creating Rayleigh damping layer(s)" << endl;
+spongeLayer momentumSpongeLayers("spongeList",U);
+
+
+// Create perturbation zone object [<field units>/s].
+Info << "Creating perturbation zone(s)" << endl;
+perturbationZone<vector> momentumPerturbationZones(ABLProperties,U);
+perturbationZone<scalar> temperaturePerturbationZones(ABLProperties,T);
+momentumPerturbationZones.perturb(U);
+temperaturePerturbationZones.perturb(T);
 
 
 // Create and read the kinematic turbulent thermal conductivity [m2/s].

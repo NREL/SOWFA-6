@@ -93,6 +93,8 @@ Type interpolate2D
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+// This is required because this contains template functions.  The compiler
+// needs not only to know what functions there are, but also their definitions.
 #ifdef NoRepository
 #   include "interpolate2D.C"
 #endif

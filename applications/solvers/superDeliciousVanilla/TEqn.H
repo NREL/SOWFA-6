@@ -10,7 +10,8 @@
       + fvm::div(phi, T)
       - fvm::laplacian(kappaEff, T)
       - fvc::div(qwall)
-      - temperatureSourceTerm.force()
+      - temperatureGeoMesoTerm.force()
+      - temperaturePerturbationZones.source()
      ==
         fvOptions(T)
     );
@@ -22,6 +23,11 @@
     TEqn.solve();
 
     fvOptions.correct(T);
+
+    if (pimple.finalPimpleIter() && pimple.finalPISOIter())
+    {
+        temperaturePerturbationZones.perturb(T);
+    }
 
     Boussinesq.updateDensityField();
 }

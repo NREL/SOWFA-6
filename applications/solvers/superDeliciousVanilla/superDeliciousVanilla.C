@@ -44,7 +44,7 @@ Description
 #include "wallDist.H"
 #include "fixedFluxPressureFvPatchScalarField.H"
 #include "timeVaryingMappedInletOutletFvPatchField.H"
-#include "interpolateXY.H"
+//#include "interpolateXY.H"
 #include "fvOptions.H"
 #include "pimpleControl.H"
 #include "ABL.H"
@@ -80,6 +80,7 @@ int main(int argc, char *argv[])
     #include "turbulenceCorrect.H"
     T.correctBoundaryConditions();
 
+
     // Time stepping loop.
     while (runTime.run())
     {
@@ -93,15 +94,28 @@ int main(int argc, char *argv[])
         Info << "Time = " << runTime.timeName() << tab;
         Info << "Time Step = " << runTime.timeIndex() << endl;
 
+        // Update the once-per-time-step source terms.
+        // - perturbation zone forcing.
+        momentumPerturbationZones.update();
+        temperaturePerturbationZones.update();
+
         // Outer-iteration loop.
         while (pimple.loop())
         {
-            // Update the source terms.
-            momentumSourceTerm.update(pimple.finalPimpleIter());
-            temperatureSourceTerm.update(pimple.finalPimpleIter());
+            // Update the once-per-outer-iteration source terms.
+            // - geostrophic/mesoscale forcing.
+            momentumGeoMesoTerm.update(pimple.finalPimpleIter());
+            temperatureGeoMesoTerm.update(pimple.finalPimpleIter());
 
-            // Update damping layers forcing
-            spongeLayers.update();
+            // - Rayleigh/viscious damping forcing.
+            momentumSpongeLayers.update();
+
+            // - Coriolis forcing.
+            Coriolis.update();
+
+            // - buoyancy forcing.
+            Boussinesq.updateBuoyancyTerm();
+
 
             // Predictor step.
             Info << "   Predictor" << endl;
@@ -119,7 +133,6 @@ int main(int argc, char *argv[])
                 #include "pEqn.H"
                 #include "turbulenceCorrect.H"
                 #include "TEqn.H"
-
                 corrIter++;
             }
 
@@ -136,7 +149,7 @@ int main(int argc, char *argv[])
         // Report timing.
         Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
              << "  ClockTime = " << runTime.elapsedClockTime() << " s"
-             << nl << endl;
+             << nl << nl << nl << nl << endl;
     }
 
     Info << "Ending the simulation" << endl;

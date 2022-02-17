@@ -1,5 +1,5 @@
 // Calculate divergence of velocity flux and display
-if (pimple.finalPimpleIter())
+//if (pimple.finalPimpleIter() || limitOuterLoop)
 {
 
     // Compute divergence cell by cell and report statistics.
@@ -46,5 +46,5 @@ if (pimple.finalPimpleIter())
         }
     }
 
-    Info << "       total - flux: " << globalSumPhiBoundary << tab << "/ area: " << globalSumAreaBoundary << endl;
+    Info << "       total - flux: " << globalSumPhiBoundary << tab << "/ area: " << globalSumAreaBoundary << nl << endl;
 }

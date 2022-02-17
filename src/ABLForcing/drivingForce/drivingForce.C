@@ -24,6 +24,9 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "drivingForce.H"
+#include "interpolate2D.H"
+#include "interpolateXY.H"
+#include "windRoseToCartesian.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
