@@ -122,8 +122,8 @@ drivingForce<scalar> temperatureSourceTerm(ABLProperties, "temperature",T);
 
 
 // Create list of sponge layer object
-  Info << "Creating sponge layer(s)" << endl;
-  spongeLayer spongeLayers("spongeList",U);
+Info << "Creating sponge layer(s)" << endl;
+spongeLayer spongeLayers("spongeList",U);
 
 
 // Create and read the kinematic turbulent thermal conductivity [m2/s].
