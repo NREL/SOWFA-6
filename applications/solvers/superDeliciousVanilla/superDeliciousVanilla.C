@@ -44,7 +44,6 @@ Description
 #include "wallDist.H"
 #include "fixedFluxPressureFvPatchScalarField.H"
 #include "timeVaryingMappedInletOutletFvPatchField.H"
-#include "interpolateXY.H"
 #include "fvOptions.H"
 #include "pimpleControl.H"
 #include "ABL.H"
@@ -88,10 +87,24 @@ int main(int argc, char *argv[])
         #include "setDeltaT.H"
         #include "updateDivSchemeBlendingField.H"
 
+        word timeNameOld = runTime.timeName();
+
         runTime++;
 
-        Info << "Time = " << runTime.timeName() << tab;
-        Info << "Time Step = " << runTime.timeIndex() << endl;
+        Info << "Time Step = " << runTime.timeIndex() << ", ";
+        Info << "Time = " << timeNameOld << " to " << runTime.timeName() << " s";
+        Info << nl << endl;
+
+        // Test to see if simulation begins without t^(n-1) (*_0) fields.
+        // Without those fields, the backward d/dt scheme reverts to Euler
+        // implicit in outer iteration 0, but uses full backward in
+        // iterations >0, and the U,T^(n-1) data is incorrect.  Outer
+        // iterations >0 are only required to achieve 2nd-order accuracy
+        // in time, but since that is not possible in the first time step
+        // without t^(n-1) data, we really only need 1 outer iteration,
+        // anyway.
+        bool limitOuterLoop = ((U.nOldTimes() == 0) || (T.nOldTimes() == 0)) ? true : false;
+
 
         // Outer-iteration loop.
         while (pimple.loop())
@@ -123,9 +136,20 @@ int main(int argc, char *argv[])
                 corrIter++;
             }
 
-            // Compute the continuity errors.
-            #include "computeDivergence.H"
+            // If starting without the t^(n-1) data, advance through the remaining
+            // outer iterations without doing anything by calling pimple.loop().
+            if (limitOuterLoop)
+            {
+                while (pimple.loop());
+                Info << endl;
+                break;
+            }
+
+            Info << endl;
         }
+
+        // Compute the continuity errors.
+        #include "computeDivergence.H"
 
         // Update timeVaryingMappedInletOutlet parameters
         #include "updateFixesValue.H"
