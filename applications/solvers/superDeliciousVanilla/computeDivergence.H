@@ -1,5 +1,4 @@
 // Calculate divergence of velocity flux and display
-if (pimple.finalPimpleIter())
 {
 
     // Compute divergence cell by cell and report statistics.
