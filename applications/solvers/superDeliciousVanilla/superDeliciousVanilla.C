@@ -44,7 +44,6 @@ Description
 #include "wallDist.H"
 #include "fixedFluxPressureFvPatchScalarField.H"
 #include "timeVaryingMappedInletOutletFvPatchField.H"
-//#include "interpolateXY.H"
 #include "fvOptions.H"
 #include "pimpleControl.H"
 #include "ABL.H"
