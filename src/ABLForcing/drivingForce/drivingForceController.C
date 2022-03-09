@@ -24,6 +24,7 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "drivingForce.H"
+#include "scalarMatrices.H"
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 

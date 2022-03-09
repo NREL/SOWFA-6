@@ -266,6 +266,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::initialize()
         }
     }
 
+
     // Get the positions out after solution0 and step are called.
     getPositions();
 
@@ -2563,7 +2564,6 @@ List<scalar> horizontalAxisWindTurbinesALMOpenFAST::updateBladeBodyForce(int tur
                             scalar spreading = 1.0;
                             if (bladeForceProjectionType[i] == "lineToDiskGaussian3D")
                             {
-                               
                                 spreading = computeBladeProjectionFunction(disVectorCyl,r0,i,j,k);
                             }
                             else

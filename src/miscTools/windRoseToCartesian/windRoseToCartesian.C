@@ -21,62 +21,85 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-InNamespace
-    Foam
-
-Description
-    Interpolates function values from a surface to a given point on the 
-    surface using bilinear interpolation.
-
-SourceFiles
-    windRoseToCartesian.C
-
 \*---------------------------------------------------------------------------*/
 
-#ifndef windRoseToCartesian_H
-#define windRoseToCartesian_H
-
-//#include "scalar.H"
-#include "primitiveFieldsFwd.H"
+#include "windRoseToCartesian.H"
+#include "mathematicalConstants.H"
+#include "primitiveFields.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-namespace Foam
-{
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-List<List<vector> > windRoseToCartesian
+Foam::List<Foam::List<Foam::vector> > Foam::windRoseToCartesian
 (
     const List<List<scalar> >& speed,
     const List<List<scalar> >& direction
-);
+)
+{
+    // Get size of interpolation point lists.
+    label ni = speed.size();
+    label nj = speed[0].size();
 
-List<vector> windRoseToCartesian
+    // Interpolate element by element.
+    List<List<vector> > u(ni,List<vector>(nj));
+    forAll(speed, i)
+    {
+        forAll(speed[i], j)
+        {
+            u[i][j] = windRoseToCartesian(speed[i][j],direction[i][j]);
+        }
+    }
+    return u;
+}
+
+
+Foam::List<Foam::vector> Foam::windRoseToCartesian
 (
     const List<scalar>& speed,
     const List<scalar>& direction
-);
+)
+{
+    // Get size of interpolation point lists.
+    label ni = speed.size();
 
-vector windRoseToCartesian
+    // Interpolate element by element.
+    List<vector> u(ni);
+    forAll(u, i)
+    {
+        u[i] = windRoseToCartesian(speed[i],direction[i]);
+    }
+    return u;
+}
+
+
+Foam::vector Foam::windRoseToCartesian
 (
     const scalar speed,
     const scalar direction
-);
+)
+{
+    scalar dir = 1.0*direction;
 
+    if (dir > 180.0)
+    {
+       dir -= 180.0;
+    }
+    else
+    {
+       dir += 180.0;
+    }
+    dir = 90.0 - dir;
+    if (dir < 0.0)
+    {
+       dir += 360.0;
+    }
+    dir *= ((constant::mathematical::pi)/180.0);
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+    vector u;
+    u.x() = speed * Foam::cos(dir);
+    u.y() = speed * Foam::sin(dir);
+    u.z() = 0.0;
 
-} // End namespace Foam
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-#ifdef NoRepository
-#   include "windRoseToCartesian.C"
-#endif
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-#endif
+    return u;
+}
 
 // ************************************************************************* //

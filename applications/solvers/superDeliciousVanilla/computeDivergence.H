@@ -45,5 +45,5 @@
         }
     }
 
-    Info << "       total - flux: " << globalSumPhiBoundary << tab << "/ area: " << globalSumAreaBoundary << endl;
+    Info << "       total - flux: " << globalSumPhiBoundary << tab << "/ area: " << globalSumAreaBoundary << nl << endl;
 }

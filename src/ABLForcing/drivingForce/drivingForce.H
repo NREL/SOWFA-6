@@ -106,10 +106,6 @@ SourceFiles
 #include "fvCFD.H"
 #include "IOdictionary.H"
 #include "meshPlanes.H"
-#include "interpolate2D.H"
-#include "interpolateXY.H"
-#include "windRoseToCartesian.H"
-#include "scalarMatrices.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

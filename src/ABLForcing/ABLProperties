@@ -163,6 +163,45 @@ spongeList
 }
 
 
+// Input block for adding perturbations to field.  This example it to add perturbations to the potential temperature field
+// along the south and west boundaries.  It is set up for a flow that is 10 m/s from south-west.  The update period is based
+// on how long it takes that flow to traverse the 240 m thick perturbation zone.
+flowPerturbationZones.T
+{
+    west
+    {
+        locationType           "lateralBoundary";
+        associatedBoundary     "west";
+        thickness               240.0;
+        height                  760.0;
+        useWallDistance         false;
+        resolution             (80.0 80.0 20.0);
+      //dimensions             (64 64 38);
+        fluctuationScale        2.0;
+        updateMode             "fixedFrequency";
+        updatePeriod            33.94;
+      //applicationMode        "sourceTerm";
+        applicationMode        "direct";
+    }
+    south
+    {
+        locationType           "lateralBoundary";
+        associatedBoundary     "south";
+        thickness               240.0;
+        height                  760.0;
+        useWallDistance         false;
+        resolution             (80.0 80.0 20.0);
+      //dimensions             (64 64 38);
+        fluctuationScale        2.0;
+        updateMode             "fixedFrequency";
+        updatePeriod            33.94;
+      //applicationMode        "sourceTerm";
+        applicationMode        "direct";
+    }
+}
+
+
+
 // Write out postProcessing/sourceHistory
 writeSource             $writeSource;
 writeSourceInterval     $writeSourceInterval;

@@ -1,19 +1,15 @@
     // Solve the momentum equation
     
-    // Update Coriolis forcing
-    Coriolis.update();
-
-    // Update buoyancy term
-    Boussinesq.updateBuoyancyTerm();
-
+    // Set up the solution matrix
     fvVectorMatrix UEqn
     (
         fvm::ddt(U) + fvm::div(phi, U)
       + turbulence->divDevReff(U)
       + fvc::div(Rwall)
-      - momentumSourceTerm.force()
       - Coriolis.force()
-      - spongeLayers.force()
+      - momentumGeoMesoTerm.force()
+      - momentumSpongeLayers.force()
+      - momentumPerturbationZones.source()
      ==
         fvOptions(U)
     );
@@ -38,4 +34,9 @@
         );
 
         fvOptions.correct(U);
+    }
+
+    if (pimple.finalPimpleIter() && pimple.finalPISOIter())
+    {
+        momentumPerturbationZones.perturb(U);
     }

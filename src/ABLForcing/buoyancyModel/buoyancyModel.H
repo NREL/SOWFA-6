@@ -56,7 +56,7 @@ class buoyancyModel
 
         //- Constants
             //- Runtime pointer
-            const Time& runTime_;;
+            const Time& runTime_;
     
             //- Mesh pointer
             const fvMesh& mesh_;

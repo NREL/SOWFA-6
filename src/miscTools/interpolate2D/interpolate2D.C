@@ -28,13 +28,8 @@ License
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-namespace Foam
-{
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 template<class Type>
-List<List<Type> > interpolate2D
+Foam::List<Foam::List<Type> > Foam::interpolate2D
 (
     const List<scalar>& xi,
     const List<scalar>& yi,
@@ -61,7 +56,7 @@ List<List<Type> > interpolate2D
 
 
 template<class Type>
-List<Type> interpolate2D
+Foam::List<Type> Foam::interpolate2D
 (
     const scalar& xi,
     const List<scalar>& yi,
@@ -84,7 +79,7 @@ List<Type> interpolate2D
 
 
 template<class Type>
-List<Type> interpolate2D
+Foam::List<Type> Foam::interpolate2D
 (
     const List<scalar>& xi,
     const scalar& yi,
@@ -107,7 +102,7 @@ List<Type> interpolate2D
 
 
 template<class Type>
-Type interpolate2D
+Type Foam::interpolate2D
 (
     const scalar xi,
     const scalar yi,
@@ -247,10 +242,5 @@ Type interpolate2D
 
     return fi;
 }
-
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

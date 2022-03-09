@@ -1,0 +1,4 @@
+windRoseToCartesian/windRoseToCartesian.C
+geometricTransformations/geometricTransformations.C
+
+LIB = $(SOWFA_LIBBIN)/libSOWFAmiscTools

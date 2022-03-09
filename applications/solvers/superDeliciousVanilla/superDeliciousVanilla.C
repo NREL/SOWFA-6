@@ -79,6 +79,7 @@ int main(int argc, char *argv[])
     #include "turbulenceCorrect.H"
     T.correctBoundaryConditions();
 
+
     // Time stepping loop.
     while (runTime.run())
     {
@@ -94,27 +95,40 @@ int main(int argc, char *argv[])
         Info << "Time Step = " << runTime.timeIndex() << ", ";
         Info << "Time = " << timeNameOld << " to " << runTime.timeName() << " s";
         Info << nl << endl;
-
-        // Test to see if simulation begins without t^(n-1) (*_0) fields.
-        // Without those fields, the backward d/dt scheme reverts to Euler
-        // implicit in outer iteration 0, but uses full backward in
+      
+        // Test to see if simulation begins without t^(n-1) (*_0) fields.  
+        // Without those fields, the backward d/dt scheme reverts to Euler 
+        // implicit in outer iteration 0, but uses full backward in 
         // iterations >0, and the U,T^(n-1) data is incorrect.  Outer
         // iterations >0 are only required to achieve 2nd-order accuracy
-        // in time, but since that is not possible in the first time step
-        // without t^(n-1) data, we really only need 1 outer iteration,
+        // in time, but since that is not possible in the first time step 
+        // without t^(n-1) data, we really only need 1 outer iteration, 
         // anyway.
         bool limitOuterLoop = ((U.nOldTimes() == 0) || (T.nOldTimes() == 0)) ? true : false;
+
+        // Update the once-per-time-step source terms.
+        // - perturbation zone forcing.
+        momentumPerturbationZones.update();
+        temperaturePerturbationZones.update();
 
 
         // Outer-iteration loop.
         while (pimple.loop())
         {
-            // Update the source terms.
-            momentumSourceTerm.update(pimple.finalPimpleIter());
-            temperatureSourceTerm.update(pimple.finalPimpleIter());
+            // Update the once-per-outer-iteration source terms.
+            // - geostrophic/mesoscale forcing.
+            momentumGeoMesoTerm.update(pimple.finalPimpleIter());
+            temperatureGeoMesoTerm.update(pimple.finalPimpleIter());
 
-            // Update damping layers forcing
-            spongeLayers.update();
+            // - Rayleigh/viscious damping forcing.
+            momentumSpongeLayers.update();
+
+            // - Coriolis forcing.
+            Coriolis.update();
+
+            // - buoyancy forcing.
+            Boussinesq.updateBuoyancyTerm();
+
 
             // Predictor step.
             Info << "   Predictor" << endl;
@@ -132,7 +146,6 @@ int main(int argc, char *argv[])
                 #include "pEqn.H"
                 #include "turbulenceCorrect.H"
                 #include "TEqn.H"
-
                 corrIter++;
             }
 
@@ -160,7 +173,7 @@ int main(int argc, char *argv[])
         // Report timing.
         Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
              << "  ClockTime = " << runTime.elapsedClockTime() << " s"
-             << nl << endl;
+             << nl << nl << nl << nl << endl;
     }
 
     Info << "Ending the simulation" << endl;
