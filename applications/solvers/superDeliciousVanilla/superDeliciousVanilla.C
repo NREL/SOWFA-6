@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
         Info << "Time Step = " << runTime.timeIndex() << ", ";
         Info << "Time = " << timeNameOld << " to " << runTime.timeName() << " s";
         Info << nl << endl;
-
+      
         // Test to see if simulation begins without t^(n-1) (*_0) fields.  
         // Without those fields, the backward d/dt scheme reverts to Euler 
         // implicit in outer iteration 0, but uses full backward in 
@@ -106,11 +106,11 @@ int main(int argc, char *argv[])
         // anyway.
         bool limitOuterLoop = ((U.nOldTimes() == 0) || (T.nOldTimes() == 0)) ? true : false;
 
-
         // Update the once-per-time-step source terms.
         // - perturbation zone forcing.
         momentumPerturbationZones.update();
         temperaturePerturbationZones.update();
+
 
         // Outer-iteration loop.
         while (pimple.loop())
@@ -148,7 +148,6 @@ int main(int argc, char *argv[])
                 #include "TEqn.H"
                 corrIter++;
             }
-
 
             // If starting without the t^(n-1) data, advance through the remaining
             // outer iterations without doing anything by calling pimple.loop().
