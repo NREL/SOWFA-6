@@ -117,14 +117,17 @@ public:
         //- Update density field 
         void updateDensityField();
 
+        //- Update all buoyancy-related quantities
+        void update();
+
         //- Return bakcground pressure
         volScalarField& backgroundPressure()
         {
             return pBackground_;
         }
 
-        //- Return buoyancy term
-        surfaceScalarField& buoyancyTerm()
+        //- Return buoyancy source term
+        surfaceScalarField& source()
         {
             return buoyancyTerm_;
         }

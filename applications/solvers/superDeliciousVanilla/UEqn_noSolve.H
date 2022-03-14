@@ -19,12 +19,13 @@
     fvOptions.constrain(UEqn);
 
     {
-        volScalarField aa = UEqn.A();
-        volVectorField hh = UEqn.H();
-        Info << "UEqn.A():" << endl << aa[0] << endl;
-        Info << "UEqn.H():" << endl << hh[0] << endl;
+    volScalarField aa = UEqn.A();
+    volVectorField hh = UEqn.H();
+    Info << "UEqn.A():" << endl << aa[0] << endl;
+    Info << "UEqn.H():" << endl << hh[0] << endl;
     }
 
+/*
     if (pimple.momentumPredictor())
     {
         solve
@@ -47,3 +48,4 @@
     {
         momentumPerturbationZones.perturb(U);
     }
+*/

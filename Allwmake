@@ -29,8 +29,14 @@ else
     fi	
 fi
 
-# Custom mesh Tools
+
+# Custom mesh tools
 wmake src/meshTools
+
+
+# Miscellaneous tools
+wmake src/miscTools
+
 
 # ABL forcing objects
 wmake src/ABLForcing

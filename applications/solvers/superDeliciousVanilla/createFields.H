@@ -88,25 +88,9 @@ Info << "Creating and calculating velocity flux field, phi" << endl;
 #include "createPhi.H"
 
 
-// Set up the laminar (molecular) transport model.
-Info << "Creating and reading laminar transport properties" << endl;
-singlePhaseTransportModel laminarTransport(U, phi);
-
-
-// Read in reference temperature [K] and laminar and turblent Prandtl numbers.
-// Note that turbulent Prandtl number may be overriden by a stability-
-// dependent value based on the choice of SGS turbulence model.
-dimensionedScalar TRef("TRef", dimTemperature, laminarTransport);
-dimensionedScalar Pr("Pr", dimless, laminarTransport);
-dimensionedScalar Prt("Prt", dimless, laminarTransport);
-
-
-// Create the turbulence model.
-Info << "Creating and reading turbulent transport properties" << endl;
-autoPtr<incompressible::turbulenceModel> turbulence
-(
-    incompressible::turbulenceModel::New(U, phi, laminarTransport)
-);
+// Update the boundary conditions on velocity and temperature.
+T.correctBoundaryConditions();
+U.correctBoundaryConditions();
 
 
 // Create Coriolis force object [m/s^2].
@@ -131,6 +115,32 @@ perturbationZone<vector> momentumPerturbationZones(ABLProperties,U);
 perturbationZone<scalar> temperaturePerturbationZones(ABLProperties,T);
 momentumPerturbationZones.perturb(U);
 temperaturePerturbationZones.perturb(T);
+
+
+// Set up the laminar (molecular) transport model.
+Info << "Creating and reading laminar transport properties" << endl;
+singlePhaseTransportModel laminarTransport(U, phi);
+laminarTransport.correct();
+
+
+// Read in reference temperature [K] and laminar and turblent Prandtl numbers.
+// Note that turbulent Prandtl number may be overriden by a stability-
+// dependent value based on the choice of SGS turbulence model.
+dimensionedScalar TRef("TRef", dimTemperature, laminarTransport);
+dimensionedScalar Pr("Pr", dimless, laminarTransport);
+dimensionedScalar Prt("Prt", dimless, laminarTransport);
+
+
+// Read the gravitational constant vector.
+#include "readGravitationalAcceleration.H"
+
+
+// Create the turbulence model.
+Info << "Creating and reading turbulent transport properties" << endl;
+autoPtr<incompressible::turbulenceModel> turbulence
+(
+    incompressible::turbulenceModel::New(U, phi, laminarTransport)
+);
 
 
 // Create and read the kinematic turbulent thermal conductivity [m2/s].
@@ -179,6 +189,9 @@ volVectorField qwall
     ),
     mesh
 );
+
+
+#include "turbulenceCorrect.H"
 
 
 // Create and read the density-normalied pressure field [m^2/s^2].

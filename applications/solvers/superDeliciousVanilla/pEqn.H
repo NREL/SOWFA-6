@@ -3,6 +3,13 @@
     // its projection from cell centers to cell faces.  Because it is a diagonal matrix,
     // The inverse is just the diagonal matrix of the reciprocals, hence the "r" in the
     // name "rAU".
+    {
+        volScalarField aa = UEqn.A();
+        volVectorField hh = UEqn.H();
+        Info << "UEqn.A():" << endl << aa[0] << endl;
+        Info << "UEqn.H():" << endl << hh[0] << endl;
+    }
+
     volScalarField rAU("rAU", 1.0/UEqn.A());
     surfaceScalarField rAUf("rAUf", fvc::interpolate(rAU));
 
@@ -12,7 +19,7 @@
 
     // This is the Boussinesq buoyancy term multipled by the inverse of the A operator.
     Boussinesq.updateBuoyancyTerm();
-    surfaceScalarField phig(rAUf * Boussinesq.buoyancyTerm() * mesh.magSf());
+    surfaceScalarField phig(rAUf * Boussinesq.source() * mesh.magSf());
 
     // Project HbyA to cell faces and apply a correction for time stepping scheme.
     surfaceScalarField phiHbyA

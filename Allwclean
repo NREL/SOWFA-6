@@ -29,8 +29,14 @@ else
     fi	
 fi
 
-# Custom mesh Tools
+
+# Custom mesh tools
 wclean src/meshTools
+
+
+# Miscellaneous tools
+wclean src/miscTools
+
 
 # ABL forcing objects
 wclean src/ABLForcing

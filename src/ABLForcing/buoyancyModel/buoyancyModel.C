@@ -74,6 +74,14 @@ void Foam::buoyancyModel::updateBackgroundPressure()
 void Foam::buoyancyModel::updateDensityField()
 {
     rhok_ = 1.0 - ( (T_ - TRef_)/TRef_ );
+    rhok_.correctBoundaryConditions();
+}
+
+void Foam::buoyancyModel::update()
+{
+    updateDensityField();
+    updateBuoyancyTerm();
+    updateBackgroundPressure();
 }
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //

@@ -29,5 +29,5 @@
         temperaturePerturbationZones.perturb(T);
     }
 
-    Boussinesq.updateDensityField();
+    Boussinesq.update();
 }
