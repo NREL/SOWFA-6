@@ -20,7 +20,7 @@ PROGRAM toof
    LOGICAL :: input_rotation_angle, check_inflow
    INTEGER :: it,ncid(MAXFILES),stat,iarg,narg,varid,strt(4),cnt(4),xtype,storeddim,dimids(4),natts,latlongid
    REAL, EXTERNAL :: finterp
-   INTEGER, EXTERNAL :: sec_of_day
+   INTEGER, EXTERNAL :: sec_of_day, sec_of_day_full
    LOGICAL, EXTERNAL :: valid_date
    INTEGER  sec, sec_start, sec_offset, nfiles
    REAL    , PARAMETER :: g = 9.81  ! acceleration due to gravity (m {s}^-2)
@@ -87,7 +87,7 @@ PROGRAM toof
            WRITE(0,*)'Invalid data string in third argument to command: ',TRIM(arg)
            STOP 99
          ENDIF
-         sec_start = sec_of_day(arg)
+         sec_start = sec_of_day_full(arg)
        ELSE IF ( TRIM(arg) .EQ. '-offset' ) THEN
          iarg = iarg + 1 
          CALL getarg(iarg,arg)
@@ -320,7 +320,7 @@ PROGRAM toof
          CYCLE
        ENDIF
 
-       sec = sec_of_day(TRIM(Times(it)))
+       sec = sec_of_day_full(TRIM(Times(it)))
        sec = sec - sec_start + sec_offset
        ! create the time directory if it doesn.t already exist
        IF ( ibdy .NE. INTERIOR ) THEN
@@ -457,6 +457,7 @@ PROGRAM toof
      ENDIF
    ENDDO
 
+   write(*,*) 'Writing files for time', sec
    write(*,*) 'End.' 
 
 END PROGRAM  toof
@@ -825,6 +826,24 @@ INTEGER FUNCTION sec_of_day ( s )
    READ(s(18:19),*)ss
    sec_of_day = hh*3600 + mm*60 + ss
 END FUNCTION sec_of_day
+
+! WARNING STILL SIMPLE -- assumes 30-day months and assumes 19 char WRF style date str
+! May not work with month rollover if month has 31 days, or leap-year rollover
+INTEGER FUNCTION sec_of_day_full ( s )
+   IMPLICIT NONE
+   CHARACTER*(*), INTENT(IN) :: s
+   INTEGER YYYY,M,D,hh,mm,ss
+!  0000000001111111111
+!  1234567890123456789
+!  2005-01-15_02_04_31
+   READ(s(1:4),*)YYYY
+   READ(s(6:7),*)M
+   READ(s(9:10),*)D
+   READ(s(12:13),*)hh
+   READ(s(15:16),*)mm
+   READ(s(18:19),*)ss
+   sec_of_day_full = (YYYY-2000)*365*24*3600 + M*30*24*3600 + D*24*3600 + hh*3600 + mm*60 + ss
+END FUNCTION sec_of_day_full
 
 LOGICAL FUNCTION valid_date ( s )
    IMPLICIT NONE
