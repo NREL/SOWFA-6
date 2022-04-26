@@ -5,7 +5,8 @@
 wmake src/TurbulenceModels/incompressible
 wmake src/TurbulenceModels/turbulenceModels
 
-
+# Misc tools
+wmake src/mistTools
 
 # Custom boundary conditions.
 wmake src/boundaryConditions
