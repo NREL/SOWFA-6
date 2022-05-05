@@ -9,11 +9,11 @@
         fvm::ddt(T)
       + fvm::div(phi, T)
       - fvm::laplacian(kappaEff, T)
-      - fvc::div(qwall)
-      - temperatureGeoMesoTerm.force()
-      - temperaturePerturbationZones.source()
      ==
-        fvOptions(T)
+        fvc::div(qwall)
+      + temperatureGeoMesoTerm.force()
+      + temperaturePerturbationZones.source()
+      + fvOptions(T)
     );
 
     TEqn.relax();

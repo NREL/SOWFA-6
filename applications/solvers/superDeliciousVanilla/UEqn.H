@@ -3,7 +3,8 @@
     // Set up the solution matrix
     fvVectorMatrix UEqn
     (
-        fvm::ddt(U) + fvm::div(phi, U)
+        fvm::ddt(U) 
+      + fvm::div(phi, U)
       + turbulence->divDevReff(U)
     ==
       - fvc::div(Rwall)
