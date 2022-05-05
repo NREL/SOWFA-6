@@ -47,8 +47,8 @@ usage information type ./toof without arguments:
 If a startdate string is provided the number of seconds used for the
 OpenFOAM directory names will be the time in the wrfoutput NetCDF file
 minus the time instance specified  by the startdate argument.  (*Caveat:
-right now the time calculations in toof are incomplete, and toof won't
-handle a day rollover properly*).   Thus,
+right now toof won't properly handle a 31-day month or leap year rollover*).
+Thus,
 
   ./wrftoof auxhist15_d05_2005-01-15_02_01_00 -startdate 2005-01-15_02_01_00
 
