@@ -133,6 +133,11 @@ class perturbationZone
         //- The dimensions of the perturbation boxes
             List<vector> dims_;
 
+        //- The mode in which fluctuation magnitude is computed. Option are:
+        //  --manual: User specifies max fluctuation magnitude.
+        //  --Eckert: Eckert number formulation. 
+            List<word> fluctuationsMagMode_;
+
         //- The magnitude of the fluctuations
             List<Type> fluctuationMagnitude_;
 

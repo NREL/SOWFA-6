@@ -65,6 +65,7 @@ void Foam::perturbationZone<Type>::initialize()
     zoneBox_.setSize(nZones_);
     cellBox_.setSize(nZones_);
     gridCellsInCellBox_.setSize(nZones_);
+    fluctuationMagMode_.setSize(nZones_);
     fluctuations_.setSize(nZones_);
     fluctuationMagnitude_.setSize(nZones_);
     updateMode_.setSize(nZones_);
@@ -114,6 +115,8 @@ void Foam::perturbationZone<Type>::readSubDict()
         dims_[m].x() = int(dims_[m].x());
         dims_[m].y() = int(dims_[m].y());
         dims_[m].z() = int(dims_[m].z());
+
+        fluctautionMagMode_[m] = subSubDict.lookupOrDefault<word>("fluctuationMagnitudeMode","manual");
     
         fluctuationMagnitude_[m] = subSubDict.lookupOrDefault<Type>("fluctuationScale",Zero);
 
