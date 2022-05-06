@@ -10,6 +10,8 @@ wclean src/TurbulenceModels/turbulenceModels
 # Custom boundary conditions.
 wclean src/boundaryConditions
 
+# Miscellaneous tools.
+wclean src/miscTools
 
 # Standard actuator turbine models.
 #wclean src/turbineModels/turbineModelsStandard
