@@ -90,7 +90,9 @@ Foam::buoyancyModel::buoyancyModel
 (
     const volScalarField& T,
     const dimensionedScalar TRef,
-    const dimensionedVector hRef
+    const dimensionedVector hRef,
+    const uniformDimensionedVectorField g,
+    const IOdictionary dict
 )
 :
     // Set the pointer to runTime
@@ -105,18 +107,10 @@ Foam::buoyancyModel::buoyancyModel
     // Set the reference temperature
     TRef_(TRef),
 
-    // Read the gravitational acceleration
-    g_
-    (
-        IOobject
-        (
-            "g",
-            runTime_.constant(),
-            mesh_,
-            IOobject::MUST_READ,
-            IOobject::NO_WRITE
-        )
-    ),
+    // Set the gravitational acceleration
+    g_(g),
+
+    dict_(dict),
 
     // Initialize the gravitational acceleration field
   //g_(T.db().lookupObject<uniformDimensionedVectorField>("g")),
@@ -145,18 +139,6 @@ Foam::buoyancyModel::buoyancyModel
 
 
 {
-    // Define dictionary with input data
-    IOdictionary ABLProperties
-    (
-        IOobject
-        (
-            "ABLProperties",
-            runTime_.time().constant(),
-            runTime_,
-            IOobject::MUST_READ,
-            IOobject::NO_WRITE
-        )
-    );
 
     // PROPERTIES CONCERNING THE WAY IN WHICH THE BACKGROUND PRESSURE IS DEFINED
 
@@ -164,7 +146,7 @@ Foam::buoyancyModel::buoyancyModel
     // - noSplit:   do not split out hydrostatic part; pressure is then perturbation pressure.
     // - rho0Split: split out the hydrostatic part; define hydrostatic as rho_0 * g * z.
     // - rhokSplit: split out the hydrostatic part; define hydrostatic as rho_k * g * z.
-    backgroundPressureType_ = ABLProperties.lookupOrDefault<word>("perturbationPressureType","rho0Split");
+    backgroundPressureType_ = dict_.lookupOrDefault<word>("perturbationPressureType","rho0Split");
     word backgroundOutput;
     if (backgroundPressureType_ == "noSplit")
     {

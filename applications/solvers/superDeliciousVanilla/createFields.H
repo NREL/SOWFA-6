@@ -242,7 +242,7 @@ reduce(pRefCellProc,sumOp<label>());
 dimensionedVector hRef("hRef",dimLength,hRef_);
 Info << "Pressure reference location is " << hRef.value() << " m at cell " << pRefCellGlobal << " on processor " << pRefCellProc << endl;
     
-buoyancyModel Boussinesq(T, TRef, hRef);
+buoyancyModel Boussinesq(T, TRef, hRef, g, ABLProperties);
 
 
 // Adjust the background pressure level to agree with the reference pressure specified
