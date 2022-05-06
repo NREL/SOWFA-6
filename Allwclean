@@ -1,23 +1,23 @@
 #!/bin/bash
 
 
-# Turbulence models.
+# Custom miscellaneous tools
+wclean src/miscTools
+
+
+# Custom turbulence models
 wclean src/TurbulenceModels/incompressible
 wclean src/TurbulenceModels/turbulenceModels
 
 
-
-# Custom boundary conditions.
+# Custom boundary conditions
 wclean src/boundaryConditions
 
-# Miscellaneous tools.
-wclean src/miscTools
-
-# Standard actuator turbine models.
+# Standard actuator turbine models
 #wclean src/turbineModels/turbineModelsStandard
 
 
-# OpenFAST-coupled actuator turbine models.
+# OpenFAST-coupled actuator turbine models
 if [ -z ${OPENFAST_DIR+x} ]
 then
     echo "OPENFAST_DIR is not set. Not cleaning OpenFAST interface."
@@ -31,35 +31,37 @@ else
     fi	
 fi
 
-# Custom mesh Tools
+
+# Custom mesh tools
 wclean src/meshTools
+
 
 # ABL forcing objects
 wclean src/ABLForcing
 
 
-# Custom sampling (this includes sampling on an annulus).
+# Custom sampling (this includes sampling on an annulus)
 wclean src/sampling
 
 
-# Custom file formats (like structured VTK).
+# Custom file formats (like structured VTK)
 wclean src/fileFormats
 
 
-# Custom function objects (this includes planar and temporal averaging, and lidar sampling).
+# Custom function objects (this includes planar and temporal averaging, and lidar sampling)
 wclean src/functionObjects/field
 wclean src/functionObjects/utilities
 
 
-# Utility to set the initial fields for the ABL solver.
+# Utility to set the initial fields for the ABL solver
 wclean applications/utilities/setFieldsABL
 
 
-# The atmospheric LES solver for precursors.
+# The atmospheric LES solver for precursors
 wclean applications/solvers/superDeliciousVanilla
 
 
-# The atmospheric LES solver with a link to the actuator turbine model.
+# The atmospheric LES solver with a link to the actuator turbine model
 if [ -z ${OPENFAST_DIR+x} ]
 then
     echo "OPENFAST_DIR is not set. Not cleaning OpenFASTcoupled solver."
