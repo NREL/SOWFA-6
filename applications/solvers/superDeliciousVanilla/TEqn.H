@@ -28,6 +28,4 @@
     {
         temperaturePerturbationZones.perturb(T);
     }
-
-    Boussinesq.update();
 }

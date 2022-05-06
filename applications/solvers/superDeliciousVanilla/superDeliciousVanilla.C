@@ -72,13 +72,6 @@ int main(int argc, char *argv[])
 
     Info << endl << "Starting time loop" << endl;
 
-    // Update boundary conditions before starting in case anything needs
-    // updating, for example after using mapFields to interpolate initial
-    // field.
-    U.correctBoundaryConditions();
-    phi = linearInterpolate(U) & mesh.Sf();
-    #include "turbulenceCorrect.H"
-    T.correctBoundaryConditions();
 
     // Time stepping loop.
     while (runTime.run())
