@@ -1,260 +1,439 @@
-// Read ABLProperties with input data
-IOdictionary ABLProperties
-(
-    IOobject
+// TAKE CARE OF MISCELLANEOUS INITIAL WORK
+    // - Get access to the ABLProperties dictionary
+    IOdictionary ABLProperties
     (
-        "ABLProperties",
-        runTime.time().constant(),
-        runTime,
-        IOobject::MUST_READ,
-        IOobject::NO_WRITE
-    )
-);
-
-
-//- Automatically update fixesValue for timeVaryingMappedInletOutlet BC?
-bool updateFixesValue(ABLProperties.lookupOrDefault<bool>("updateFixesValue",false));
-
-
-// This switch dictates whether or not the pressure reference cell is set explicitly
-// in the p_rgh solve.  If true, pressure is constrained at the pressure reference
-// cell by manipulating the matrix row for that cell to remove the null space.  This
-// assures that the pressure level is constrained, but it also means the continuity
-// equation is no longer solved at that cell, so the divergence error can be significant
-// enough there to cause localized oscillations.  Iterative solvers can still converge
-// even with a null space, but more iterations may be needed, so this switch can be
-// set to false.
-bool activatePressureRefCell(pimple.dict().lookupOrDefault<bool>("activatePressureRefCell", true));
-if (activatePressureRefCell)
-{
-     Info << "Pressure reference cell matrix row modification enabled" << endl;
-}
-else
-{
-     Info << "Pressure reference cell matrix row modification NOT enabled" << endl;
-}
-
-
-// Create and read the potential temperature field [K].
-Info << "Creating and reading potential temperature field, T" << endl;
-volScalarField T
-(
-    IOobject
-    (
-        "T",
-        runTime.timeName(),
-        mesh,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh
-);
-
-
-// Create and read the modified pressure field [m^2/s^2].
-Info << "Creating and reading the density-normalized modified pressure field, p_rgh" << endl;
-volScalarField p_rgh
-(
-    IOobject
-    (
-        "p_rgh",
-        runTime.timeName(),
-        mesh,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh
-);
-
-
-// Create and read the velocity field [m/s].
-Info << "Creating and reading velocity field, U" << endl;
-volVectorField U
-(
-    IOobject
-    (
-        "U",
-        runTime.timeName(),
-        mesh,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh
-);
-
-
-// Create and calculate the velocity flux [m^3/s].
-Info << "Creating and calculating velocity flux field, phi" << endl;
-#include "createPhi.H"
-
-
-// Update the boundary conditions on velocity and temperature.
-T.correctBoundaryConditions();
-U.correctBoundaryConditions();
-
-
-// Create Coriolis force object [m/s^2].
-Info << "Creating Coriolis force" << endl;
-CoriolisForce Coriolis(U);
-
-
-// Create external source term objects [<field units>/s].
-Info << "Creating geostrophic/mesoscale source term(s)" << endl;
-drivingForce<vector> momentumGeoMesoTerm(ABLProperties, "momentum",U);
-drivingForce<scalar> temperatureGeoMesoTerm(ABLProperties, "temperature",T);
-
-
-// Create list of Rayleigh/viscouls damping layer object [<field units>/s].
-Info << "Creating Rayleigh damping layer(s)" << endl;
-spongeLayer momentumSpongeLayers("spongeList",U);
-
-
-// Create perturbation zone object [<field units>/s].
-Info << "Creating perturbation zone(s)" << endl;
-perturbationZone<vector> momentumPerturbationZones(ABLProperties,U);
-perturbationZone<scalar> temperaturePerturbationZones(ABLProperties,T);
-momentumPerturbationZones.perturb(U);
-temperaturePerturbationZones.perturb(T);
-
-
-// Set up the laminar (molecular) transport model.
-Info << "Creating and reading laminar transport properties" << endl;
-singlePhaseTransportModel laminarTransport(U, phi);
-laminarTransport.correct();
-
-
-// Read in reference temperature [K] and laminar and turblent Prandtl numbers.
-// Note that turbulent Prandtl number may be overriden by a stability-
-// dependent value based on the choice of SGS turbulence model.
-dimensionedScalar TRef("TRef", dimTemperature, laminarTransport);
-dimensionedScalar Pr("Pr", dimless, laminarTransport);
-dimensionedScalar Prt("Prt", dimless, laminarTransport);
-
-
-// Read the gravitational constant vector.
-#include "readGravitationalAcceleration.H"
-
-
-// Create the turbulence model.
-Info << "Creating and reading turbulent transport properties" << endl;
-autoPtr<incompressible::turbulenceModel> turbulence
-(
-    incompressible::turbulenceModel::New(U, phi, laminarTransport)
-);
-
-
-// Create and read the kinematic turbulent thermal conductivity [m2/s].
-Info << "Creating and reading turbulent thermal conductivity field, kappat" << endl;
-volScalarField kappat
-(
-    IOobject
-    (
-        "kappat",
-        runTime.timeName(),
-        mesh,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh
-);
-
-
-// Create and read the wall shear stress field [m^2/s^2].
-Info << "Creating and reading the wall shear stress field, Rwall" << endl;
-volSymmTensorField Rwall
-(
-    IOobject
-    (
-        "Rwall",
-        runTime.timeName(),
-        mesh,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh
-);
-
-
-// Create and read the wall temperature flux field [K-m/s].
-Info << "Creating and reading the wall temperature flux field, qwall" << endl;
-volVectorField qwall
-(
-    IOobject
-    (
-        "qwall",
-        runTime.timeName(),
-        mesh,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh
-);
-
-
-#include "turbulenceCorrect.H"
-
-
-// Create and read the density-normalied pressure field [m^2/s^2].
-Info << "Creating and reading the density-normalized pressure field, p" << endl;
-volScalarField p
-(
-    IOobject
-    (
-        "p",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::AUTO_WRITE
-    ),
-    p_rgh
-);
-
-
-// Deal with reference pressure level.
-Info << "Setting reference pressure level" << endl;
-label pRefCell = 0;
-scalar pRefValue = 0.0;
-setRefCell
-(
-    p,
-    p_rgh,
-    pimple.dict(),
-    pRefCell,
-    pRefValue
-);
-
-
-// Create buoyancy model, which requires a reference height, which is the height of
-// the pressure reference cell.
-Info << "Creating the Boussinesq buoyancy model" << endl;
-vector hRef_ = vector::zero;
-label pRefCellGlobal = 0;
-label pRefCellProc = 0;
-if (pRefCell != -1)
-{
-    hRef_ = mesh.C()[pRefCell];
-    pRefCellGlobal = pRefCell;
-    pRefCellProc = Pstream::myProcNo();
-}
-reduce(hRef_,sumOp<vector>());
-reduce(pRefCellGlobal,sumOp<label>());
-reduce(pRefCellProc,sumOp<label>());
-dimensionedVector hRef("hRef",dimLength,hRef_);
-Info << "Pressure reference location is " << hRef.value() << " m at cell " << pRefCellGlobal << " on processor " << pRefCellProc << endl;
+        IOobject
+        (
+            "ABLProperties",
+            runTime.time().constant(),
+            runTime,
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE
+        )
+    );
     
-buoyancyModel Boussinesq(T, TRef, hRef, g, ABLProperties);
+    
+    //- Automatically update fixesValue for timeVaryingMappedInletOutlet BC?
+    bool updateFixesValue(ABLProperties.lookupOrDefault<bool>("updateFixesValue",false));
 
 
-// Adjust the background pressure level to agree with the reference pressure specified
-// at a certain location.
-Info << "Adjusting the background pressure level to agree with reference level" << endl;
-#include "adjustPressureLevel.H"
+    //- Indicate if this is a restart, or try to guess.
+    bool isRestart = (runTime.time().value() == 0.0) ? false : true;
+    isRestart = ABLProperties.lookupOrDefault<bool>("isRestart",isRestart);
+ 
+    if (isRestart)
+    {
+        Info << "Treating this case as a restart of a previous case" << endl;
+    }
+    else
+    {
+        Info << "Treating this case as a cold start with no restart data" << endl;
+    }
+
+    if (isRestart && runTime.time().value() == 0.0)
+    {
+        Warning << "User specified to start the solver in 'restart' mode with the " << endl
+                << "startTime as 0.  Beware that 'restart' mode assumes all boundary " << endl
+                << "conditions are updated already and will not be updated before entering" << endl
+                << "the time loop." << endl;
+    }
 
 
-// The quantity p_rgh is required on cell faces (flux) to project the velocity flux given the
-// updated pressure field, so add it to the list kept internally in OpenFOAM.
-mesh.setFluxRequired(p_rgh.name());
+    //- Should the velocity flux non-coupled BCs be updated before entering the time loop.
+    bool updatePhiBoundariesOnRestart(ABLProperties.lookupOrDefault<bool>("updatePhiBoundariesOnRestart",false));
+
+    if (isRestart && updatePhiBoundariesOnRestart)
+    {
+        Warning << "User specified to start solver in 'restart' mode and to also " << endl
+                << "update the phi non-coupled boundary values, which will make the " << endl
+                << "restart an 'imperfect' restart.  The values of the solution after " << endl
+                << "start up will not be identical to the non-restarted case.  This " << endl
+                << "configuration is meant for restarts where non-coupled boundary " << endl
+                << "conditions have changed (i.e., periodic to inflow/outflow)." << endl;
+    }
 
 
-// Allows the user to set fvOptions, such as additional source terms.
-#include "createFvOptions.H"
+
+
+
+
+// CREATE AND READ THE RESOLVED-SCALE OR MEAN FIELDS
+    // - Create and read the gravitational acceleration uniform field
+     Info<< "Creating and reading the gravitational acceleration field, g" << endl;
+     uniformDimensionedVectorField g
+     (
+         IOobject
+         (
+             "g",
+             runTime.constant(),
+             mesh,
+             IOobject::MUST_READ,
+             IOobject::NO_WRITE
+         )
+     );
+
+
+    // - Create and read the modified pressure field [m^2/s^2].
+    Info << "Creating and reading the density-normalized modified pressure field, p_rgh" << endl;
+    volScalarField p_rgh
+    (
+        IOobject
+        (
+            "p_rgh",
+            runTime.timeName(),
+            mesh,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
+    );
+    
+    
+    // - Create and read the density-normalized pressure field [m^2/s^2].
+    Info << "Creating and reading the density-normalized pressure field, p" << endl;
+    volScalarField p
+    (
+        IOobject
+        (
+            "p",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        p_rgh
+    );
+
+
+    // The quantity p_rgh is required on cell faces (flux) to project the velocity flux given the
+    // updated pressure field, so add it to the list kept internally in OpenFOAM.
+    mesh.setFluxRequired(p_rgh.name());
+    
+    
+    // - Create and read the potential temperature field [K].
+    Info << "Creating and reading potential temperature field, T" << endl;
+    volScalarField T
+    (
+        IOobject
+        (
+            "T",
+            runTime.timeName(),
+            mesh,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
+    );
+    
+    
+    // - Create and read the velocity field [m/s].
+    Info << "Creating and reading velocity field, U" << endl;
+    volVectorField U
+    (
+        IOobject
+        (
+            "U",
+            runTime.timeName(),
+            mesh,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
+    );
+    
+    
+    // - Create and calculate the velocity flux [m^3/s].
+    Info << "Creating and calculating velocity flux field, phi" << endl;
+    IOobject phiFieldHeader
+    (
+        "phi",
+         runTime.timeName(),
+         mesh,
+         IOobject::MUST_READ
+     );
+
+     bool phiPresent = (phiFieldHeader.typeHeaderOk<surfaceScalarField>(true)) ? true : false;
+     if (phiPresent)
+     {
+         Info << "  -phi field file present, so using existing phi, but will update uncoupled boundaries" << endl;
+     }
+     else
+     {
+         Info << "  -phi field file not present, so using simple interpolation of velocity to faces (i.e., no Rhie-Chow interpolation)" << endl;
+     }
+    
+     surfaceScalarField phi
+     (
+         IOobject
+         (
+             "phi",
+             runTime.timeName(),
+             mesh,
+             IOobject::READ_IF_PRESENT,
+             IOobject::AUTO_WRITE
+         ),
+         fvc::flux(U)
+     );
+  
+     
+     // the following logic is needed based on if this is a restart or not
+     // and if phi is provided in a file.  So far, velocity has been read
+     // and if phi was present, it has been read; otherwise phi is computed
+     // by interpolating velocity to faces and dotting with face area vector
+     if (isRestart)
+     {
+         // if a phi file is provided, but we've done a boundary condition
+         // change before restarting (i.e., we've run the precursor up to a 
+         // point and generated BC inflow data and now we're switching to 
+         // inflow/outflow mode using that precursor as initical conditions),
+         // we likely need to update the inflow/outflow phi values.  If so,
+         // do that here only on uncoupled patch faces (i.e., not on processor
+         // or cyclic faces).
+         if (phiPresent && updatePhiBoundariesOnRestart)
+         {
+             forAll(phi.boundaryField(), patchi)
+             {
+                 const fvPatchVectorField& UPatch = U.boundaryField()[patchi];
+                 if (!phi.boundaryField()[patchi].coupled())
+                 {
+                     surfaceScalarField::Boundary& bphi = phi.boundaryFieldRef();
+                     bphi[patchi] = UPatch & mesh.boundary()[patchi].Sf();
+                 }
+             }
+         }
+         // if a phi file was not present, phi was already created by interpolation
+         // including the uncoupled boundary faces.
+         else
+         {
+             // Do nothing
+         }
+     }
+     else 
+     {
+         // if this is not a restart, U boundary values could be dummy values, so
+         // update phi boundary based on U internal values adjacent to the patch,
+         // then update boundaries of U and T (some U and T BCs require phi, like
+         // inletOutlet or TVMInletOutlet).
+         /*
+         forAll(phi.boundaryField(), patchi)
+         {
+             const fvPatchVectorField& UPatch = U.boundaryField()[patchi];
+             vectorField UPatchInternal = UPatch.patchInternalField();
+             if (!phi.boundaryField()[patchi].coupled())
+             {
+                 surfaceScalarField::Boundary& bphi = phi.boundaryFieldRef();
+                 bphi[patchi] = UPatchInternal & mesh.boundary()[patchi].Sf();
+             }
+         }
+         */
+         Info << "U.correctBoundaryConditions()" << endl;
+         U.correctBoundaryConditions();
+         Info << "T.correctBoundaryConditions()" << endl;
+         T.correctBoundaryConditions();
+
+         // if the phi file was present, then update phi boundary values on 
+         // uncoupled patches using velocity on those patches.
+         if (phiPresent)
+         {
+             Info << "Updating phi.boundaryField()" << endl;
+             forAll(phi.boundaryField(), patchi)
+             {
+                 const fvPatchVectorField& UPatch = U.boundaryField()[patchi];
+                 if (!phi.boundaryField()[patchi].coupled())
+                 {
+                     surfaceScalarField::Boundary& bphi = phi.boundaryFieldRef();
+                     bphi[patchi] = UPatch & mesh.boundary()[patchi].Sf();
+                 }
+             }       
+         }
+         // if the phi file was not present, update phi boundary values just by
+         // calling the interpolation function.
+         else
+         {
+             Info << "phi = fvc::flux(U)" << endl;
+             phi = fvc::flux(U);
+         }
+     }
+
+
+
+
+
+
+// GET PRESSURE REFERENCE LOCATION/HANDLING SET    
+    // This switch dictates whether or not the pressure reference cell is set explicitly
+    // in the p_rgh solve.  If true, pressure is constrained at the pressure reference
+    // cell by manipulating the matrix row for that cell to remove the null space.  This
+    // assures that the pressure level is constrained, but it also means the continuity
+    // equation is no longer solved at that cell, so the divergence error can be significant
+    // enough there to cause localized oscillations.  Iterative solvers can still converge
+    // even with a null space, but more iterations may be needed, so this switch can be
+    // set to false.
+    bool activatePressureRefCell(pimple.dict().lookupOrDefault<bool>("activatePressureRefCell", true));
+    if (activatePressureRefCell)
+    {
+         Info << "Pressure reference cell matrix row modification enabled" << endl;
+    }
+    else
+    {
+         Info << "Pressure reference cell matrix row modification NOT enabled" << endl;
+    }
+    
+    
+    // Deal with reference pressure level.
+    Info << "Setting reference pressure level" << endl;
+    label pRefCell = 0;
+    scalar pRefValue = 0.0;
+    setRefCell
+    (
+        p,
+        p_rgh,
+        pimple.dict(),
+        pRefCell,
+        pRefValue
+    );
+    
+    
+    // Find the height of the pressure reference cell
+    vector hRef_ = vector::zero;
+    label pRefCellGlobal = 0;
+    label pRefCellProc = 0;
+    if (pRefCell != -1)
+    {
+        hRef_ = mesh.C()[pRefCell];
+        pRefCellGlobal = pRefCell;
+        pRefCellProc = Pstream::myProcNo();
+    }
+    reduce(hRef_,sumOp<vector>());
+    reduce(pRefCellGlobal,sumOp<label>());
+    reduce(pRefCellProc,sumOp<label>());
+    dimensionedVector hRef("hRef",dimLength,hRef_);
+    Info << "Pressure reference location is " << hRef.value() << " m at cell " << pRefCellGlobal << " on processor " << pRefCellProc << endl;
+
+
+
+
+
+
+ 
+
+// SET THE VISCOSITY MODEL, REFERENCE TEMPERATURE, AND PRANDTL NUMBER
+    // - Set up the laminar (molecular) transport model.
+    Info << "Creating and reading laminar transport properties" << endl;
+    singlePhaseTransportModel laminarTransport(U, phi);
+    
+    
+    // - Read in reference temperature [K] and laminar and turblent Prandtl numbers.
+    //   Note that turbulent Prandtl number may be overriden by a stability-
+    //   dependent value based on the choice of SGS turbulence model.
+    dimensionedScalar TRef("TRef", dimTemperature, laminarTransport);
+    dimensionedScalar Pr("Pr", dimless, laminarTransport);
+    dimensionedScalar Prt("Prt", dimless, laminarTransport);
+
+
+
+
+
+
+// INSTANTIATE OBJECTS OF THE SOURCE TERM CLASSES
+    // - Coriolis force term [m/s^2].
+    Info << "Creating Coriolis force" << endl;
+    CoriolisForce Coriolis(U);
+    
+    
+    // - Geostrophic/mesoscale source terms [<field units>/s].
+    Info << "Creating geostrophic/mesoscale source term(s)" << endl;
+    drivingForce<vector> momentumGeoMesoTerm(ABLProperties, "momentum",U);
+    drivingForce<scalar> temperatureGeoMesoTerm(ABLProperties, "temperature",T);
+    
+    
+    // - Buoyancy term [m/s^2].
+    Info << "Creating buoyancy term" << endl;
+    buoyancyModel Boussinesq(T, TRef, hRef, g, ABLProperties);
+    #include "adjustPressureLevel.H"
+    
+    
+    // - Rayleigh/viscous damping layer source terms [<field units>/s].
+    Info << "Creating Rayleigh damping layer(s)" << endl;
+    spongeLayer momentumSpongeLayers("spongeList",U);
+    
+    
+    // - Flow perturbation zone [<field units>/s].
+    Info << "Creating perturbation zone(s)" << endl;
+    perturbationZone<vector> momentumPerturbationZones(ABLProperties,U);
+    perturbationZone<scalar> temperaturePerturbationZones(ABLProperties,T);
+    momentumPerturbationZones.perturb(U);
+    temperaturePerturbationZones.perturb(T);
+    
+    
+    // - User set fvOptions, such as additional source terms.
+    #include "createFvOptions.H"
+
+
+
+
+
+
+// CREATE THE TURBULENCE QUANTITIES
+    // - Set up the turbulence model.
+    Info << "Creating and reading turbulent transport properties" << endl;
+    autoPtr<incompressible::turbulenceModel> turbulence
+    (
+        incompressible::turbulenceModel::New(U, phi, laminarTransport)
+    );
+    
+    
+    // - Create and read the kinematic turbulent thermal conductivity [m2/s].
+    Info << "Creating and reading turbulent thermal conductivity field, kappat" << endl;
+    volScalarField kappat
+    (
+        IOobject
+        (
+            "kappat",
+            runTime.timeName(),
+            mesh,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
+    );
+    
+    
+    // - Create and read the wall shear stress field [m^2/s^2].
+    Info << "Creating and reading the wall shear stress field, Rwall" << endl;
+    volSymmTensorField Rwall
+    (
+        IOobject
+        (
+            "Rwall",
+            runTime.timeName(),
+            mesh,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
+    );
+    
+    
+    // - Create and read the wall temperature flux field [K-m/s].
+    Info << "Creating and reading the wall temperature flux field, qwall" << endl;
+    volVectorField qwall
+    (
+        IOobject
+        (
+            "qwall",
+            runTime.timeName(),
+            mesh,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
+    );
+
+   
+    // - if this is not a restart, update turbulence BCs and do an initial field solve.
+    if (!isRestart)
+    {
+        #include "turbulenceCorrect.H"
+        turbulence->validate();
+    }

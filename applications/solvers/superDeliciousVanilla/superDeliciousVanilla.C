@@ -65,7 +65,6 @@ int main(int argc, char *argv[])
     #include "computeDivergence.H"
     #include "createDivSchemeBlendingField.H"
 
-    turbulence->validate();
 
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -109,7 +108,7 @@ int main(int argc, char *argv[])
         while (pimple.loop())
         {
             // Update the once-per-outer-iteration source terms.
-            // - geostrophic/mesoscale forcing.
+            // - Geostrophic/mesoscale forcing.
             momentumGeoMesoTerm.update(pimple.finalPimpleIter());
             temperatureGeoMesoTerm.update(pimple.finalPimpleIter());
 
@@ -119,7 +118,7 @@ int main(int argc, char *argv[])
             // - Coriolis forcing.
             Coriolis.update();
 
-            // - buoyancy forcing.
+            // - Buoyancy forcing.
             Boussinesq.update();
 
 
@@ -135,6 +134,10 @@ int main(int argc, char *argv[])
             while (pimple.correct())
             {
                 Info << "   Corrector Step " << corrIter << endl;
+
+                // Update the once-per-inner-iteration source terms.
+                // - Buoyancy forcing.
+                Boussinesq.update();
 
                 #include "pEqn.H"
                 #include "turbulenceCorrect.H"
