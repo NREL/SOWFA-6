@@ -1,10 +1,13 @@
 #!/bin/bash
 
 
+# Miscellaneous tools.
+wclean src/miscTools
+
+
 # Turbulence models.
 wclean src/TurbulenceModels/incompressible
 wclean src/TurbulenceModels/turbulenceModels
-
 
 
 # Custom boundary conditions.
@@ -30,15 +33,11 @@ else
 fi
 
 
-# Custom mesh tools
+# Custom mesh tools.
 wclean src/meshTools
 
 
-# Miscellaneous tools
-wclean src/miscTools
-
-
-# ABL forcing objects
+# ABL forcing objects.
 wclean src/ABLForcing
 
 

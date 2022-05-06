@@ -1,12 +1,14 @@
 #!/bin/bash
 
 
+# Miscellaneous tools.
+wmake src/miscTools
+
+
 # Turbulence models.
 wmake src/TurbulenceModels/incompressible
 wmake src/TurbulenceModels/turbulenceModels
 
-# Misc tools
-wmake src/mistTools
 
 # Custom boundary conditions.
 wmake src/boundaryConditions
@@ -31,15 +33,11 @@ else
 fi
 
 
-# Custom mesh tools
+# Custom mesh tools.
 wmake src/meshTools
 
 
-# Miscellaneous tools
-wmake src/miscTools
-
-
-# ABL forcing objects
+# ABL forcing objects.
 wmake src/ABLForcing
 
 

@@ -361,6 +361,8 @@ void horizontalAxisWindTurbinesALMOpenFAST::readInput()
         numNacellePoints.append(int(readScalar(turbineArrayProperties.subDict(turbineName[i]).lookup("numNacellePoints"))));
         numTowerPoints.append(int(readScalar(turbineArrayProperties.subDict(turbineName[i]).lookup("numTowerPoints"))));
 
+        bladePointDistType.append(turbineArrayProperties.subDict(turbineName[i]).lookupOrDefault<word>("bladePointDistType","chordClustered"));
+
         bladeActuatorPointInterpType.append(word(turbineArrayProperties.subDict(turbineName[i]).lookup("bladeActuatorPointInterpType")));
         nacelleActuatorPointInterpType.append(word(turbineArrayProperties.subDict(turbineName[i]).lookup("nacelleActuatorPointInterpType")));
         towerActuatorPointInterpType.append(word(turbineArrayProperties.subDict(turbineName[i]).lookup("towerActuatorPointInterpType")));
