@@ -18,8 +18,8 @@
 
 
     //- Indicate if this is a restart, or try to guess.
-    bool isRestart = (runTime.time().value() == 0.0) ? false : true;
-    isRestart = ABLProperties.lookupOrDefault<bool>("isRestart",isRestart);
+    bool isRestart = (runTime.timeIndex() == 1) ? false : true;
+    isRestart = runTime.controlDict().lookupOrDefault<bool>("isRestart",isRestart);
  
     if (isRestart)
     {
@@ -30,7 +30,7 @@
         Info << "Treating this case as a cold start with no restart data" << endl;
     }
 
-    if (isRestart && runTime.time().value() == 0.0)
+    if (isRestart && runTime.timeIndex() == 1)
     {
         Warning << "User specified to start the solver in 'restart' mode with the " << endl
                 << "startTime as 0.  Beware that 'restart' mode assumes all boundary " << endl
@@ -40,9 +40,9 @@
 
 
     //- Should the velocity flux non-coupled BCs be updated before entering the time loop.
-    bool updatePhiBoundariesOnRestart(ABLProperties.lookupOrDefault<bool>("updatePhiBoundariesOnRestart",false));
+    bool updatePhiUncoupledBoundariesOnRestart(ABLProperties.lookupOrDefault<bool>("updatePhiUncoupledBoundariesOnRestart",false));
 
-    if (isRestart && updatePhiBoundariesOnRestart)
+    if (isRestart && updatePhiUncoupledBoundariesOnRestart)
     {
         Warning << "User specified to start solver in 'restart' mode and to also " << endl
                 << "update the phi non-coupled boundary values, which will make the " << endl
@@ -104,6 +104,24 @@
         p_rgh
     );
 
+    volVectorField pF
+    (
+        IOobject
+        (
+            "pF",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+      //dimensionedScalar("pF",dimensionSet(0, 0, 1, 0, 0, 0, 0),1.0),
+        dimensionedVector("pF",dimensionSet(0, 1, -2, 0, 0, 0, 0),Zero),
+        extrapolatedCalculatedFvPatchScalarField::typeName       
+      //dimensionedScalar("A",dimensionSet(1.0/dimVol),1.0)       
+    );
+    pF.correctBoundaryConditions();
+
 
     // The quantity p_rgh is required on cell faces (flux) to project the velocity flux given the
     // updated pressure field, so add it to the list kept internally in OpenFOAM.
@@ -155,7 +173,7 @@
      bool phiPresent = (phiFieldHeader.typeHeaderOk<surfaceScalarField>(true)) ? true : false;
      if (phiPresent)
      {
-         Info << "  -phi field file present, so using existing phi, but will update uncoupled boundaries" << endl;
+         Info << "  -phi field file present, so using existing phi, but will update uncoupled boundaries if desired" << endl;
      }
      else
      {
@@ -176,83 +194,37 @@
      );
   
      
-     // the following logic is needed based on if this is a restart or not
-     // and if phi is provided in a file.  So far, velocity has been read
-     // and if phi was present, it has been read; otherwise phi is computed
-     // by interpolating velocity to faces and dotting with face area vector
-     if (isRestart)
+     // If this is not a restart, but it is a cold start, then update the
+     // U and T boundary conditions.
+     if (!isRestart)
      {
-         // if a phi file is provided, but we've done a boundary condition
-         // change before restarting (i.e., we've run the precursor up to a 
-         // point and generated BC inflow data and now we're switching to 
-         // inflow/outflow mode using that precursor as initical conditions),
-         // we likely need to update the inflow/outflow phi values.  If so,
-         // do that here only on uncoupled patch faces (i.e., not on processor
-         // or cyclic faces).
-         if (phiPresent && updatePhiBoundariesOnRestart)
-         {
-             forAll(phi.boundaryField(), patchi)
-             {
-                 const fvPatchVectorField& UPatch = U.boundaryField()[patchi];
-                 if (!phi.boundaryField()[patchi].coupled())
-                 {
-                     surfaceScalarField::Boundary& bphi = phi.boundaryFieldRef();
-                     bphi[patchi] = UPatch & mesh.boundary()[patchi].Sf();
-                 }
-             }
-         }
-         // if a phi file was not present, phi was already created by interpolation
-         // including the uncoupled boundary faces.
-         else
-         {
-             // Do nothing
-         }
-     }
-     else 
-     {
-         // if this is not a restart, U boundary values could be dummy values, so
-         // update phi boundary based on U internal values adjacent to the patch,
-         // then update boundaries of U and T (some U and T BCs require phi, like
-         // inletOutlet or TVMInletOutlet).
-         /*
-         forAll(phi.boundaryField(), patchi)
-         {
-             const fvPatchVectorField& UPatch = U.boundaryField()[patchi];
-             vectorField UPatchInternal = UPatch.patchInternalField();
-             if (!phi.boundaryField()[patchi].coupled())
-             {
-                 surfaceScalarField::Boundary& bphi = phi.boundaryFieldRef();
-                 bphi[patchi] = UPatchInternal & mesh.boundary()[patchi].Sf();
-             }
-         }
-         */
          Info << "U.correctBoundaryConditions()" << endl;
          U.correctBoundaryConditions();
          Info << "T.correctBoundaryConditions()" << endl;
          T.correctBoundaryConditions();
+     }
 
-         // if the phi file was present, then update phi boundary values on 
-         // uncoupled patches using velocity on those patches.
-         if (phiPresent)
+
+     // if the phi file was present, and the user wants the uncoupled boundaries
+     // updated, do that here; otherwise recompute phi through interpolation of
+     // velocity field.
+     if (phiPresent && updatePhiUncoupledBoundariesOnRestart)
+     {
+         Info << "Updating phi.boundaryField()" << endl;
+         forAll(phi.boundaryField(), patchi)
          {
-             Info << "Updating phi.boundaryField()" << endl;
-             forAll(phi.boundaryField(), patchi)
+             const fvPatchVectorField& UPatch = U.boundaryField()[patchi];
+             if (!phi.boundaryField()[patchi].coupled())
              {
-                 const fvPatchVectorField& UPatch = U.boundaryField()[patchi];
-                 if (!phi.boundaryField()[patchi].coupled())
-                 {
-                     surfaceScalarField::Boundary& bphi = phi.boundaryFieldRef();
-                     bphi[patchi] = UPatch & mesh.boundary()[patchi].Sf();
-                 }
-             }       
+                 surfaceScalarField::Boundary& bphi = phi.boundaryFieldRef();
+                 bphi[patchi] = UPatch & mesh.boundary()[patchi].Sf();
+             }
          }
-         // if the phi file was not present, update phi boundary values just by
-         // calling the interpolation function.
-         else
-         {
-             Info << "phi = fvc::flux(U)" << endl;
-             phi = fvc::flux(U);
-         }
+     }
+     else
+     {
+         Info << "phi = fvc::flux(U)" << endl;
+         phi = fvc::flux(U);
      }
 
 
@@ -290,7 +262,8 @@
         p_rgh,
         pimple.dict(),
         pRefCell,
-        pRefValue
+        pRefValue,
+        true
     );
     
     

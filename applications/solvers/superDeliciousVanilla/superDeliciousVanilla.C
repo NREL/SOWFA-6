@@ -48,12 +48,13 @@ Description
 #include "pimpleControl.H"
 #include "ABL.H"
 
+
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 int main(int argc, char *argv[])
 {
     #include "postProcess.H"
-
     #include "setRootCaseLists.H"
     #include "createTime.H"
     #include "createMesh.H"
@@ -68,7 +69,6 @@ int main(int argc, char *argv[])
 
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 
     Info << endl << "Starting time loop" << endl;
 
@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
 
                 // Update the once-per-inner-iteration source terms.
                 // - Buoyancy forcing.
-                Boussinesq.update();
+              //Boussinesq.update();
 
                 #include "pEqn.H"
                 #include "turbulenceCorrect.H"

@@ -443,8 +443,8 @@ void horizontalAxisWindTurbinesALMOpenFAST::sendInput()
   fi.dtFAST = dt/nFASTSubSteps[0]; 
   fi.nEveryCheckPoint = checkPointInterval ;
   fi.tMax = timeSimulationEnd-timeSimulationStart ; 
-  fi.numScInputs = numSuperControllerOutputs ;
-  fi.numScOutputs = numSuperControllerInputs ;
+//fi.numScInputs = numSuperControllerOutputs ;
+//fi.numScOutputs = numSuperControllerInputs ;
   
   fi.globTurbineData.resize(fi.nTurbinesGlob);
   for (int iTurb=0; iTurb < fi.nTurbinesGlob; iTurb++) {

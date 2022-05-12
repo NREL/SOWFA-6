@@ -2,7 +2,7 @@
 Boussinesq.updateBackgroundPressure();
 p = p_rgh + Boussinesq.backgroundPressure();
 
-if (p_rgh.needReference())
+//if (p_rgh.needReference())
 {
     p += dimensionedScalar
     (
