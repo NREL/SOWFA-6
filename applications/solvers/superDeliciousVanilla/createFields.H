@@ -104,6 +104,7 @@
         p_rgh
     );
 
+/*
     volVectorField pF
     (
         IOobject
@@ -121,6 +122,7 @@
       //dimensionedScalar("A",dimensionSet(1.0/dimVol),1.0)       
     );
     pF.correctBoundaryConditions();
+*/
 
 
     // The quantity p_rgh is required on cell faces (flux) to project the velocity flux given the
@@ -198,9 +200,9 @@
      // U and T boundary conditions.
      if (!isRestart)
      {
-         Info << "U.correctBoundaryConditions()" << endl;
+       //Info << "U.correctBoundaryConditions()" << endl;
          U.correctBoundaryConditions();
-         Info << "T.correctBoundaryConditions()" << endl;
+       //Info << "T.correctBoundaryConditions()" << endl;
          T.correctBoundaryConditions();
      }
 
@@ -223,7 +225,7 @@
      }
      else
      {
-         Info << "phi = fvc::flux(U)" << endl;
+         Info << "Computing full phi field as phi = fvc::flux(U)" << endl;
          phi = fvc::flux(U);
      }
 
@@ -337,6 +339,19 @@
     perturbationZone<scalar> temperaturePerturbationZones(ABLProperties,T);
     momentumPerturbationZones.perturb(U);
     temperaturePerturbationZones.perturb(T);
+
+
+    // - Wind turbine actuator line/disk array [m/s^2].
+    Info << "Creating actuator disk/line wind turbine array" << endl;
+    turbineModels::horizontalAxisWindTurbinesALMOpenFAST actuatorTurbineArray(U);
+    
+    // Allows the user to apply body force with Rhie-Chow type interpolation for stabilization. See:
+    //
+    //    Rethore, P-E. M., & Sørensen, N. N., "Actuator Disc Model Using a Modified Rhie-Chow/SIMPLE Pressure
+    //    Correction Algorithm. Comparison with Analytical Solutions." In Conference proceedings (online) European
+    //    Wind Energy Association (EWEA), 2008.
+    //
+    bool bodyForceStabilization = mesh.schemesDict().lookupOrDefault<bool>("bodyForceStabilization",true);
     
     
     // - User set fvOptions, such as additional source terms.

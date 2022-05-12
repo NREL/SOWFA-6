@@ -47,6 +47,7 @@ Description
 #include "fvOptions.H"
 #include "pimpleControl.H"
 #include "ABL.H"
+#include "horizontalAxisWindTurbinesALMOpenFAST.H"
 
 
 
@@ -103,6 +104,7 @@ int main(int argc, char *argv[])
         // - perturbation zone forcing.
         momentumPerturbationZones.update();
         temperaturePerturbationZones.update();
+        actuatorTurbineArray.update();
 
 
         // Outer-iteration loop.
@@ -141,8 +143,8 @@ int main(int argc, char *argv[])
               //Boussinesq.update();
 
                 #include "pEqn.H"
-                #include "turbulenceCorrect.H"
-                #include "TEqn.H"
+              //#include "turbulenceCorrect.H"
+              //#include "TEqn.H"
                 corrIter++;
             }
 
@@ -172,6 +174,8 @@ int main(int argc, char *argv[])
              << "  ClockTime = " << runTime.elapsedClockTime() << " s"
              << nl << nl << nl << nl << endl;
     }
+
+    actuatorTurbineArray.end();
 
     Info << "Ending the simulation" << endl;
 

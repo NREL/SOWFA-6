@@ -3797,6 +3797,9 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
     t = runTime_.value();
 
 
+    if (numTurbines > 0)
+    {
+
     if(actuatorUpdateType[0] == "oldPosition")
     {
         // Find out which processor controls which actuator point,
@@ -4056,6 +4059,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
 
     Info << "rotorApex = " << rotorApex << endl;
     Info << "rotorApexBeforeSearch = " << rotorApexBeforeSearch << endl;
+    }
 }
 
 
@@ -4615,7 +4619,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::printDebug()
 }
 
 
-volVectorField& horizontalAxisWindTurbinesALMOpenFAST::force()
+volVectorField& horizontalAxisWindTurbinesALMOpenFAST::source()
 {
     // Return the body force field to the solver
     return bodyForce;
