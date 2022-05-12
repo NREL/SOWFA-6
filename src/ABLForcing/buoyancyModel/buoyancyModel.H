@@ -131,12 +131,17 @@ public:
             return pBackground_;
         }
 
+        //- Return buoyancy density
+        volScalarField& rhok()
+        {
+            return rhok_;
+        }
+
         //- Return buoyancy term
         surfaceScalarField& source()
         {
             return buoyancyTerm_;
         }
-
 
 };
 

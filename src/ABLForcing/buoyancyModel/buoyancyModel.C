@@ -112,9 +112,6 @@ Foam::buoyancyModel::buoyancyModel
 
     dict_(dict),
 
-    // Initialize the gravitational acceleration field
-  //g_(T.db().lookupObject<uniformDimensionedVectorField>("g")),
-
     // Initialize the Boussinesq density field
     rhok_
     (
@@ -124,7 +121,8 @@ Foam::buoyancyModel::buoyancyModel
             runTime_.timeName(),
             mesh_
         ),
-        1.0 - ( (T - TRef)/TRef )
+        1.0 - ( (T - TRef)/TRef ),
+        extrapolatedCalculatedFvPatchScalarField::typeName
     ),
 
     // Initialize the gravity potential field
