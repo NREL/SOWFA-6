@@ -93,6 +93,7 @@
     }
 
     phiHbyA += phig;
+    phiHbyA += phiF;
 
     /*
     // Update the fixedFluxPressure BCs to ensure flux consistency
