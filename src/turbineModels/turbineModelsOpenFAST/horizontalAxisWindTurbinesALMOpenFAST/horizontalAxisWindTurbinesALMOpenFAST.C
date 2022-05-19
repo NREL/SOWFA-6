@@ -195,6 +195,8 @@ void horizontalAxisWindTurbinesALMOpenFAST::initialize()
     // Read input files.
     readInput();
 
+    if (numTurbines > 0)
+    {
     // Send inputs to FAST.
     sendInput();
 
@@ -291,6 +293,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::initialize()
     // Open the turbine data output files and print initial information.
     openOutputFiles();
     printOutputFiles();
+    }
 }
 
 void horizontalAxisWindTurbinesALMOpenFAST::readInput()
