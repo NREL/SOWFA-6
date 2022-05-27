@@ -431,12 +431,12 @@ void horizontalAxisWindTurbinesALMOpenFAST::readInput()
  
 void horizontalAxisWindTurbinesALMOpenFAST::sendInput()
 {
-  
   fi.comm = MPI_COMM_WORLD;
   fi.nTurbinesGlob = numTurbines;
   fi.dryRun = dryRun;
   fi.debug = FASTwriteDebugInfo;
   fi.tStart = tStart - timeSimulationStart;
+ 
   // True restart capability is not an option
   if (fi.tStart > 0) {
     fi.simStart = fast::restartDriverInitFAST;
@@ -467,7 +467,8 @@ void horizontalAxisWindTurbinesALMOpenFAST::sendInput()
     fi.globTurbineData[iTurb].TurbineBasePos = baseLoc ;
     fi.globTurbineData[iTurb].TurbineHubPos = hubLoc ;
     fi.globTurbineData[iTurb].numForcePtsBlade = numBladePoints[iTurb];
-    fi.globTurbineData[iTurb].numForcePtsTwr = numTowerPoints[iTurb];    
+    fi.globTurbineData[iTurb].numForcePtsTwr = numTowerPoints[iTurb];   
+    fi.globTurbineData[iTurb].forcePtsBladeDistributionType = bladePointDistType[iTurb];
   }
 
   FAST->setInputs(fi);
@@ -1567,9 +1568,24 @@ void horizontalAxisWindTurbinesALMOpenFAST::getPositions()
    {
        int m = 1;
 
-       // To derive rotor speed, grab the blade 1 first point.
-       vector bladePoint1Old = bladePoints[i][1][1] - rotorApex[i];
-       bladePoint1Old /= mag(bladePoint1Old);
+       // It is convenient to have rotor speed.  There is currently no call to
+       // OpenFAST to get rotor speed, so we can derive it from blade motion over
+       // a time step.  Grab the location of the inner most point on the blades 
+       // before and after advancing 1 time step.  Define a vector normal to the
+       // rotor shaft to these points and use the fact that 
+       //      a dot b = |a||b| cos(theta) 
+       // to compute the change in angle and then a rotor speed given the time step.  
+       // Average together to get a final rotor speed value.
+
+       // This is the inner most blade point locations before time advancement.
+       List<vector> bladePoint1Old(numBl[i],vector::zero);
+       for (int j = 0; j < numBl[i]; j++)
+       {
+           bladePoint1Old[j] = bladePoints[i][j][0] - rotorApex[i];
+           bladePoint1Old[j] /= max(mag(bladePoint1Old[j]),1.0E-8);
+           bladePoint1Old[j] = transformGlobalCartToRotorLocalCart(bladePoint1Old[j], i);
+           bladePoint1Old[j].x() = 0.0;
+       }
       
        // Get blade force points.
        forAll(bladePoints[i],j)
@@ -1582,6 +1598,16 @@ void horizontalAxisWindTurbinesALMOpenFAST::getPositions()
            }
        }
 
+       // This is the inner most blade point locations after time advancement.
+       List<vector> bladePoint1(numBl[i],vector::zero);
+       for (int j = 0; j < numBl[i]; j++)
+       {
+           bladePoint1[j] = bladePoints[i][j][0] - rotorApex[i];
+           bladePoint1[j] /= max(mag(bladePoint1[j]),1.0E-8);
+           bladePoint1[j] = transformGlobalCartToRotorLocalCart(bladePoint1[j], i);
+           bladePoint1[j].x() = 0.0;
+       }
+
        // Get tower force points.
        forAll(towerPoints[i],j)
        {
@@ -1592,16 +1618,18 @@ void horizontalAxisWindTurbinesALMOpenFAST::getPositions()
 
        startIndex += (numBl[i] * numBladePoints[i]) + numTowerPoints[i] + 1;
 
-       // Derive the rotor speed
-       vector bladePoint1 = bladePoints[i][1][1] - rotorApex[i];
-       bladePoint1 /= mag(bladePoint1);
-
+       // Derive the rotor speed.
+       List<scalar> deltaAzimuth(numBl[i],0.0);
+       rotorSpeed[i] = 0.0;
+       for (int j = 0; j < numBl[i]; j++)
+       {
+           deltaAzimuth[j] = Foam::acos(Foam::max(-1.0, Foam::min( (bladePoint1[j] & bladePoint1Old[j]) / max((mag(bladePoint1[j]) * mag(bladePoint1Old[j])),1.0E-8),1.0)));
+           rotorSpeed[i] += deltaAzimuth[j]/numBl[i];
+       }
+       rotorSpeed[i] /= dt;
      //Info << "bladePoint1 = " << bladePoint1 << endl;
      //Info << "bladePoint1Old = " << bladePoint1Old << endl;
-
-       scalar deltaAzimuth = Foam::acos(Foam::max(-1.0, Foam::min( (bladePoint1 & bladePoint1Old) / (mag(bladePoint1) * mag(bladePoint1Old)),1.0)));
-
-       rotorSpeed[i] = deltaAzimuth / dt;
+     //Info << "rotorSpeed = " << rotorSpeed / rpmRadSec << endl;
    }
 
    /*
@@ -1753,6 +1781,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::getForces()
              //vector a = vector::zero;
              //a.x() = 1.0;
              //bladePointForce[i][j][k] = a;
+	     //Info << "bladePointForce[" << i << "][" << j << "][" << k << "] = " << bladePointForce[i][j][k] << endl;
                m++;
            }
        }
@@ -3803,6 +3832,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
     if (numTurbines > 0)
     {
 
+
     if(actuatorUpdateType[0] == "oldPosition")
     {
         // Find out which processor controls which actuator point,
@@ -3852,6 +3882,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
             mainShaftOrientationChange.append(Foam::mag(mainShaftOrientation[i] - mainShaftOrientationBeforeSearch[i]));
             rotorApexChange.append(Foam::mag(rotorApex[i] - rotorApexBeforeSearch[i]));
          
+
             if ((mainShaftOrientationChange[i] > 1E-4) || (rotorApexChange[i] > 1E-1))
             {
                Info << "Performing Coarse Search on Turbine " << i << endl;
@@ -3923,7 +3954,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
 
             if ((mainShaftOrientationChange[i] > 1E-5) || (rotorApexChange[i] > 1E0))
             {
-                Info << "Performing Coarse Search on Turbine " << i << endl;
+                Info << "Performing coarse body force project grid cell Search on turbine " << i << endl;
                 Info << "Turbine " << i << tab << "mainShaftOrientationChange = " << mainShaftOrientationChange[i] << endl;
                 Info << "Turbine " << i << tab << "rotorApexChange = " << rotorApexChange[i] << endl;
                 
@@ -4002,6 +4033,8 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
         bool updateBodyForce = !includeBladeBodyForceScaling[i];
 
         List<scalar> scaling = updateBladeBodyForce(i, bodyForceScalar, updateBodyForce);
+        scaling[0] = sign(scaling[0]) * max(mag(scaling[0]),1.0E-3);
+        scaling[1] = sign(scaling[1]) * max(mag(scaling[1]),1.0E-3);
 
         // if scaling will be done, get the scaling based on thrust or torque, and update the body
         // forces using this scaling and actually apply them this time.
@@ -4057,11 +4090,11 @@ void horizontalAxisWindTurbinesALMOpenFAST::update()
     // to true.
     pastFirstTimeStep = true;
 
-    Info << "mainShaftOrientation = " << mainShaftOrientation << endl;
-    Info << "mainShaftOrientationBeforeSearch = " << mainShaftOrientationBeforeSearch << endl;
+  //Info << "mainShaftOrientation = " << mainShaftOrientation << endl;
+  //Info << "mainShaftOrientationBeforeSearch = " << mainShaftOrientationBeforeSearch << endl;
 
-    Info << "rotorApex = " << rotorApex << endl;
-    Info << "rotorApexBeforeSearch = " << rotorApexBeforeSearch << endl;
+  //Info << "rotorApex = " << rotorApex << endl;
+  //Info << "rotorApexBeforeSearch = " << rotorApexBeforeSearch << endl;
     }
 }
 
