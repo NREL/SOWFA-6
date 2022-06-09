@@ -70,8 +70,11 @@ class perturbationZone
             //- Mesh pointer
             const fvMesh& mesh_;
 
-            //- Field pointer (field can be modified)
-             const volFieldType& field_;
+            //- Field pointer (field cannot be modified)
+            const volFieldType& field_;
+
+            //- Pointer to velocity field
+            const volVectorField& U_; 
 
         //- Field for storing height above the ground
         volScalarField zAgl_;
@@ -131,15 +134,18 @@ class perturbationZone
             List<vector> res_;
 
         //- The dimensions of the perturbation boxes
-            List<vector> dims_;
+            List<List<label> > dims_;
 
         //- The mode in which fluctuation magnitude is computed. Option are:
         //  --manual: User specifies max fluctuation magnitude.
         //  --Eckert: Eckert number formulation. 
-            List<word> fluctuationsMagMode_;
+            List<word> fluctuationMagMode_;
 
         //- The magnitude of the fluctuations
             List<Type> fluctuationMagnitude_;
+
+        //- Eckert number used if in Eckert fluctuation magnitude mode.
+            List<scalar> EckertNumber_;
 
         //- The points of the perturbation cell centers
             List<List<vector> > points_;
@@ -175,6 +181,12 @@ class perturbationZone
         //- Last time that the fluctuations were updated.
             List<scalar> lastUpdateTime_;
 
+        //- Average flow velocity at some height.
+            List<vector> averageVelAtHeight_;
+            
+        //- Average flow velocity over slabs of perturbation cells.
+            List<List<vector> > averageVelOverSlabs_;
+
 
     // Private Member Functions
 
@@ -193,8 +205,22 @@ class perturbationZone
         //- Create the perturbation cells (different than grid cells)
         void createPerturbationCells();
 
+        //- Identify grid cells within a perturbation zone.
+        void identifyGridCellsInZone(int m, List<label>& gridCellList);
+
         //- Identify the grid cells that lie within perturbation cells.
-        void identifyGridCells();
+        void identifyGridCellsInCellBox();
+
+        //- Identify grid cells within the perturbation zone that lie within
+        //  a certain height zone.
+        void identifyGridCellsAtHeight(int m, scalar h, List<label>& gridCellList);
+
+        //- Get average velocity of grid cells identified by identifyGridCellsAtHeight
+        void getVelocityAtHeight(int m, scalar h, vector velAvg, vector velMin, vector velMax);
+
+        //- Get the average velocity of horizontal slabs of perturbation cells, so
+        //  a list of average velocities with height
+        void getVelocityOverSlabs(int m, List<vector>& velAvg, List<vector>& velMin, List<vector>& velMax);
 
         //- Update the fluctuation values in each perturbation cell.
         void updateCellFluctuations(int m);

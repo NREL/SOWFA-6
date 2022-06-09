@@ -68,6 +68,7 @@ void Foam::perturbationZone<Type>::initialize()
     fluctuationMagMode_.setSize(nZones_);
     fluctuations_.setSize(nZones_);
     fluctuationMagnitude_.setSize(nZones_);
+    EckertNumber_.setSize(nZones_);
     updateMode_.setSize(nZones_);
     updatePeriod_.setSize(nZones_);
     applicationMode_.setSize(nZones_);
@@ -84,14 +85,14 @@ void Foam::perturbationZone<Type>::initialize()
     inputChecks();
     defineWallDist();
     createPerturbationCells();
-    identifyGridCells();
+    identifyGridCellsInCellBox();
 }
 
 
 template<class Type>
 void Foam::perturbationZone<Type>::readSubDict()
 {
-    for(int m = 0; m < nZones_; m++)
+    for (int m = 0; m < nZones_; m++)
     {
         dictionary subSubDict(subDict_.subDict(subDictList_[m]));
         
@@ -111,14 +112,19 @@ void Foam::perturbationZone<Type>::readSubDict()
     
         res_[m] = subSubDict.lookupOrDefault<vector>("resolution", vector::zero);
     
-        dims_[m] = subSubDict.lookupOrDefault<vector>("dimensions", vector::zero);
-        dims_[m].x() = int(dims_[m].x());
-        dims_[m].y() = int(dims_[m].y());
-        dims_[m].z() = int(dims_[m].z());
+        vector dimsVec = subSubDict.lookupOrDefault<vector>("dimensions", vector::zero);
+        List<label> dims;
+        for (int i = 0; i < 3; i++)
+        {
+            dims.append(label(dimsVec[i]));
+        }
+        dims_[m] = dims;
 
-        fluctautionMagMode_[m] = subSubDict.lookupOrDefault<word>("fluctuationMagnitudeMode","manual");
+        fluctuationMagMode_[m] = subSubDict.lookupOrDefault<word>("fluctuationMagnitudeMode","manual");
     
         fluctuationMagnitude_[m] = subSubDict.lookupOrDefault<Type>("fluctuationScale",Zero);
+
+        EckertNumber_[m] = subSubDict.lookupOrDefault<scalar>("EckertNumber",0.2);
 
         updateMode_[m] = subSubDict.lookupOrDefault<word>("updateMode","fixedFrequency");
         updatePeriod_[m] = subSubDict.lookupOrDefault<scalar>("updatePeriod",10.0);
@@ -132,7 +138,7 @@ void Foam::perturbationZone<Type>::readSubDict()
 template<class Type>
 void Foam::perturbationZone<Type>::inputChecks()
 {
-    for(int m = 0; m < nZones_; m++)
+    for (int m = 0; m < nZones_; m++)
     {
         dictionary subSubDict(subDict_.subDict(subDictList_[m]));
  
@@ -174,6 +180,19 @@ void Foam::perturbationZone<Type>::inputChecks()
         if (!subSubDict.found("dimensions") && !subSubDict.found("resolution"))
         {
             FatalErrorInFunction << "Must specify either perturbation zone dimensions or resolution."
+                                 << abort(FatalError);
+        }
+
+        // Do checks on fluctuation magnitude type and associated arguments.
+        if ((fluctuationMagMode_[m] == "manual") && (!subSubDict.found("fluctuationScale")))
+        {
+           FatalErrorInFunction << "Must specify fluctuationScale in 'manual' fluctuation magnitude mode."
+                                 << abort(FatalError);
+        }
+
+        if ((fluctuationMagMode_[m] == "Eckert") && (!subSubDict.found("EckertNumber")))
+        {
+           FatalErrorInFunction << "Must specify EckertNumber in 'Eckert' fluctuation magnitude mode."
                                  << abort(FatalError);
         }
     }
@@ -319,19 +338,19 @@ void Foam::perturbationZone<Type>::createPerturbationCells()
     
         if (!subSubDict.found("dimensions") && subSubDict.found("resolution"))
         {
-            dims_[m].x() = int(round(xLength/res_[m].x()));
-            dims_[m].y() = int(round(yLength/res_[m].y()));
-            dims_[m].z() = int(round(zLength/res_[m].z()));
+            dims_[m][0] = label(round(xLength/res_[m].x()));
+            dims_[m][1] = label(round(yLength/res_[m].y()));
+            dims_[m][2] = label(round(zLength/res_[m].z()));
         }
-        res_[m].x() = xLength/dims_[m].x();
-        res_[m].y() = yLength/dims_[m].y();
-        res_[m].z() = zLength/dims_[m].z();
+        res_[m].x() = xLength/dims_[m][0];
+        res_[m].y() = yLength/dims_[m][1];
+        res_[m].z() = zLength/dims_[m][2];
     
         
     
         // Build out the list of perturbation cell centers in the perturbation zone local
         // coordinate system.  Ultimately, create the bounding box for each cell.
-        label nPoints = dims_[m].x() * dims_[m].y() * dims_[m].z();
+        label nPoints = dims_[m][0] * dims_[m][1] * dims_[m][2];
     
         List<vector> points(nPoints,vector::zero);
         List<boundBox> cellBox(nPoints);
@@ -340,11 +359,11 @@ void Foam::perturbationZone<Type>::createPerturbationCells()
     
         int ii = 0;
         
-        for (int k = 0; k < dims_[m].z(); k++)
+        for (int k = 0; k < dims_[m][2]; k++)
         {
-            for (int j = 0; j < dims_[m].y(); j++)
+            for (int j = 0; j < dims_[m][1]; j++)
             {
-                for (int i = 0; i < dims_[m].x(); i++)
+                for (int i = 0; i < dims_[m][0]; i++)
                 {
                     vector d(i*res_[m].x(), j*res_[m].y(), k*res_[m].z());
                     points[ii] = boxOrigin_[m] + dby2 + d;
@@ -387,32 +406,41 @@ void Foam::perturbationZone<Type>::createPerturbationCells()
 
 
 template<class Type>
-void Foam::perturbationZone<Type>::identifyGridCells()
+void Foam::perturbationZone<Type>::identifyGridCellsInZone(int m, List<label>& gridCellList)
+{
+    // The perturbations cells are defined in a local coordinate system, so rotate 
+    // the mesh cell points into this local coordinate system.  Also, if desired, make 
+    // the mesh cell height, height above ground.
+    forAll(mesh_.C(),j)
+    {
+        vector meshPoint = mesh_.C()[j];
+        if (useWallDist_[m])
+        {
+            meshPoint.z() = zAgl_[j];
+        }
+        meshPoint = transformGlobalCartToLocalCart(meshPoint,boxVec_i_[m],boxVec_j_[m],boxVec_k_[m]);
+        if (zoneBox_[m].contains(meshPoint))
+        {
+            gridCellList.append(j);
+        }
+    }
+}
+
+
+
+template<class Type>
+void Foam::perturbationZone<Type>::identifyGridCellsInCellBox()
 {
 
     // Find the mesh cells contained within the perturbation cells using the 
-    // bounding box functionality.  The perturbations cells are defined in a local
-    // coordinate system, so rotate the mesh cell points into this local coordinate
-    // system.  Also, if desired, make the mesh cell height, height above ground.  
+    // bounding box functionality.
     for (int m = 0; m < nZones_; m++)
     {
         // To speed things up, start with a coarse search.  Get the collection of all
         // grid cells that lie within this perturbation zone.
         Info << "zoneBox_[" << m << "] = " << zoneBox_[m] << endl;
         List<label> gridCellsInZone;
-        forAll(mesh_.C(),j)
-        {
-            vector meshPoint = mesh_.C()[j];
-            if (useWallDist_[m])
-            {
-                meshPoint.z() = zAgl_[j];
-            }
-            meshPoint = transformGlobalCartToLocalCart(meshPoint,boxVec_i_[m],boxVec_j_[m],boxVec_k_[m]);
-            if (zoneBox_[m].contains(meshPoint))
-            {
-                gridCellsInZone.append(j);
-            }
-        }
+        identifyGridCellsInZone(m, gridCellsInZone);
         
         // Now do a finer search to find the grid cells contained in each perturbation box.
         List<List<label> > gridCellsInCellBox_zone;
@@ -446,6 +474,160 @@ void Foam::perturbationZone<Type>::identifyGridCells()
 
 
 template<class Type>
+void Foam::perturbationZone<Type>::identifyGridCellsAtHeight(int m, scalar h, List<label>& gridCellList)
+{
+    // Get all the grid cells in this zone.
+    List<label> gridCellsInZone;
+    identifyGridCellsInZone(m, gridCellsInZone);
+
+    // Find the grid cells within a certain height band (the height can be absolute or 
+    // relative to the ground).  The first guess at a band width that will capture cell
+    // centers is some estimate of grid cell height, which we will approximate as the
+    // cube-root of the smallest cell volume in the list of cells.  We successively
+    // double the bandwidth until grid cells are captured.
+
+    // Set the initial bandwidth.
+    scalar bandWidth = great;
+    forAll(gridCellsInZone, j)
+    {
+        label jj = gridCellsInZone[j];
+        scalar l = Foam::cbrt(mesh_.V()[jj]);
+        if (l < bandWidth)
+        {
+            bandWidth = l;
+        }
+    }
+    Info << "bandWidth = " << bandWidth << endl;
+
+    // Search for grid cells within the height band.
+    int i = 0;
+    while (gridCellList.size() == 0)
+    {
+      //Info << i << endl;
+        i++;
+        forAll(gridCellsInZone, j)
+        {
+            label jj = gridCellsInZone[j];
+            vector meshPoint = mesh_.C()[jj];
+            if (useWallDist_[m])
+            {
+                meshPoint.z() = zAgl_[jj];
+            }
+            if ((meshPoint.z() < h + 0.5*bandWidth) && (meshPoint.z() > h - 0.5*bandWidth))
+            {
+                gridCellList.append(jj);
+            }
+        }
+        bandWidth *= 2.0;
+    }
+}
+
+
+
+template<class Type>
+void Foam::perturbationZone<Type>::getVelocityAtHeight(int m, 
+                                                       scalar h, 
+                                                       vector velAvg, 
+                                                       vector velMin, 
+                                                       vector velMax)
+{
+    Info << "In getVelocityAtHeight..." << endl;
+    // Get the list of grid cells at the desired height.
+    List<label> gridCellList;
+    identifyGridCellsAtHeight(m,h,gridCellList);
+
+    // Do the volume-weighted average and the minimum and maximum magnitude
+    // velocities over the identified cells.  Parallel reduce these because the cells
+    // at height are usually spread across processors.
+    scalar totalVol = 0.0;
+    velAvg = vector::zero;
+    velMin = great*vector::one;
+    velMax = vector::zero;
+
+    // Processor local quantities
+    forAll(gridCellList,j)
+    {
+        label jj = gridCellList[j];
+
+        velAvg += U_[jj]*mesh_.V()[jj];
+        totalVol += mesh_.V()[jj];
+        
+        velMin = (Foam::magSqr(U_[jj]) < Foam::magSqr(velMin)) ? U_[jj] : velMin;  
+
+        velMax = (Foam::magSqr(U_[jj]) > Foam::magSqr(velMax)) ? U_[jj] : velMax;
+    }
+
+    // Parallel reduce.
+    reduce(velAvg, sumOp<vector>());
+    reduce(totalVol, sumOp<scalar>());
+    velAvg /= totalVol;
+
+    reduce(velMin, minMagSqrOp<vector>());
+
+    reduce(velMax, maxMagSqrOp<vector>());
+
+    Info << "height = " << h << endl;
+    Info << "velAvg = " << velAvg << endl;
+    Info << "velMin = " << velMin << endl;
+    Info << "velMax = " << velMax << endl;
+}
+
+
+
+template<class Type>
+void Foam::perturbationZone<Type>::getVelocityOverSlabs(int m, 
+                                                        List<vector>& velAvg, 
+                                                        List<vector>& velMin, 
+                                                        List<vector>& velMax)
+{
+    Info << "in getVelocityOverSlabs()..." << endl;
+
+    List<scalar> totalVol(dims_[m][2],0.0);
+
+    // Processor local quantities.
+    int ii = 0;
+    for (int k = 0; k < dims_[m][2]; k++)
+    {
+        velAvg.append(vector::zero);
+        velMin.append(great*vector::one);
+        velMax.append(vector::zero);
+        for (int j = 0; j < dims_[m][1]; j++)
+        {
+            for (int i = 0; i < dims_[m][0]; i++)
+            {
+                forAll(gridCellsInCellBox_[m][ii],n)
+                {
+                    label jj = gridCellsInCellBox_[m][ii][n];
+
+                    velAvg[k] += U_[jj]*mesh_.V()[jj];
+                    totalVol[k] += mesh_.V()[jj];
+
+                    velMin[k] = (Foam::magSqr(U_[jj]) < Foam::magSqr(velMin[k])) ? U_[jj] : velMin[k];
+
+                    velMax[k] = (Foam::magSqr(U_[jj]) > Foam::magSqr(velMax[k])) ? U_[jj] : velMax[k];
+                }
+                ii++;
+            }
+        }
+    }
+
+    // Parallel reduce.
+    reduce(velAvg, sumOp<List<vector> >());
+    reduce(totalVol, sumOp<List<scalar> >());
+    for (int k = 0; k < dims_[m][2]; k++)
+    {
+        velAvg[k] /= totalVol[k];
+        reduce(velMin[k], minMagSqrOp<vector>());
+        reduce(velMax[k], maxMagSqrOp<vector>());
+    }
+    Info << "velAvg = " << velAvg;
+    Info << "velMin = " << velMin;
+    Info << "velMax = " << velMax;
+}
+
+
+
+template<class Type>
 void Foam::perturbationZone<Type>::updateCellFluctuations(int m)
 {
     // Populate all perturbation cells with random fluctuation values. The
@@ -455,7 +637,7 @@ void Foam::perturbationZone<Type>::updateCellFluctuations(int m)
 
     // Initialize a list of fluctuations to zero for every perturbation 
     // cell.
-    label nPoints = dims_[m].x() * dims_[m].y() * dims_[m].z();
+    label nPoints = dims_[m][0] * dims_[m][1] * dims_[m][2];
     List<Type> fluctuations(nPoints,Zero);
 
     // To assure that all processors have a consistent fluctuation list,
@@ -552,6 +734,9 @@ void Foam::perturbationZone<Type>::update()
 {
     // Get current time and time since last perturbation update.
     scalar t = runTime_.value();
+    Info << "Perturbation Zone Update..." << endl;
+    Info << "t = " << t << endl;
+    Info << "nZones = " << nZones_ << endl;
 
 
     // Loop over perturbation zones.
@@ -603,6 +788,17 @@ void Foam::perturbationZone<Type>::update()
                 zeroPerturbationField(m);
             }
         }
+        List<vector> velAvg;
+        List<vector> velMin;
+        List<vector> velMax;
+        getVelocityOverSlabs(m,velAvg,velMin,velMax);
+        vector a;
+        vector b;
+        vector c;
+        getVelocityAtHeight(m,120.0,a,b,c);
+        getVelocityAtHeight(m,130.0,a,b,c);
+        getVelocityAtHeight(m,139.0,a,b,c);
+        getVelocityAtHeight(m,140.0,a,b,c);
     }
 }
 
@@ -626,6 +822,9 @@ Foam::perturbationZone<Type>::perturbationZone
 
     // Set the pointer to the field being perturbed
     field_(field),
+
+    // Set the pointer to the velocity field
+    U_(field.db().objectRegistry::lookupObject<volVectorField>("U")),
 
     // Set the heigh above ground as first absolute height.
     zAgl_(mesh_.C() & vector(0,0,1)),
