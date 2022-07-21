@@ -234,7 +234,7 @@
 
 
 
-// GET PRESSURE REFERENCE LOCATION/HANDLING SET    
+// SET UP PRESSURE REFERENCE LOCATION/HANDLING
     // This switch dictates whether or not the pressure reference cell is set explicitly
     // in the p_rgh solve.  If true, pressure is constrained at the pressure reference
     // cell by manipulating the matrix row for that cell to remove the null space.  This
@@ -244,47 +244,60 @@
     // even with a null space, but more iterations may be needed, so this switch can be
     // set to false.
     bool activatePressureRefCell(pimple.dict().lookupOrDefault<bool>("activatePressureRefCell", true));
-    if (activatePressureRefCell)
-    {
-         Info << "Pressure reference cell matrix row modification enabled" << endl;
-    }
-    else
-    {
-         Info << "Pressure reference cell matrix row modification NOT enabled" << endl;
-    }
-    
-    
-    // Deal with reference pressure level.
-    Info << "Setting reference pressure level" << endl;
     label pRefCell = 0;
     scalar pRefValue = 0.0;
-    setRefCell
-    (
-        p,
-        p_rgh,
-        pimple.dict(),
-        pRefCell,
-        pRefValue,
-        true
-    );
-    
-    
-    // Find the height of the pressure reference cell
     vector hRef_ = vector::zero;
-    label pRefCellGlobal = 0;
-    label pRefCellProc = 0;
-    if (pRefCell != -1)
-    {
-        hRef_ = mesh.C()[pRefCell];
-        pRefCellGlobal = pRefCell;
-        pRefCellProc = Pstream::myProcNo();
-    }
-    reduce(hRef_,sumOp<vector>());
-    reduce(pRefCellGlobal,sumOp<label>());
-    reduce(pRefCellProc,sumOp<label>());
     dimensionedVector hRef("hRef",dimLength,hRef_);
-    Info << "Pressure reference location is " << hRef.value() << " m at cell " << pRefCellGlobal << " on processor " << pRefCellProc << endl;
 
+    if (p_rgh.needReference())
+    {
+        Info << "Pressure reference needed in this case" << endl;
+
+
+        if (activatePressureRefCell)
+        {
+             Info << "Pressure reference cell matrix row modification enabled" << endl;
+        }
+        else
+        {
+             Info << "Pressure reference cell matrix row modification NOT enabled" << endl;
+        }
+        
+        
+        // Deal with reference pressure level. (When calling setRefCell, do NOT set the 
+        // last argument to true!!!)
+        Info << "Setting reference pressure level" << endl;
+        setRefCell
+        (
+            p,
+            p_rgh,
+            pimple.dict(),
+            pRefCell,
+            pRefValue
+      //    true
+        );
+        
+        
+        // Find the height of the pressure reference cell
+        label pRefCellGlobal = 0;
+        label pRefCellProc = 0;
+        if (pRefCell != -1)
+        {
+            hRef_ = mesh.C()[pRefCell];
+            pRefCellGlobal = pRefCell;
+            pRefCellProc = Pstream::myProcNo();
+        }
+        reduce(hRef_,sumOp<vector>());
+        reduce(pRefCellGlobal,sumOp<label>());
+        reduce(pRefCellProc,sumOp<label>());
+        hRef.value() = hRef_;
+        Info << "Pressure reference location is " << hRef.value() << " m at cell " << pRefCellGlobal << " on processor " << pRefCellProc << endl;
+    }
+
+    else 
+    {
+        Info << "Pressure reference NOT needed in this case" << endl;
+    }
 
 
 
