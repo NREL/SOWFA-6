@@ -627,6 +627,7 @@ void Foam::perturbationZone<Type>::getVelocityOverSlabs(int m,
 
 
 
+
 template<class Type>
 void Foam::perturbationZone<Type>::updateCellFluctuations(int m)
 {
@@ -648,15 +649,55 @@ void Foam::perturbationZone<Type>::updateCellFluctuations(int m)
     // the number down so that the set is centered upon zero.
     if (Pstream::master())
     {
-        forAll(fluctuations,i)
+        forAll(fluctuations,ii)
         {
-            fluctuations[i] = cmptMultiply(fluctuationMagnitude_[m],
+            fluctuations[ii] = cmptMultiply(fluctuationMagnitude_[m],
                                           (randGen_.sample01<Type>() - 0.5*pTraits<Type>::one));
         }
     }
 
     reduce(fluctuations, sumOp<List<Type> >());  
     fluctuations_[m] = fluctuations;
+}
+
+
+
+template<class Type>
+void Foam::perturbationZone<Type>::updateCellFluctuations(int m, int k)
+{
+    // Populate perturbation cells in one slab with random fluctuation values.
+    // The fluctuations are of Type, so they will have fluctuations on all
+    // n dimensions of Type.  The perturbations are created with the 
+    // built-in random number generator.
+
+    // Initialize a list of fluctuations to zero for every perturbation 
+    // cell.
+    label nPoints = dims_[m][0] * dims_[m][1];
+    List<Type> fluctuations(nPoints,Zero);
+
+    // To assure that all processors have a consistent fluctuation list,
+    // only the master calls the random number generator, and then the
+    // result is parallel communicated.  The fluctuation is created by
+    // creating a random number from a set uniformly distributed between
+    // 0 and 1, multiplying it by a fluctuation magnitude, and then shifting
+    // the number down so that the set is centered upon zero.
+    if (Pstream::master())
+    {
+        forAll(fluctuations,ii)
+        {
+            fluctuations[ii] = cmptMultiply(fluctuationMagnitude_[m],
+                                          (randGen_.sample01<Type>() - 0.5*pTraits<Type>::one));
+        }
+    }
+
+    reduce(fluctuations, sumOp<List<Type> >());  
+
+    int iii = 0;
+    for (int ii = k*nPoints; ii < (k+1)*nPoints; ii++)
+    {
+        fluctuations_[m][ii] = fluctuations[iii];
+        iii++;
+    }
 }
 
 
@@ -747,7 +788,26 @@ void Foam::perturbationZone<Type>::update()
 
         // For now, the only mode is fixed frequency update.  Each
         // zone can update at its own frequency, though.
-        if (updateMode_[m] == "fixedFrequency")
+        if (updateMode_[m] == "windAtHeight")
+        {
+        List<vector> velAvg;
+        List<vector> velMin;
+        List<vector> velMax;
+        getVelocityOverSlabs(m,velAvg,velMin,velMax);
+        vector a;
+        vector b;
+        vector c;
+        getVelocityAtHeight(m,120.0,a,b,c);
+        getVelocityAtHeight(m,130.0,a,b,c);
+        getVelocityAtHeight(m,139.0,a,b,c);
+        getVelocityAtHeight(m,140.0,a,b,c);
+            
+        }
+        else if (updateMode_[m] == "slabLocalWind")
+        {
+            // Not implemented yet.
+        }
+        else //revert to fixedFrequency
         {
             // If it is time to update the perturbation, update the
             // random numbers.  If we are directly perturbing the field
@@ -788,17 +848,6 @@ void Foam::perturbationZone<Type>::update()
                 zeroPerturbationField(m);
             }
         }
-        List<vector> velAvg;
-        List<vector> velMin;
-        List<vector> velMax;
-        getVelocityOverSlabs(m,velAvg,velMin,velMax);
-        vector a;
-        vector b;
-        vector c;
-        getVelocityAtHeight(m,120.0,a,b,c);
-        getVelocityAtHeight(m,130.0,a,b,c);
-        getVelocityAtHeight(m,139.0,a,b,c);
-        getVelocityAtHeight(m,140.0,a,b,c);
     }
 }
 

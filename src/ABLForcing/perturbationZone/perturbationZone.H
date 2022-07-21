@@ -162,10 +162,16 @@ class perturbationZone
         //- The perturbation cell fluctuation field
             List<List<Type> > fluctuations_;
 
-        //- The mode that the fluctuations update in time (for now, the
-        //  only option is "fixedFrequency", but we will add an option
-        //  to do this based on mean horizontal flow speed and zone
-        //  thickness.
+        //- The mode that the fluctuations update in time.
+        //  Options are:
+        //     - "fixedFrequency" Entire perturbation field is updated at the rate dictated by 'updatePeriod'.
+        //     - "windAtHeight"   Entire perturbation field is updated together at a rate based on a
+        //                        horizontal wind vector sampled at some height and the horizontal 
+        //                        size of the perturbation zone (i.e., the time for the flow to traverse
+        //                        the perturbation zone at some height.
+        //     - "slabLocalWind"  Every horizontal perturbation slab is updated independently at a rate
+        //                        based on the horizontal wind vector and horizontal size of the 
+        //                        perturbation slab (i.e., local flow through time per slab)
             List<word> updateMode_;
 
         //- Update period.  If "updateMode" is "fixedFrequency", this is
@@ -222,8 +228,10 @@ class perturbationZone
         //  a list of average velocities with height
         void getVelocityOverSlabs(int m, List<vector>& velAvg, List<vector>& velMin, List<vector>& velMax);
 
-        //- Update the fluctuation values in each perturbation cell.
+        //- Update the fluctuation values in each perturbation cell.  The second version allows
+        //  the update of only horizontal slab at height k.
         void updateCellFluctuations(int m);
+        void updateCellFluctuations(int m, int k);
 
         //- Update the source term such that it will change the field by the
         //  specified fluctuation field in one time step.
