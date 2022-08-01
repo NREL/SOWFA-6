@@ -174,6 +174,11 @@ class perturbationZone
         //                        perturbation slab (i.e., local flow through time per slab)
             List<word> updateMode_;
 
+        //- Height at which to measure wind velocity for determining update frequency if 
+        //  "updateMode" is "windAtHeight."  This is a table of height versus time, for example,
+        //  if you want to have the height follow a time-varying boundary-layer height.
+            List<autoPtr<Function1<scalar> > > windSamplingHeight_;
+
         //- Update period.  If "updateMode" is "fixedFrequency", this is
         //  the update period in seconds.
             List<scalar> updatePeriod_;

@@ -71,6 +71,7 @@ void Foam::perturbationZone<Type>::initialize()
     EckertNumber_.setSize(nZones_);
     updateMode_.setSize(nZones_);
     updatePeriod_.setSize(nZones_);
+    windSamplingHeight_.setSize(nZones_);
     applicationMode_.setSize(nZones_);
     lastUpdateTime_.setSize(nZones_,runTime_.value());
 
