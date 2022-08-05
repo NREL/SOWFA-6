@@ -6,6 +6,9 @@ wclean src/TurbulenceModels/incompressible
 wclean src/TurbulenceModels/turbulenceModels
 
 
+# Misc tools
+wclean src/miscTools
+
 
 # Custom boundary conditions.
 wclean src/boundaryConditions

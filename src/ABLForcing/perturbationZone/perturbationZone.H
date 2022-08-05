@@ -98,6 +98,9 @@ class perturbationZone
         //- Number of perturbation zones.
         label nZones_;
 
+        //- Current time.
+        scalar t_;
+
         //- Defines how the zones location is defined, choices are:
         //     -boundary: a zone adjacent to and touching a given boundary.
         //     -arbitraryBox: a box zone that is stand-alone in the domain.
@@ -138,7 +141,9 @@ class perturbationZone
 
         //- The mode in which fluctuation magnitude is computed. Option are:
         //  --manual: User specifies max fluctuation magnitude.
-        //  --Eckert: Eckert number formulation. 
+        //  --Eckert: Eckert number formulation as outlined in Munoz-Esparza
+        //            et al., Physics of Fluids, 27, 035102, 2015.
+        //            https://doi.org/10.1063/1.4913572
             List<word> fluctuationMagMode_;
 
         //- The magnitude of the fluctuations
@@ -164,24 +169,32 @@ class perturbationZone
 
         //- The mode that the fluctuations update in time.
         //  Options are:
-        //     - "fixedFrequency" Entire perturbation field is updated at the rate dictated by 'updatePeriod'.
-        //     - "windAtHeight"   Entire perturbation field is updated together at a rate based on a
-        //                        horizontal wind vector sampled at some height and the horizontal 
-        //                        size of the perturbation zone (i.e., the time for the flow to traverse
-        //                        the perturbation zone at some height.
-        //     - "slabLocalWind"  Every horizontal perturbation slab is updated independently at a rate
-        //                        based on the horizontal wind vector and horizontal size of the 
-        //                        perturbation slab (i.e., local flow through time per slab)
+        //     - "fixedFrequency"  Entire perturbation field is updated at the rate dictated by 'updatePeriod'.
+        //     - "maxWind"         Entire perturbation field is updated at a rate based on the maximum
+        //                         horizontal wind vector in the perturbation zone (or below 2/3 PBL height 
+        //                         if 'clipAtTwoThirdsPBLHeight' is true) and the horizontal size of the 
+        //                         perturbation zone (i.e., the minimum time for the flow to traverse the
+        //                         perturbation zone).
+        //     - "windAtPBLHeight" Entire perturbation field is updated at a rate based on a the horizontal
+        //                         wind vector sampled at PBL height and the horizontal size of the 
+        //                         perturbation zone (i.e., the time for the flow to traverse the perturbation
+        //                         zone at some height).
+        //     - "slabLocalWind"   Every horizontal perturbation slab is updated independently at a rate
+        //                         based on the horizontal wind vector and horizontal size of the 
+        //                         perturbation slab (i.e., local flow through time per slab)
             List<word> updateMode_;
 
         //- Height at which to measure wind velocity for determining update frequency if 
         //  "updateMode" is "windAtHeight."  This is a table of height versus time, for example,
         //  if you want to have the height follow a time-varying boundary-layer height.
-            List<autoPtr<Function1<scalar> > > windSamplingHeight_;
+            List<autoPtr<Function1<scalar> > > PBLHeight_;
 
         //- Update period.  If "updateMode" is "fixedFrequency", this is
-        //  the update period in seconds.
+        //  the update period in seconds.  If each perturbation slab is updated 
+        //  independently, updatePeriodSlab_ is used to store the update
+        //  periods.
             List<scalar> updatePeriod_;
+            List<List<scalar> > updatePeriodSlab_;
 
         //- This dictates how the field is updated.  Options are:
         //  --direct: the perturbations are directly added to the field.
@@ -189,8 +202,14 @@ class perturbationZone
         //                term in the corresponding governing equations RHS.
             List<word> applicationMode_;
 
-        //- Last time that the fluctuations were updated.
+        //- Clip the perturbations to zero magnitude above 2/3 PBL height.
+            List<bool> clipAtTwoThirdsPBLHeight_;
+
+        //- Last time that the fluctuations were updated.  If each perturbation slab is
+        //  updated independently, lastUpdateTimeSlab_ is used to store
+        //  the last update time.
             List<scalar> lastUpdateTime_;
+            List<List<scalar> > lastUpdateTimeSlab_;
 
         //- Average flow velocity at some height.
             List<vector> averageVelAtHeight_;
@@ -227,7 +246,10 @@ class perturbationZone
         void identifyGridCellsAtHeight(int m, scalar h, List<label>& gridCellList);
 
         //- Get average velocity of grid cells identified by identifyGridCellsAtHeight
-        void getVelocityAtHeight(int m, scalar h, vector velAvg, vector velMin, vector velMax);
+        void getVelocityAtHeight(int m, scalar h, vector& velAvg, vector& velMin, vector& velMax);
+
+        //- Get average velocity of grid cells in the entire perturbation zone
+        void getVelocityInZone(int m, vector& velAvg, vector& velMin, vector& velMax);
 
         //- Get the average velocity of horizontal slabs of perturbation cells, so
         //  a list of average velocities with height
@@ -235,21 +257,20 @@ class perturbationZone
 
         //- Update the fluctuation values in each perturbation cell.  The second version allows
         //  the update of only horizontal slab at height k.
-        void updateCellFluctuations(int m);
-        void updateCellFluctuations(int m, int k);
+        void updateCellFluctuations(int m, int k = -1);
 
         //- Update the source term such that it will change the field by the
         //  specified fluctuation field in one time step.
-        void updateSourceTerm(int m);
+        void updateSourceTerm(int m, int k = -1);
 
         //- Zero the source term in perturbation zone m.
-        void zeroSourceTerm(int m);
+        void zeroSourceTerm(int m, int k = -1);
 
         //- Update the perturbation field.
-        void updatePerturbationField(int m);
+        void updatePerturbationField(int m, int k = -1);
 
         //- Zero the perturbation field.
-        void zeroPerturbationField(int m);
+        void zeroPerturbationField(int m, int k = -1);
 
 
 
