@@ -565,7 +565,6 @@ void Foam::perturbationZone<Type>::identifyGridCellsAtHeight(int m, scalar h, Li
     {
         while (gridCellList.size() == 0)
         {
-            Info << i << endl;
             i++;
             forAll(gridCellsInZone, j)
             {
@@ -593,7 +592,7 @@ void Foam::perturbationZone<Type>::getVelocityInZone(int m,
                                                      vector& velMin,
                                                      vector& velMax)
 {
-    Info << "In getVelocityInZone..." << endl;
+  //Info << "In getVelocityInZone..." << endl;
 
     // Get the current PBL height.
     scalar PBLHeightCurrent = (clipAtTwoThirdsPBLHeight_[m]) ? PBLHeight_[m]->value(t_) : 1.0E15;
@@ -619,7 +618,7 @@ void Foam::perturbationZone<Type>::getVelocityInZone(int m,
             if (h <= (2.0/3.0)*PBLHeightCurrent)
             {
                 vector Uh = U_[jj];
-                Uh.z() == 0.0;
+                Uh.z() = 0.0;
 
                 velAvg += Uh*mesh_.V()[jj];
                 totalVol += mesh_.V()[jj];
@@ -640,9 +639,9 @@ void Foam::perturbationZone<Type>::getVelocityInZone(int m,
 
     reduce(velMax, maxMagSqrOp<vector>());
 
-    Info << "velAvg = " << velAvg << endl;
-    Info << "velMin = " << velMin << endl;
-    Info << "velMax = " << velMax << endl;
+  //Info << "velAvg = " << velAvg << endl;
+  //Info << "velMin = " << velMin << endl;
+  //Info << "velMax = " << velMax << endl;
 }
 
 
@@ -654,7 +653,7 @@ void Foam::perturbationZone<Type>::getVelocityAtHeight(int m,
                                                        vector& velMin, 
                                                        vector& velMax)
 {
-    Info << "In getVelocityAtHeight..." << endl;
+  //Info << "In getVelocityAtHeight..." << endl;
     // Get the list of grid cells at the desired height.
     List<label> gridCellList;
     identifyGridCellsAtHeight(m,h,gridCellList);
@@ -673,7 +672,7 @@ void Foam::perturbationZone<Type>::getVelocityAtHeight(int m,
         label jj = gridCellList[j];
 
         vector Uh = U_[jj];
-        Uh.z() == 0.0;
+        Uh.z() = 0.0;
 
         velAvg += Uh*mesh_.V()[jj];
         totalVol += mesh_.V()[jj];
@@ -692,10 +691,10 @@ void Foam::perturbationZone<Type>::getVelocityAtHeight(int m,
 
     reduce(velMax, maxMagSqrOp<vector>());
 
-    Info << "height = " << h << endl;
-    Info << "velAvg = " << velAvg << endl;
-    Info << "velMin = " << velMin << endl;
-    Info << "velMax = " << velMax << endl;
+  //Info << "height = " << h << endl;
+  //Info << "velAvg = " << velAvg << endl;
+  //Info << "velMin = " << velMin << endl;
+  //Info << "velMax = " << velMax << endl;
 }
 
 
@@ -726,7 +725,7 @@ void Foam::perturbationZone<Type>::getVelocityOverSlabs(int m,
                     label jj = gridCellsInCellBox_[m][ii][n];
 
                     vector Uh = U_[jj];
-                    Uh.z() == 0.0;
+                    Uh.z() = 0.0;
 
                     velAvg[k] += Uh*mesh_.V()[jj];
                     totalVol[k] += mesh_.V()[jj];
@@ -838,16 +837,15 @@ void Foam::perturbationZone<Type>::updateCellFluctuations(int m, int k)
 template<class Type>
 void Foam::perturbationZone<Type>::updateSourceTerm(int m, int k)
 {
+    // Figure out which perturbation cells are to be modified.
+    label nPoints = dims_[m][0] * dims_[m][1];
+    label kStart = (k == -1) ? 0 : k;
+    label kEnd = (k == -1) ? dims_[m][2] : k+1;
+
     // Populate the source term field with values such that if the source term
     // is placed on the RHS of the governing equation, the field will update
     // by the perturbed value over one time step.
     scalar dt = runTime_.deltaT().value();
-
-    label nPoints = dims_[m][0] * dims_[m][1];
-    nPoints = (k == -1) ? nPoints * dims_[m][2] : nPoints;
-    label kStart = (k == -1) ? 0 : k;
-    label kEnd = (k == -1) ? dims_[m][2] : k+1;
-
     for (int i = kStart*nPoints; i < kEnd*nPoints; i++)
     {
         forAll(gridCellsInCellBox_[m][i],j)
@@ -863,13 +861,12 @@ void Foam::perturbationZone<Type>::updateSourceTerm(int m, int k)
 template<class Type>
 void Foam::perturbationZone<Type>::zeroSourceTerm(int m, int k)
 {
-    // Zero out the source term.
-
+    // Figure out which perturbation cells are to be modified.
     label nPoints = dims_[m][0] * dims_[m][1];
-    nPoints = (k == -1) ? nPoints * dims_[m][2] : nPoints;
     label kStart = (k == -1) ? 0 : k;
     label kEnd = (k == -1) ? dims_[m][2] : k+1;
 
+    // Zero out the source term.
     for (int i = kStart*nPoints; i < kEnd*nPoints; i++)
     {
         forAll(gridCellsInCellBox_[m][i],j)
@@ -885,13 +882,12 @@ void Foam::perturbationZone<Type>::zeroSourceTerm(int m, int k)
 template<class Type>
 void Foam::perturbationZone<Type>::updatePerturbationField(int m, int k)
 {
-    // Populate the perturbation field that can be directly added to the field.
-
+    // Figure out which perturbation cells are to be modified.
     label nPoints = dims_[m][0] * dims_[m][1];
-    nPoints = (k == -1) ? nPoints * dims_[m][2] : nPoints;
     label kStart = (k == -1) ? 0 : k;
     label kEnd = (k == -1) ? dims_[m][2] : k+1;
 
+    // Populate the perturbation field that can be directly added to the field.
     for (int i = kStart*nPoints; i < kEnd*nPoints; i++)
     {
         forAll(gridCellsInCellBox_[m][i],j)
@@ -907,13 +903,12 @@ void Foam::perturbationZone<Type>::updatePerturbationField(int m, int k)
 template<class Type>
 void Foam::perturbationZone<Type>::zeroPerturbationField(int m, int k)
 {
-    // Zero out the perturbation field.
-
+    // Figure out which perturbation cells are to be modified.
     label nPoints = dims_[m][0] * dims_[m][1];
-    nPoints = (k == -1) ? nPoints * dims_[m][2] : nPoints;
     label kStart = (k == -1) ? 0 : k;
     label kEnd = (k == -1) ? dims_[m][2] : k+1;
 
+    // Zero out the perturbation field.
     for (int i = kStart*nPoints; i < kEnd*nPoints; i++)
     {
         forAll(gridCellsInCellBox_[m][i],j)
@@ -1004,6 +999,7 @@ void Foam::perturbationZone<Type>::update()
                 zeroSourceTerm(m);
                 zeroPerturbationField(m);
             }
+            Info << updatePeriod_[m] << endl;
         }
         else if (updateMode_[m] == "slabLocalWind")
         {
@@ -1028,7 +1024,7 @@ void Foam::perturbationZone<Type>::update()
                     vector vel = velAvg[k];
 
                     Info << "updatePeriod = " << updatePeriodSlab_[m][k] << endl;
-                    updatePeriodSlab_[m] = mag_d/(max(mag(vel & n),1.0E-6)*sign(vel & n));
+                    updatePeriodSlab_[m][k] = mag_d/(max(mag(vel & n),1.0E-6)*sign(vel & n));
 
                     Info << "vel = " << vel << tab << "d = " << d << tab << "mag(d) = " << mag_d << tab << "(vel & n) = " << (vel & n) << endl;
                     Info << "updatePeriod = " << updatePeriodSlab_[m][k] << endl;       
@@ -1062,6 +1058,7 @@ void Foam::perturbationZone<Type>::update()
                     zeroPerturbationField(m,k);
                 }
             }
+          //Info << updatePeriodSlab_[m] << endl;
         }
     }
 }
