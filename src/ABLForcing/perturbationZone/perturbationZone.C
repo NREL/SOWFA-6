@@ -782,7 +782,7 @@ void Foam::perturbationZone<Type>::updateCellFluctuations(int m, int k)
         scalar rho = 1.225; 
         scalar cp = 1004.0;
         
-        fluctuationMagnitude_[m] = mag(velAvg)/(rho*cp*EckertNumber_[m]) * pTraits<Type>::one;
+        fluctuationMagnitude_[m] = magSqr(velAvg)/(rho*cp*EckertNumber_[m]) * pTraits<Type>::one;
 
         Info << "Eckert Fluctuation Magnitude = " << fluctuationMagnitude_[m] << endl;
     }
