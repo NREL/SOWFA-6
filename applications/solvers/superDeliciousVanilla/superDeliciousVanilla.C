@@ -47,6 +47,7 @@ Description
 #include "fvOptions.H"
 #include "pimpleControl.H"
 #include "ABL.H"
+#include "adjustPhiExtended.H"
 #include "horizontalAxisWindTurbinesALMOpenFAST.H"
 
 

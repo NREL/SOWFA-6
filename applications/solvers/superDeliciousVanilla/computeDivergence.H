@@ -23,8 +23,8 @@
     scalar globalSumAreaBoundary = 0.0;
     forAll(phi.boundaryField(), patchi)
     {
-        if ( !mesh.boundary()[patchi].coupled() )
-        {
+      //if ( !mesh.boundary()[patchi].coupled() )
+      //{
             word boundaryName = mesh.boundary()[patchi].name();
             scalar sumPhiBoundary = 0.0;
             scalar sumAreaBoundary = 0.0;
@@ -42,7 +42,7 @@
             globalSumAreaBoundary += sumAreaBoundary;
 
             Info << "       " << boundaryName << " - flux: " << sumPhiBoundary << tab << "/ area: " << sumAreaBoundary << endl;
-        }
+      //}
     }
 
     Info << "       total - flux: " << globalSumPhiBoundary << tab << "/ area: " << globalSumAreaBoundary << nl << endl;

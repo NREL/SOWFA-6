@@ -104,25 +104,6 @@
         p_rgh
     );
 
-/*
-    volVectorField pF
-    (
-        IOobject
-        (
-            "pF",
-            runTime.timeName(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh,
-      //dimensionedScalar("pF",dimensionSet(0, 0, 1, 0, 0, 0, 0),1.0),
-        dimensionedVector("pF",dimensionSet(0, 1, -2, 0, 0, 0, 0),Zero),
-        extrapolatedCalculatedFvPatchScalarField::typeName       
-      //dimensionedScalar("A",dimensionSet(1.0/dimVol),1.0)       
-    );
-    pF.correctBoundaryConditions();
-*/
 
 
     // The quantity p_rgh is required on cell faces (flux) to project the velocity flux given the
@@ -194,6 +175,7 @@
          ),
          fvc::flux(U)
      );
+
   
      
      // If this is not a restart, but it is a cold start, then update the
@@ -228,8 +210,6 @@
          Info << "Computing full phi field as phi = fvc::flux(U)" << endl;
          phi = fvc::flux(U);
      }
-
-
 
 
 
