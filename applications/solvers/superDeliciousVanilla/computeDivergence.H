@@ -19,12 +19,26 @@
     // Compute global divergence over domain boundaries and report statistics.
     Info << "   -Boundary Flux:" << endl;
 
+
+    List<bool> isCoupledInflow(phi.boundaryField().size(),false);
+    forAll(phi.boundaryField(), patchi)
+    {
+        word patchName = phi.mesh().boundary()[patchi].name();
+        forAll(coupledInflowPatches,j)
+        {
+            if (patchName == coupledInflowPatches[j])
+            {
+                isCoupledInflow[patchi] = true;
+            }
+        }
+    }
+
     scalar globalSumPhiBoundary = 0.0;
     scalar globalSumAreaBoundary = 0.0;
     forAll(phi.boundaryField(), patchi)
     {
-      //if ( !mesh.boundary()[patchi].coupled() )
-      //{
+        if ( !mesh.boundary()[patchi].coupled() || isCoupledInflow[patchi])
+        {
             word boundaryName = mesh.boundary()[patchi].name();
             scalar sumPhiBoundary = 0.0;
             scalar sumAreaBoundary = 0.0;
@@ -42,7 +56,7 @@
             globalSumAreaBoundary += sumAreaBoundary;
 
             Info << "       " << boundaryName << " - flux: " << sumPhiBoundary << tab << "/ area: " << sumAreaBoundary << endl;
-      //}
+        }
     }
 
     Info << "       total - flux: " << globalSumPhiBoundary << tab << "/ area: " << globalSumAreaBoundary << nl << endl;

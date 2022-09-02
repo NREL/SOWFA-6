@@ -16,6 +16,24 @@
     //- Automatically update fixesValue for timeVaryingMappedInletOutlet BC?
     bool updateFixesValue(ABLProperties.lookupOrDefault<bool>("updateFixesValue",false));
 
+   
+    //- When using outflow pressure boundary conditions that are Neumann, the
+    //  adjustPhi function is called to match outflow mass flow rate to that of
+    //  the inflow boundaries.  In computing inflow and outflow mass flow rate, 
+    //  adjustPhi does not include coupled boundaries, including those of type
+    //  cyclic, cyclicAMI, cyclicACMI.  If you want to run a setup with a concurrent
+    //  precursor, you will need to count one of the precursor boundary faces as
+    //  an inflow face.  Therefore, SOWFA includes a modified adjustPhi function called
+    //  adjustPhiExtended that will account for selected coupled boundaries as
+    //  inflow, so read the list of those here.
+    List<word> coupledInflowPatches;
+    if (ABLProperties.found("coupledInflowPatches"))
+    {
+        List<word> coupledInflowPatches_(ABLProperties.lookup("coupledInflowPatches"));
+        coupledInflowPatches = coupledInflowPatches_;
+        Info << "Specifying the following coupled inflow patches: " << coupledInflowPatches << endl;
+    }
+
 
     //- Indicate if this is a restart, or try to guess.
     bool isRestart = (runTime.timeIndex() == 1) ? false : true;
@@ -32,10 +50,10 @@
 
     if (isRestart && runTime.timeIndex() == 1)
     {
-        Warning << "User specified to start the solver in 'restart' mode with the " << endl
-                << "startTime as 0.  Beware that 'restart' mode assumes all boundary " << endl
-                << "conditions are updated already and will not be updated before entering" << endl
-                << "the time loop." << endl;
+        Warning << "User specified to start the solver in 'restart' mode with no " << endl
+                << "no indication of previous solution history.  Beware that 'restart' "
+                << "mode assumes all boundary conditions are updated already and will "
+                << "not be updated before entering the time loop." << endl;
     }
 
 

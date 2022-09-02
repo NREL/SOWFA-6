@@ -39,19 +39,23 @@ Description
 
 \*---------------------------------------------------------------------------*/
 
+#include "argList.H"
 #include "fvCFD.H"
 #include "singlePhaseTransportModel.H"
 #include "interpolateXY.H"
 #include "interpolateSplineXY.H"
 #include "Random.H"
 #include "wallDist.H"
+#include "IOdictionary.H"
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 int main(int argc, char *argv[])
 {
-#   include "setRootCase.H"
-#   include "createTime.H"
-#   include "createMesh.H"
+    #include "addDictOption.H"
+    #include "setRootCase.H"
+    #include "createTime.H"
+    #include "createMesh.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -154,52 +158,58 @@ volScalarField rhok
 
 
 // Get access to the input dictionary.
-IOdictionary setFieldsABLDict
+const word dictName("setFieldsABLDict");
+#include "setSystemMeshDictionaryIO.H"
+Info << "Reading " << dictPath << endl;
+IOdictionary dict(dictIO);
+/*
+IOdictionary dict
 (
     IOobject
     (
-        "setFieldsABLDict",
+        "dict",
         runTime.time().system(),
         runTime,
         IOobject::MUST_READ,
         IOobject::NO_WRITE
     )
 );
+*/
 
 
 
-// Read in the setFieldsABLDict entries.
-word velocityInitType(setFieldsABLDict.lookup("velocityInitType"));
-word temperatureInitType(setFieldsABLDict.lookup("temperatureInitType"));
-word tableInterpTypeU(setFieldsABLDict.lookupOrDefault<word>("tableInterpTypeU","linear"));
-word tableInterpTypeT(setFieldsABLDict.lookupOrDefault<word>("tableInterpTypeT","linear"));
-scalar deltaU(setFieldsABLDict.lookupOrDefault<scalar>("deltaU",1.0));
-scalar deltaV(setFieldsABLDict.lookupOrDefault<scalar>("deltaV",1.0));
-scalar zPeak(setFieldsABLDict.lookupOrDefault<scalar>("zPeak",0.03));
-scalar Uperiods(round(setFieldsABLDict.lookupOrDefault<scalar>("Uperiods",4)));
-scalar Vperiods(round(setFieldsABLDict.lookupOrDefault<scalar>("Vperiods",4)));
-scalar xMin(setFieldsABLDict.lookupOrDefault<scalar>("xMin",0.0));
-scalar yMin(setFieldsABLDict.lookupOrDefault<scalar>("yMin",0.0));
-scalar zMin(setFieldsABLDict.lookupOrDefault<scalar>("zMin",0.0));
-scalar xMax(setFieldsABLDict.lookupOrDefault<scalar>("xMax",3000.0));
-scalar yMax(setFieldsABLDict.lookupOrDefault<scalar>("yMax",3000.0));
-scalar zMax(setFieldsABLDict.lookupOrDefault<scalar>("zMax",1000.0));
-scalar zRef(setFieldsABLDict.lookupOrDefault<scalar>("zRef",600.0));
-bool useWallDistZ(setFieldsABLDict.lookupOrDefault<bool>("useWallDistZ",false));
-bool scaleVelocityWithHeight(setFieldsABLDict.lookupOrDefault<bool>("scaleVelocityWithHeight",false));
-scalar zInversion(setFieldsABLDict.lookupOrDefault<scalar>("zInversion",600.0));
-scalar Ug(setFieldsABLDict.lookupOrDefault<scalar>("Ug",15.0));
-scalar UgDir(setFieldsABLDict.lookupOrDefault<scalar>("UgDir",270.0));
-scalar Tbottom(setFieldsABLDict.lookupOrDefault<scalar>("Tbottom",300.0));
-scalar Ttop(setFieldsABLDict.lookupOrDefault<scalar>("Ttop",304.0));
-scalar dTdz(setFieldsABLDict.lookupOrDefault<scalar>("dTdz",0.003));
-scalar widthInversion(setFieldsABLDict.lookupOrDefault<scalar>("widthInversion",80.0));
-scalar TPrimeScale(setFieldsABLDict.lookupOrDefault<scalar>("TPrimeScale",0.0));
-scalar z0(setFieldsABLDict.lookupOrDefault<scalar>("z0",0.016));
-scalar kappa(setFieldsABLDict.lookupOrDefault<scalar>("kappa",0.40));
-List<List<scalar> > profileTable(setFieldsABLDict.lookup("profileTable"));
-bool updateInternalFields(setFieldsABLDict.lookupOrDefault<bool>("updateInternalFields",true));
-bool updateBoundaryFields(setFieldsABLDict.lookupOrDefault<bool>("updateBoundaryFields",true));
+// Read in the dict entries.
+word velocityInitType(dict.lookup("velocityInitType"));
+word temperatureInitType(dict.lookup("temperatureInitType"));
+word tableInterpTypeU(dict.lookupOrDefault<word>("tableInterpTypeU","linear"));
+word tableInterpTypeT(dict.lookupOrDefault<word>("tableInterpTypeT","linear"));
+scalar deltaU(dict.lookupOrDefault<scalar>("deltaU",1.0));
+scalar deltaV(dict.lookupOrDefault<scalar>("deltaV",1.0));
+scalar zPeak(dict.lookupOrDefault<scalar>("zPeak",0.03));
+scalar Uperiods(round(dict.lookupOrDefault<scalar>("Uperiods",4)));
+scalar Vperiods(round(dict.lookupOrDefault<scalar>("Vperiods",4)));
+scalar xMin(dict.lookupOrDefault<scalar>("xMin",0.0));
+scalar yMin(dict.lookupOrDefault<scalar>("yMin",0.0));
+scalar zMin(dict.lookupOrDefault<scalar>("zMin",0.0));
+scalar xMax(dict.lookupOrDefault<scalar>("xMax",3000.0));
+scalar yMax(dict.lookupOrDefault<scalar>("yMax",3000.0));
+scalar zMax(dict.lookupOrDefault<scalar>("zMax",1000.0));
+scalar zRef(dict.lookupOrDefault<scalar>("zRef",600.0));
+bool useWallDistZ(dict.lookupOrDefault<bool>("useWallDistZ",false));
+bool scaleVelocityWithHeight(dict.lookupOrDefault<bool>("scaleVelocityWithHeight",false));
+scalar zInversion(dict.lookupOrDefault<scalar>("zInversion",600.0));
+scalar Ug(dict.lookupOrDefault<scalar>("Ug",15.0));
+scalar UgDir(dict.lookupOrDefault<scalar>("UgDir",270.0));
+scalar Tbottom(dict.lookupOrDefault<scalar>("Tbottom",300.0));
+scalar Ttop(dict.lookupOrDefault<scalar>("Ttop",304.0));
+scalar dTdz(dict.lookupOrDefault<scalar>("dTdz",0.003));
+scalar widthInversion(dict.lookupOrDefault<scalar>("widthInversion",80.0));
+scalar TPrimeScale(dict.lookupOrDefault<scalar>("TPrimeScale",0.0));
+scalar z0(dict.lookupOrDefault<scalar>("z0",0.016));
+scalar kappa(dict.lookupOrDefault<scalar>("kappa",0.40));
+List<List<scalar> > profileTable(dict.lookup("profileTable"));
+bool updateInternalFields(dict.lookupOrDefault<bool>("updateInternalFields",true));
+bool updateBoundaryFields(dict.lookupOrDefault<bool>("updateBoundaryFields",true));
 
 // If velocity is only to be scaled, set wallDist and scaleVelocityWithHeight to true
 if ( velocityInitType == "scaleGiven" )

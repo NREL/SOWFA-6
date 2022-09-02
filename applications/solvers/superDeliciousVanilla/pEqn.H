@@ -30,10 +30,7 @@
     // boundary condition on p_rgh is used.
     surfaceScalarField phiFixedFlux = 1.0*phiHbyA;
 
-    List<word> a;
-    a.append("west.1");
-    adjustPhiExtended(phiFixedFlux, U, p_rgh, a);
-  //adjustPhi(phiFixedFlux, U, p_rgh);
+    adjustPhiExtended(phiFixedFlux, U, p_rgh, coupledInflowPatches);
 
     forAll(p_rgh.boundaryField(), patchi)
     {

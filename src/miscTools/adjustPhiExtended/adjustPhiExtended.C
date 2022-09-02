@@ -48,7 +48,14 @@ bool Foam::adjustPhiExtended
             phi.boundaryFieldRef();
 
 
-
+        // Check to see if a patch is considered inflow.  The conditions for
+        // this to be true are that patch specifies mass flow rate (i.e., 
+        // 'fixesValue()' returns true) but is not an inletOutlet,  or the 
+        // patch has been specifically labeled as inflow in the 
+        // 'additionalInflowPatch' list.  This is useful for cases where
+        // there is a concurrent precursor simulation that is laterally
+        // cyclic, but we want to count one or more of these cyclic patches
+        // as an inflow.
         List<bool> isInflow(bphi.size(),false);
         forAll(bphi, patchi)
         {
@@ -66,27 +73,20 @@ bool Foam::adjustPhiExtended
                 isInflow[patchi] = true;
             }
         }
-        Info << "Inflow Patches:" << endl;
-        Info << "Patch" << tab << "isInflow" << endl;
-        forAll(bphi, patchi)
-        {
-            word patchName = phi.mesh().boundary()[patchi].name();
-            Info << patchName << tab << isInflow[patchi] << endl;
-        }
 
 
-
-
-
+        // Go through and sum up the mass flow rate into the domain, the
+        // fixed mass flow rate out of the domain, and the adjustable
+        // mass flow rate out of the domain.  Adjustable mass flow rate
+        // happens on inletOutlet faces, for example, but fixed mass flow
+        // rate out of the domain happens on fixedValue boundaries.
         forAll(bphi, patchi)
         {
             const fvPatchVectorField& Up = U.boundaryField()[patchi];
             const fvsPatchScalarField& phip = bphi[patchi];
 
-          //if (!phip.coupled())
             if (!phip.coupled() || isInflow[patchi])
             {
-              //if (Up.fixesValue() && !isA<inletOutletFvPatchVectorField>(Up))
                 if (isInflow[patchi])
                 {
                     forAll(phip, i)
@@ -128,6 +128,8 @@ bool Foam::adjustPhiExtended
         scalar massCorr = 1.0;
         scalar magAdjustableMassOut = mag(adjustableMassOut);
 
+        // Compute the correction to the adjustable mass flow rate out such that it
+        // balances with the net of fixed in and outflow.
         if
         (
             magAdjustableMassOut > vSmall
@@ -149,24 +151,18 @@ bool Foam::adjustPhiExtended
                 << exit(FatalError);
         }
 
-        Info << "massIn = " << massIn << endl;
-        Info << "fixedMassOut = " << fixedMassOut << endl;
-        Info << "adjustableMassOut = " << adjustableMassOut << endl;
-        Info << "massCorr = " << massCorr << endl;
 
+        // Apply the correction to the adjustable mass flow rate out faces.
         forAll(bphi, patchi)
         {
             const fvPatchVectorField& Up = U.boundaryField()[patchi];
             fvsPatchScalarField& phip = bphi[patchi];
 
-          //if (!phip.coupled())
             if (!phip.coupled() || isInflow[patchi])
             {
-              //if (!Up.fixesValue() || isA<inletOutletFvPatchVectorField>(Up))
                 if (!isInflow[patchi])
                 {
                     word patchName = phi.mesh().boundary()[patchi].name();
-                    Info << "Adjusting mass on patch " << patchName << endl;
                     forAll(phip, i)
                     {
                         if (phip[i] > 0.0)
