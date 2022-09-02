@@ -10,7 +10,7 @@ wclean src/TurbulenceModels/incompressible
 wclean src/TurbulenceModels/turbulenceModels
 
 
-# Custom boundary conditions
+# Custom boundary conditions.
 wclean src/boundaryConditions
 
 # Standard actuator turbine models
