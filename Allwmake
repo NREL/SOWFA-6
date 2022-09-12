@@ -71,7 +71,7 @@ else
     if [ -d ${OPENFAST_DIR} ]
     then
         echo "OPENFAST_DIR is set to '${OPENFAST_DIR}'. Attempting to compile OpenFAST-coupled solver."
-        wmake applications/solvers/superDeliciousVanilla.turbine
+       #wmake applications/solvers/superDeliciousVanilla.turbine
     else
         echo "OPENFAST_DIR is set to '${OPENFAST_DIR}'. Directory doesn't exist or I can't access it. Skipping compilation of OpenFAST-coupled solver."
     fi
