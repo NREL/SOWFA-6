@@ -12,6 +12,7 @@ EXE_INC = \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I$(SOWFA_DIR)/src/ABLForcing/lnInclude \
     -I$(SOWFA_DIR)/src/meshTools/lnInclude \
+    -I$(SOWFA_DIR)/src/miscTools/lnInclude \
     -I$(SOWFA_DIR)/src/boundaryConditions/lnInclude \
     -I$(SOWFA_DIR)/src/turbineModels/turbineModelsOpenFAST/lnInclude \
     $(PFLAGS) \
