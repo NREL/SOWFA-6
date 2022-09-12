@@ -1,20 +1,24 @@
 #!/bin/bash
 
 
-# Turbulence models.
+# Custom miscellaneous tools
+wmake src/miscTools
+
+
+# Custom turbulence models
 wmake src/TurbulenceModels/incompressible
 wmake src/TurbulenceModels/turbulenceModels
 
 
-# Custom boundary conditions.
+# Custom boundary conditions
 wmake src/boundaryConditions
 
 
-# Standard actuator turbine models.
+# Standard actuator turbine models
 #wmake src/turbineModels/turbineModelsStandard
 
 
-# OpenFAST-coupled actuator turbine models.
+# OpenFAST-coupled actuator turbine models
 if [ -z ${OPENFAST_DIR+x} ]
 then
     echo "OPENFAST_DIR is not set. Not compiling OpenFAST interface."
@@ -28,36 +32,38 @@ else
     fi	
 fi
 
-# Custom mesh Tools
+
+# Custom mesh tools
 wmake src/meshTools
+
 
 # ABL forcing objects
 wmake src/ABLForcing
 
 
-# Custom sampling (this includes sampling on an annulus).
+# Custom sampling (this includes sampling on an annulus)
 wmake src/sampling
 
 
-# Custom file formats (like structured VTK).
+# Custom file formats (like structured VTK)
 wmake src/fileFormats
 
 
-# Custom function objects (this includes planar and temporal averaging, and lidar sampling).
+# Custom function objects (this includes planar and temporal averaging, and lidar sampling)
 wmake src/functionObjects/field
 wmake src/functionObjects/utilities
 
 
-# Utility to set the initial fields for the ABL solver.
+# Utility to set the initial fields for the ABL solver
 wmake applications/utilities/setFieldsABL
 wmake applications/utilities/writeCellCenters
 
 
-# The atmospheric LES solver for precursors.
+# The atmospheric LES solver for precursors
 wmake applications/solvers/superDeliciousVanilla
 
 
-# The atmospheric LES solver with a link to the actuator turbine model.
+# The atmospheric LES solver with a link to the actuator turbine model
 if [ -z ${OPENFAST_DIR+x} ]
 then
     echo "OPENFAST_DIR is not set. Not compiling OpenFASTcoupled solver."
