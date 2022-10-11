@@ -24,8 +24,10 @@
 
     fvOptions.correct(T);
 
-    if (pimple.finalPimpleIter() && pimple.finalPISOIter())
+  //if (pimple.finalPimpleIter() && pimple.finalPISOIter())
+    if (pimple.finalPimpleIter())
     {
+        Info << "perturbing temperature field..." << endl;
         temperaturePerturbationZones.perturb(T);
     }
 }

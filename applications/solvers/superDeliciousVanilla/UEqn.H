@@ -39,7 +39,8 @@
         fvOptions.correct(U);
     }
 
-    if (pimple.finalPimpleIter() && pimple.finalPISOIter())
+  //if (pimple.finalPimpleIter() && pimple.finalPISOIter())
+    if (pimple.finalPimpleIter())
     {
         momentumPerturbationZones.perturb(U);
     }
