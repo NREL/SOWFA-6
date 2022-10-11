@@ -556,7 +556,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::initializeArrays()
         nacelleDs.append(DynamicList<scalar>(0));
         for(int m = 0; m < numNacellePoints[i]; m++)
         {
-            nacelleDs[i].append(1.0/numNacellePoints[i]);
+            nacelleDs[i].append(nacelleLength[i]/numNacellePoints[i]);
         }
         totNacellePoints += numNacellePoints[i];
         nacellePoints.append(List<vector>(numNacellePoints[i],vector::zero));
@@ -925,7 +925,6 @@ void horizontalAxisWindTurbinesALMOpenFAST::updateNacelleSearchCells(int turbine
         }
     }
     nacelleProjectionRadius[i] = nacelleEpsilonMax * Foam::sqrt(Foam::log(1.0/0.001)) + nacelleEquivalentRadius[i];
-
 
     // Find the cells within the region of influence.  These are cells within a
     // cylinder with hemispherical end caps around the line of nacelle points, 
@@ -1630,6 +1629,16 @@ void horizontalAxisWindTurbinesALMOpenFAST::getPositions()
      //Info << "bladePoint1 = " << bladePoint1 << endl;
      //Info << "bladePoint1Old = " << bladePoint1Old << endl;
      //Info << "rotorSpeed = " << rotorSpeed / rpmRadSec << endl;
+
+
+       // Project the blade sample points onto the blade force point curve.  This is necessary
+       // because the two are not necessarily on the same line within OpenFAST.  If we sample
+       // at points that are not at the along the force-application line, we will pick up some
+       // of the velocity induced by the bound vortex instead of the "freestream" wind, which
+       // can completely throw off the computed lift and drag causing a huge overprediction of
+       // torque and thrust.
+       projectPoints(bladeSamplePoints[i],bladePoints[i],rotorApex[i]);
+
    }
 
    /*
@@ -2441,10 +2450,6 @@ void horizontalAxisWindTurbinesALMOpenFAST::sampleNacellePointWindVectors()
 
         iterNacelle++;
     }
-
-    /*
-    Info << "nacelleWindVector = " <<  nacelleWindVector << endl;
-    */
 }
 
 
@@ -3727,6 +3732,56 @@ vector horizontalAxisWindTurbinesALMOpenFAST::transformGlobalCartToRotorLocalCyl
     return pCylLocal;
 }
 
+
+
+void horizontalAxisWindTurbinesALMOpenFAST::projectPoints(List<vector>& pointsFrom, List<vector>& pointsTo, vector origin)
+{
+    // We wish to project the OpenFAST-supplied velocity sampling points onto the OpenFAST-supplied force-application points.
+    // This is needed because in OpenFAST, the two sets of points may be offset by an aerodynamic-center offset.  If sampling
+    // is not performed exactly at the center of the blade bound vorticity, the vortex-local flow field will become part of
+    // what should only be a freestream velocity sampling.  This may significantly alter loads, torque, and ultimately power
+    // predictions (we saw times where power was overpredicted by <100% because of this issue).
+
+    // Parameterize the points by total length of the turbine part (blade, tower, nacelle) (note, we only use this for blades for now.)
+    int nFrom = pointsFrom.size();
+    int nTo = pointsTo.size();
+
+    DynamicList<scalar> lengthFractionFrom(nFrom,0.0);
+    DynamicList<scalar> lengthFractionTo(nTo,0.0);
+
+    scalar L;
+
+    L = Foam::mag(pointsFrom[nFrom-1] - origin);
+    forAll(pointsFrom,i)
+    {
+        vector xyz = pointsFrom[i] - origin;
+        lengthFractionFrom[i] = Foam::mag(xyz)/L;
+    }
+   
+    L = Foam::mag(pointsTo[nTo-1] - origin);
+    forAll(pointsTo,i)
+    {
+        vector xyz = pointsTo[i] - origin;
+        lengthFractionTo[i] = Foam::mag(xyz)/L;
+    }
+
+    // Do the 1-D interpolation of the x,y,z locations of the from-points to the to-points.
+    forAll(pointsFrom,i)
+    {
+        DynamicList<vector> pointsTo_ = static_cast<DynamicList<vector> >(pointsTo);
+        pointsFrom[i] = interpolate(lengthFractionFrom[i], lengthFractionTo, pointsTo_);
+    }
+
+}
+
+void horizontalAxisWindTurbinesALMOpenFAST::projectPoints(List<List<vector> >& pointsFrom, List<List<vector> >& pointsTo, vector origin)
+{
+    forAll(pointsFrom,i)
+    {
+        projectPoints(pointsFrom[i], pointsTo[i], origin);
+    }
+}
+
 void horizontalAxisWindTurbinesALMOpenFAST::findBoundingIndices(scalar x, DynamicList<scalar>& xList, label& indexM, label& indexP)
 {
     label index = 0;
@@ -3745,7 +3800,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::findBoundingIndices(scalar x, Dynami
         }
     }
 
-    if (x < xList[index])
+    if (x <= xList[index])
     {
         if (index == 0)
         {
@@ -3769,6 +3824,14 @@ void horizontalAxisWindTurbinesALMOpenFAST::findBoundingIndices(scalar x, Dynami
         }
         indexM = indexP - 1;
     }
+}
+
+vector horizontalAxisWindTurbinesALMOpenFAST::interpolate(scalar x, DynamicList<scalar>& xList, DynamicList<vector>& yList)
+{
+    label indexP = 0;
+    label indexM = 0;
+    findBoundingIndices(x, xList, indexM, indexP);
+    return yList[indexM] + ((yList[indexP] - yList[indexM])/(xList[indexP] - xList[indexM]))*(x - xList[indexM]);
 }
 
 scalar horizontalAxisWindTurbinesALMOpenFAST::interpolate(scalar x, DynamicList<scalar>& xList, DynamicList<scalar>& yList)

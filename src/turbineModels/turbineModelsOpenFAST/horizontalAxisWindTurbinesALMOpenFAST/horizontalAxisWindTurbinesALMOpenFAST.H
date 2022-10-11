@@ -778,7 +778,10 @@ private:
         vector transformGlobalCartToRotorLocalCyl(vector v, int turbineNumber);
 
         //- Perform interpolation.
+        void projectPoints(List<List<vector> >& pointsFrom, List<List<vector> >& pointsTo, vector origin);
+        void projectPoints(List<vector>& pointsFrom, List<vector>& pointsTo, vector origin);
         void findBoundingIndices(scalar x, DynamicList<scalar>& xList, label& indexM, label& indexP);
+        vector interpolate(scalar x, DynamicList<scalar>& xList, DynamicList<vector>& yList);
         scalar interpolate(scalar x, DynamicList<scalar>& xList, DynamicList<scalar>& yList);
         label  interpolate(scalar x, DynamicList<scalar>& xList, DynamicList<label>& yList);
 
