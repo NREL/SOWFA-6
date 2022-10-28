@@ -21,7 +21,7 @@ wmake src/boundaryConditions
 # OpenFAST-coupled actuator turbine models
 if [ -z ${OPENFAST_DIR+x} ]
 then
-    echo "OPENFAST_DIR is not set. Not compiling OpenFAST interface."
+    echo "OPENFAST_DIR is not set and needs to be given. OpenFAST interface needs to be linked."
 else
     if [ -d ${OPENFAST_DIR} ] 
     then
@@ -62,17 +62,3 @@ wmake applications/utilities/writeCellCenters
 # The atmospheric LES solver for precursors
 wmake applications/solvers/superDeliciousVanilla
 
-
-# The atmospheric LES solver with a link to the actuator turbine model
-if [ -z ${OPENFAST_DIR+x} ]
-then
-    echo "OPENFAST_DIR is not set. Not compiling OpenFASTcoupled solver."
-else
-    if [ -d ${OPENFAST_DIR} ]
-    then
-        echo "OPENFAST_DIR is set to '${OPENFAST_DIR}'. Attempting to compile OpenFAST-coupled solver."
-       #wmake applications/solvers/superDeliciousVanilla.turbine
-    else
-        echo "OPENFAST_DIR is set to '${OPENFAST_DIR}'. Directory doesn't exist or I can't access it. Skipping compilation of OpenFAST-coupled solver."
-    fi
-fi
