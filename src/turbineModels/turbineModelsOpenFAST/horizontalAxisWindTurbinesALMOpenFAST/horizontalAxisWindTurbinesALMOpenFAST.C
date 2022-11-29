@@ -306,7 +306,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::readInput()
             "turbineArrayProperties",
             runTime_.constant(),
             mesh_,
-            IOobject::MUST_READ,
+            IOobject::READ_IF_PRESENT,
             IOobject::NO_WRITE
         )
     );
@@ -326,6 +326,17 @@ void horizontalAxisWindTurbinesALMOpenFAST::readInput()
     }
 
     numTurbines = turbineName.size();
+
+    // The general solver needs to be able to skip reading of turbines is no dictionary is given
+    if (numTurbines == 0)
+    {
+        Info << "No turbines, or no turbineProperties file given. Skipping turbines." << endl;
+        return;
+    }
+    else
+    {
+        Info << "Reading " << numTurbines << " turbine(s)..." << endl;
+    }
 
     outputControl = turbineArrayProperties.subDict("globalProperties").lookupOrDefault<word>("outputControl","timeStep");
     outputInterval = turbineArrayProperties.subDict("globalProperties").lookupOrDefault<scalar>("outputInterval",1);
