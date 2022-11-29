@@ -197,15 +197,22 @@
   
      
      // If this is not a restart, but it is a cold start, then update the
-     // U and T boundary conditions.
+     // U and T boundary conditions.  This is called twice in case mapped
+     // patches are used to make sure that all patches are in sync.  For
+     // example a mapped patch may be updated first and map from an un-
+     // updated BC, so it will not effectively update in the first pass,
+     // but it will in the second pass.
      if (!isRestart)
      {
-         Info << "U.correctBoundaryConditions()" << endl;
-         U.correctBoundaryConditions();
-         phi = fvc::flux(U);
+         for (int i = 0; i < 2; i++)
+         {
+           //Info << "U.correctBoundaryConditions()" << endl;
+             U.correctBoundaryConditions();
+             phi = fvc::flux(U);
 
-         Info << "T.correctBoundaryConditions()" << endl;
-         T.correctBoundaryConditions();
+           //Info << "T.correctBoundaryConditions()" << endl;
+             T.correctBoundaryConditions();
+         }
      }
 
 

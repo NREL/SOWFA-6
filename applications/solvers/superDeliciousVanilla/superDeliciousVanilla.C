@@ -43,6 +43,7 @@ Description
 #include "turbulentTransportModel.H"
 #include "wallDist.H"
 #include "fixedFluxPressureFvPatchScalarField.H"
+#include "processorFvPatch.H"
 #include "timeVaryingMappedInletOutletFvPatchField.H"
 #include "fvOptions.H"
 #include "pimpleControl.H"

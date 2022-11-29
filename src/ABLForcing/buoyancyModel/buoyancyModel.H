@@ -76,7 +76,7 @@ class buoyancyModel
         //- Boussinesq density field
         volScalarField rhok_;
 
-        //- Gravioty potential field
+        //- Gravity potential field
         volScalarField gh_;
         surfaceScalarField ghf_;
 

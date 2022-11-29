@@ -40,6 +40,7 @@ bool Foam::adjustPhiExtended
 {
     if (p.needReference())
     {
+      //Info << "Calling adjustPhiExtended..." << endl;
         scalar massIn = 0.0;
         scalar fixedMassOut = 0.0;
         scalar adjustableMassOut = 0.0;
