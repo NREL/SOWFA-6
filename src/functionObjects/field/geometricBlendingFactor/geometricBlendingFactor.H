@@ -319,8 +319,11 @@ SourceFiles
 #define geometricBlendingFactor_H
 
 #include "fieldExpression.H"
-#include "writeFile.H"
+#include "logFiles.H"
+//#include "writeLocalObjects.H"
+//#include "writeFile.H"
 #include "volFields.H"
+#include "Function1.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -336,39 +339,35 @@ namespace functionObjects
 class geometricBlendingFactor
 :
     public fieldExpression,
-    public writeFile
+    public logFiles
 {
     // Private Member Data
 
         // Switches
 
             //- Switch for grid cell volume
-            Switch gridCellVolume_;
-
-            //- Switch for topoSet source
-            Switch topoSetSource_;
+            Switch gridCellResolution_;
 
 
-        // Lower and upper limits
+        // Blending tables
 
-            //- Maximum non-orthogonality for fully scheme 2
-            scalar maxNonOrthogonality_;
-
-            //- Minimum non-orthogonality for fully scheme 1
-            scalar minNonOrthogonality_;
+            //- Grid cell volume blending table.
+            autoPtr<Function1<scalar> > gridCellResolutionBlendingTable_;
 
 
         // File names
 
             //- Name of the grid cell volume field
-            word gridCellVolumeName_;
-
-            //- Name of the topoSet source field
-            word topoSetSourceName_;
+            word gridCellResolutionName_;
 
 
         //- Tolerance used when calculating the number of blended cells
         scalar tolerance_;
+
+
+        //- Input dictionary
+        dictionary dict_;
+
 
 
     // Private Member Functions
@@ -391,7 +390,7 @@ protected:
     // Protected Member Functions
 
         //- Write the file header
-        virtual void writeFileHeader(Ostream& os) const;
+        virtual void writeFileHeader(const label i);
 
 
 public:

@@ -38,12 +38,7 @@ namespace Foam
 namespace functionObjects
 {
     defineTypeNameAndDebug(geometricBlendingFactor, 0);
-    addToRunTimeSelectionTable
-    (
-        functionObject,
-        geometricBlendingFactor,
-        dictionary
-    );
+    addToRunTimeSelectionTable(functionObject, geometricBlendingFactor, dictionary);
 }
 }
 
@@ -63,8 +58,6 @@ Foam::functionObjects::geometricBlendingFactor::indicator()
     // Check to see if the indicator field is already in the
     // registry.
     bool fldExist = mesh_.foundObject<volScalarField>(fldName);
-
-    Info << "fldExist = " << fldExist << endl;
 
     // Create a reference to the indicator field.  If the field is not in
     // the registry, a null object will be returned.
@@ -134,22 +127,20 @@ void Foam::functionObjects::geometricBlendingFactor::calcStats
 }
 
 
-void Foam::functionObjects::geometricBlendingFactor::writeFileHeader
-(
-    Ostream& os
-) const
+void Foam::functionObjects::geometricBlendingFactor::writeFileHeader(const label i)
 {
-    writeHeader(os, "Stabilization blending factor");
-    writeCommented(os, "Time");
-    writeTabbed(os, "Scheme1");
-    writeTabbed(os, "Scheme2");
-    writeTabbed(os, "Blended");
-    os  << endl;
+    writeHeader(file(), "Stabilization blending factor");
+    writeCommented(file(), "Time");
+    writeTabbed(file(), "Scheme1");
+    writeTabbed(file(), "Scheme2");
+    writeTabbed(file(), "Blended");
+    file()  << endl;
 }
 
 
 bool Foam::functionObjects::geometricBlendingFactor::calc()
 {
+    read(dict_);
     init(false);
     return true;
 }
@@ -157,49 +148,22 @@ bool Foam::functionObjects::geometricBlendingFactor::calc()
 
 bool Foam::functionObjects::geometricBlendingFactor::init(bool first)
 {
-  //const auto* residualPtr = mesh_.findObject<IOField<scalar>>(residualName_);
-
     volScalarField& indicator = this->indicator();
 
-    const volScalarField& gridCellVolumeRef = lookupObject<volScalarField>(gridCellVolumeName_);
+    const volScalarField& gridCellResolutionRef = lookupObject<volScalarField>(gridCellResolutionName_);
 
-    if (gridCellVolume_)
+    if (gridCellResolution_)
     {
-        /*
-        if (maxNonOrthogonality_ >= minNonOrthogonality_)
-        {
-            FatalErrorInFunction
-                << "minNonOrthogonality should be larger than "
-                << "maxNonOrthogonality."
-                << exit(FatalError);
-        }
-        */
-
-      //indicator = scalar(1);
         forAll(indicator, i)
         {
-            indicator[i] = mesh_[i].Cf();
+            indicator[i] = gridCellResolutionBlendingTable_->value(gridCellResolutionRef[i]);
         }
-        /*
-            max
-            (
-                indicator,
-                min
-                (
-                    max
-                    (
-                        scalar(0),
-                        (*nonOrthPtr - maxNonOrthogonality_)
-                      / (minNonOrthogonality_ - maxNonOrthogonality_)
-                    ),
-                    scalar(1)
-                )
-            );
-        */
+        indicator = max(min(indicator,scalar(1)),scalar(0));
 
         if (first)
         {
-            Log << "    Max grid cell volume :  " << max(gridCellVolumeRef).value()
+            Log << "    Max / Min grid cell resolution:  " << max(gridCellResolutionRef).value() 
+                << " / "                                   << min(gridCellResolutionRef).value()
                 << endl;
         }
     }
@@ -218,10 +182,10 @@ bool Foam::functionObjects::geometricBlendingFactor::init(bool first)
 
         calcStats(nCellsScheme1, nCellsScheme2, nCellsBlended);
 
-        Log << nl << name() << " execute :" << nl
-        << "    scheme 1 cells :  " << nCellsScheme1 << nl
-        << "    scheme 2 cells :  " << nCellsScheme2 << nl
-        << "    blended cells  :  " << nCellsBlended << nl
+        Log << nl << name() << " execute:" << nl
+        << "    scheme 1 cells:  " << nCellsScheme1 << nl
+        << "    scheme 2 cells:  " << nCellsScheme2 << nl
+        << "    blended cells:   " << nCellsBlended << nl
         << endl;
     }
 
@@ -248,32 +212,32 @@ Foam::functionObjects::geometricBlendingFactor::geometricBlendingFactor
 )
 :
     fieldExpression(name, runTime, dict),
-    writeFile(obr_, name),
-    gridCellVolume_(dict.lookupOrDefault<Switch>("useGridCellVolume", false)),
-    topoSetSource_(dict.lookupOrDefault<Switch>("useTopoSetSource", false)),
+    logFiles(obr_, name),
 
-    gridCellVolumeName_
-    (
-        dict.lookupOrDefault<word>("gridCellVolumeName", "gridCellVolume")
-    ),
-    topoSetSourceName_
-    (
-        dict.lookupOrDefault<word>("topoSetSourceName", "topoSetSource")
-    ),
+    gridCellResolution_(dict.lookupOrDefault<Switch>("useGridCellResolution", false)),
 
-    tolerance_(0.001)
+    gridCellResolutionBlendingTable_(),
+
+    gridCellResolutionName_(dict.lookupOrDefault<word>("gridCellResolutionName", "gridCellResolution")),
+
+    tolerance_(0.001),
+
+    dict_(dict)
 {
-    Info << "A..." << endl;
-   
-    read(dict);
 
-    Info << "B..." << endl;
+    // Read the dictionary input for this function object.
+    read(dict_);
 
+    // Set the name of the blending factor field based.
     setResultName(typeName, "");
 
-    Info << "C..." << endl;
+    // Set the name of the summary file written in postProcessing.
+    resetName(typeName);
+    createFiles();
 
-
+    // Create an IO object that is the blending field, which is a grid cell
+    // face field (because the div scheme interpolates to faces) and store
+    // it in the registry to be able to access later.
     tmp<surfaceScalarField> tfaceBlended
     (
         new surfaceScalarField
@@ -290,89 +254,56 @@ Foam::functionObjects::geometricBlendingFactor::geometricBlendingFactor
             dimensionedScalar("zero", dimless, Zero)
         )
     );
-
-    Info << "D..." << endl;
     store(resultName_, tfaceBlended);
-    Info << "E..." << endl;
 
 
+    // Check to see if the grid cell volume field exists.  If it does not, create
+    // it and put it in the IO object registry.  Then set the gridCellVolume variable
+    // as a reference to this field.
+    bool gridCellResolutionExist = mesh_.foundObject<volScalarField>(gridCellResolutionName_);
 
-
-    bool gridCellVolumeExist = mesh_.foundObject<volScalarField>(gridCellVolumeName_);
-    Info << "gridCellVolumeExist = " << gridCellVolumeExist << endl;
-
-    if (!gridCellVolumeExist)
+    if (!gridCellResolutionExist)
     {
-        volScalarField* gridCellVolume
+        volScalarField* gridCellResolution
         (
             new volScalarField
             (
                 IOobject
                 (
-                    gridCellVolumeName_,
+                    gridCellResolutionName_,
                     mesh_.time().timeName(),
                     mesh_,
                     IOobject::NO_READ,
                     IOobject::NO_WRITE
                 ),
                 mesh_,
-              //mesh_.V(),
-                dimensionedScalar("volume",dimVol,Zero),
+                dimensionedScalar("resolution",dimLength,Zero),
                 zeroGradientFvPatchScalarField::typeName
             )
         );
-        mesh_.objectRegistry::store(gridCellVolume);
+        mesh_.objectRegistry::store(gridCellResolution);
     }
-    volScalarField& gridCellVolume = mesh_.lookupObjectRef<volScalarField>(gridCellVolumeName_);
+    volScalarField& gridCellResolution = mesh_.lookupObjectRef<volScalarField>(gridCellResolutionName_);
 
-  //gridCellVolume = mesh_.V();
-
-    gridCellVolumeExist = mesh_.foundObject<volScalarField>(gridCellVolumeName_);
-    Info << "gridCellVolumeExist = " << gridCellVolumeExist << endl;
-
-/*
-    const volScalarField& topoSetSourceRef = mesh_.lookupObject<volScalarField>(topoSetSourceName_);
-
-    if (topoSetSource_ && isNull(topoSetSourceRef))
+    // Set the gridCellResolution field to the actual grid cell resolution in case it has not already
+    // been set, which would the the usual case.
+    forAll(mesh_.V(), i)
     {
-        IOobject fieldHeader
-        (
-            topoSetSourceName_,
-            mesh_.time().constant(),
-            mesh_,
-            IOobject::MUST_READ,
-            IOobject::NO_WRITE
-        );
-
-        if (fieldHeader.typeHeaderOk<volScalarField>(true))
-        {
-            volScalarField* vfPtr = new volScalarField(fieldHeader, mesh_);
-            mesh_.objectRegistry::store(vfPtr);
-        }
-        else
-        {
-            FatalErrorInFunction
-                << "Field : " << topoSetSourceName_ << " not found."
-                << " The function object will not be used"
-                << exit(FatalError);
-        }
+        gridCellResolution[i] = cbrt(mesh_.V()[i]);
     }
-*/
+    gridCellResolution.correctBoundaryConditions();
 
+
+
+    // If the log option is true, then set the indicator field to write at 
+    // write time.
     if (log)
     {
-      //indicator().writeOpt(IOobject::AUTO_WRITE);
-//        indicator().writeOpt() = IOobject::AUTO_WRITE;
+        indicator().writeOpt() = IOobject::AUTO_WRITE;
     }
 
-  //if (writeToFile_)
-  //{
-  //    writeFileHeader(file());
-  //}
-
-    Info << "G..." << endl;
+    // Call the initialization function for the first time.
     init(true);
-    Info << "H..." << endl;
 }
 
 
@@ -383,10 +314,13 @@ bool Foam::functionObjects::geometricBlendingFactor::read
     const dictionary& dict
 )
 {
-  //if (fieldExpression::read(dict) && writeFile::read(dict))
+    if (fieldExpression::read(dict))
     {
-        dict.lookupOrDefault<Switch>("useGridCellVolume", gridCellVolume_);
-        dict.lookupOrDefault<Switch>("useTopoSetSource", topoSetSource_);
+        gridCellResolution_ = dict.lookupOrDefault<Switch>("useGridCellResolution", false);
+
+        gridCellResolutionBlendingTable_ = Function1<scalar>::New("gridCellResolutionBlendingTable",dict);
+    
+        gridCellResolutionName_ = dict.lookupOrDefault<word>("gridCellResolutionName", "gridCellResolution");
 
         tolerance_ = 0.001;
         if
@@ -398,20 +332,6 @@ bool Foam::functionObjects::geometricBlendingFactor::read
             FatalErrorInFunction
                 << "tolerance must be in the range 0 to 1.  Supplied value: "
                 << tolerance_ << exit(FatalError);
-        }
-
-        Info<< type() << " " << name() << ":" << nl;
-        if (gridCellVolume_)
-        {
-            Info<< "    Including gridCellVolume between: "
-              //<< minNonOrthogonality_ <<  " and " << maxNonOrthogonality_
-                << endl;
-        }
-        if (topoSetSource_)
-        {
-            Info<< "    Including topoSetSource between: "
-              //<< minGradCc_ << " and " << maxGradCc_
-                << endl;
         }
 
         return true;
@@ -429,18 +349,15 @@ bool Foam::functionObjects::geometricBlendingFactor::write()
 
     calcStats(nCellsScheme1, nCellsScheme2, nCellsBlended);
 
-/*
-    if (writeToFile_)
+    if (Pstream::master())
     {
-        writeCurrentTime(file());
-
+        writeTime(file());
         file()
             << tab << nCellsScheme1
             << tab << nCellsScheme2
             << tab << nCellsBlended
             << endl;
     }
-*/
 
     return true;
 }
