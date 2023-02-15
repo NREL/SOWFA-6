@@ -38,13 +38,71 @@ namespace Foam
 
 void Foam::hurricaneSource::read()
 {
-    //Do nothing
+    dictionary subDict = dict_.subOrEmptyDict("hurricaneSource");
+    
+    if (subDict.empty())
+    {
+        Info << "No subdict..." << endl;
+        
+    }
+
+    if (!subDict.found("V"))
+    {
+        FatalErrorInFunction << "Must specify hurricane characteristic velocity, 'V', at this location."
+                                 << abort(FatalError);
+    }
+    
+    if (!subDict.found("R"))
+    {
+        FatalErrorInFunction << "Must specify radius from center of hurricane, 'R'."
+                                 << abort(FatalError);
+    }
+
+    if (!subDict.found("dVdR"))
+    {
+        FatalErrorInFunction << "Must specify radial characteristic velocity gradient, 'dVdR', at this location"
+                                 << abort(FatalError);
+    }
+
+    V = subDict.lookupOrDefault<scalar>("V",10.0);
+    R = subDict.lookupOrDefault<scalar>("R",40.0E3);
+    dVdR = subDict.lookupOrDefault<scalar>("dVdR",0.0);
+}
+
+
+void Foam::hurricaneSource::setupPlanarAveraging()
+{
+    // Initialize the planar averaging.
+    zPlanes_.initialize();
+
+    nLevels = zPlanes_.numberOfPlanes();
+
+    cellsInPlane = zPlanes_.planesCellList();
 }
 
 
 void Foam::hurricaneSource::update()
 {
-    //Do nothing
+    // Get planar average velocity at each height.
+    Ubar = zPlanes_.average(U_);
+
+    // Get the Coriolis f-factor.
+    const scalar f = Coriolis_.f();
+
+    // Update the source term.
+    for (int i = 0; i < nLevels; i++)
+    {
+        forAll(cellsInPlane[i], j)
+        {
+            source_[j].x() =  Foam::sqr(Ubar[i].x()) / R  
+                             +Ubar[i].y() * (V/R)
+                             -(f*V + (Foam::sqr(V) / R));
+            source_[j].y() = -Ubar[i].x() * dVdR 
+                             -Ubar[i].x() * (V/R);
+            source_[j].z() = 0.0;
+        }
+    }
+
 }
 
 
@@ -53,7 +111,8 @@ void Foam::hurricaneSource::update()
 Foam::hurricaneSource::hurricaneSource
 (
     const IOdictionary& dict,
-    const volVectorField& U
+    const volVectorField& U,
+    const CoriolisForce& Coriolis
 )
 :
     // Set the pointer to runTime
@@ -61,6 +120,8 @@ Foam::hurricaneSource::hurricaneSource
 
     // Set the pointer to the mesh
     mesh_(U.mesh()),
+
+    Coriolis_(Coriolis),
 
     dict_(dict),
 
@@ -86,6 +147,7 @@ Foam::hurricaneSource::hurricaneSource
 {
 
 read();
+setupPlanarAveraging();
 update();
 
 }

@@ -10,6 +10,7 @@
       - fvc::div(Rwall)
       + Coriolis.force()
       + momentumGeoMesoTerm.force()
+      + hurricaneMesoTerm.source()
       + momentumSpongeLayers.force()
       + momentumPerturbationZones.source()
       - (1.0 - scalar(bodyForceStabilization)) * actuatorTurbineArray.source()

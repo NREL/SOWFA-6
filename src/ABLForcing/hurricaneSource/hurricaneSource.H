@@ -39,6 +39,7 @@ SourceFiles
 #include "fvCFD.H"
 #include "IOdictionary.H"
 #include "meshPlanes.H"
+#include "CoriolisForce.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -61,6 +62,9 @@ class hurricaneSource
     
             //- Mesh pointer
             const fvMesh& mesh_;
+
+            //- Coriolis force pointer
+            const CoriolisForce& Coriolis_;
     
             //- Velocity field pointer
             const volVectorField& U_;
@@ -74,11 +78,25 @@ class hurricaneSource
         //- Body force field of terms specific to hurricane.
         volVectorField source_;
 
+        //- Variables related to obtaining the planar-averaged velocity.
+        label nLevels;
+        List<List<label> > cellsInPlane;
+        List<vector> Ubar;
+
+        //- Parameters for hurricane source terms.
+        scalar R;
+        scalar V;
+        scalar dVdR;
+
+
+
 
     // Private Member Functions
 
         //- Read a subdict
         void read();
+
+        void setupPlanarAveraging();
 
 
 public:
@@ -91,7 +109,8 @@ public:
     hurricaneSource
     (
         const IOdictionary& dict,
-        const volVectorField& U
+        const volVectorField& U,
+        const CoriolisForce& Coriolis
     );
 
 

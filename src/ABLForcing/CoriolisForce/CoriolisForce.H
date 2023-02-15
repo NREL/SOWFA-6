@@ -98,6 +98,12 @@ public:
             return bodyForce_;
         }
 
+        //- Return Coriolis "f"-factor.
+        scalar f() const
+        {
+            return 2.0*Omega_.value().z();
+        }
+
 
 };
 
