@@ -70,10 +70,13 @@ class buoyancyModel
             //- Gravitational acceleration field
             const uniformDimensionedVectorField g_;
 
+
+            const IOdictionary dict_;
+
         //- Boussinesq density field
         volScalarField rhok_;
 
-        //- Gravioty potential field
+        //- Gravity potential field
         volScalarField gh_;
         surfaceScalarField ghf_;
 
@@ -98,7 +101,9 @@ public:
     (
         const volScalarField& T,
         const dimensionedScalar TRef,
-        const dimensionedVector hRef
+        const dimensionedVector hRef,
+        const uniformDimensionedVectorField g,
+        const IOdictionary dict
     );
 
 
@@ -117,18 +122,26 @@ public:
         //- Update density field 
         void updateDensityField();
 
+        //- Update all buoyancy-related fields.
+        void update();
+
         //- Return bakcground pressure
         volScalarField& backgroundPressure()
         {
             return pBackground_;
         }
 
+        //- Return buoyancy density
+        volScalarField& rhok()
+        {
+            return rhok_;
+        }
+
         //- Return buoyancy term
-        surfaceScalarField& buoyancyTerm()
+        surfaceScalarField& source()
         {
             return buoyancyTerm_;
         }
-
 
 };
 

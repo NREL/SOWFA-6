@@ -345,10 +345,18 @@ void Foam::spongeLayer::calculateCurrentSpongeViscosity_()
 void Foam::spongeLayer::applyVerticalFilter_()
 {
     // Compute wall distance
-    wallDist d(mesh_);
-    surfaceScalarField dFace = fvc::interpolate(d.y());
-
-    scalar height, temp;
+    vector up(0,0,1);
+    volScalarField height = mesh_.C() & up;
+    surfaceScalarField heightFace = mesh_.Cf() & up;
+    if (useWallDistZ_)
+    {
+        Info << "Calculating wall distance..." << endl;
+        wallDist d(mesh_);
+        height = d.y();
+        heightFace = fvc::interpolate(d.y());
+    }
+ 
+    scalar temp;
     scalar start, widthcos, endcos;
 
     start = vertFiltStartHeight_;
@@ -357,17 +365,13 @@ void Foam::spongeLayer::applyVerticalFilter_()
 
     forAll(mesh_.cells(),cellI)
     {
-        if ( useWallDistZ_ )
-            height = d.y()[cellI];
-        else
-            height = mesh_.C()[cellI][2];
-
-        temp  = (height<=start) * 0;
-        temp += ((height>start) && (height<endcos)) * 0.5 *
+        temp  = (height[cellI]<=start) * 0;
+        temp += ((height[cellI]>start) && (height[cellI]<endcos)) * 0.5 *
             (
-             1.0 - 1.0 * Foam::cos( Foam::constant::mathematical::pi * (height - start)/widthcos )
+             1.0 - 1.0 * Foam::cos( Foam::constant::mathematical::pi * (height[cellI] - start)/widthcos )
             );
-        temp += (height>=endcos);
+        temp += (height[cellI]>=endcos);
+
         if (currentViscosity_[cellI] > 0)
             currentViscosity_[cellI] *= temp;
     }
@@ -378,17 +382,13 @@ void Foam::spongeLayer::applyVerticalFilter_()
         {
             forAll(currentViscosity_.boundaryField()[i],j)
             {
-                if ( useWallDistZ_ )
-                    height = dFace.boundaryField()[i][j];
-                else
-                    height = mesh_.boundary()[i].Cf()[j][2];
-
-                temp  = (height<=start) * 0;
-                temp += ((height>start) && (height<endcos)) * 0.5 *
+                temp  = (heightFace.boundaryField()[i][j] <= start) * 0;
+                temp += ((heightFace.boundaryField()[i][j] > start) && (heightFace.boundaryField()[i][j] < endcos)) * 0.5 *
                     (
-                     1.0 - 1.0 * Foam::cos ( Foam::constant::mathematical::pi * (height - start)/widthcos )
+                     1.0 - 1.0 * Foam::cos ( Foam::constant::mathematical::pi * (heightFace.boundaryField()[i][j] - start)/widthcos )
                     );
-                temp += (height>=endcos);
+                temp += (heightFace.boundaryField()[i][j] >= endcos);
+
                 if (currentViscosity_.boundaryField()[i][j] > 0)
                     currentViscosity_.boundaryFieldRef()[i][j] *= temp;
             }

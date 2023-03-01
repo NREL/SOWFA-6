@@ -3,15 +3,17 @@
     // Set up the solution matrix
     fvVectorMatrix UEqn
     (
-        fvm::ddt(U) + fvm::div(phi, U)
+        fvm::ddt(U) 
+      + fvm::div(phi, U)
       + turbulence->divDevReff(U)
-      + fvc::div(Rwall)
-      - Coriolis.force()
-      - momentumGeoMesoTerm.force()
-      - momentumSpongeLayers.force()
-      - momentumPerturbationZones.source()
-     ==
-        fvOptions(U)
+    ==
+      - fvc::div(Rwall)
+      + Coriolis.force()
+      + momentumGeoMesoTerm.force()
+      + momentumSpongeLayers.force()
+      + momentumPerturbationZones.source()
+      - (1.0 - scalar(bodyForceStabilization)) * actuatorTurbineArray.source()
+      + fvOptions(U)
     );
 
     UEqn.relax();
@@ -28,7 +30,8 @@
             (
                 (
                   - fvc::snGrad(p_rgh)
-                  + Boussinesq.buoyancyTerm()
+                  + Boussinesq.source()
+                  + scalar(bodyForceStabilization) * fvc::flux(actuatorTurbineArray.source())/mesh.magSf()
                 )*mesh.magSf()
             )
         );
@@ -36,7 +39,8 @@
         fvOptions.correct(U);
     }
 
-    if (pimple.finalPimpleIter() && pimple.finalPISOIter())
+  //if (pimple.finalPimpleIter() && pimple.finalPISOIter())
+    if (pimple.finalPimpleIter())
     {
         momentumPerturbationZones.perturb(U);
     }

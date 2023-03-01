@@ -43,17 +43,21 @@ Description
 #include "turbulentTransportModel.H"
 #include "wallDist.H"
 #include "fixedFluxPressureFvPatchScalarField.H"
+#include "processorFvPatch.H"
 #include "timeVaryingMappedInletOutletFvPatchField.H"
 #include "fvOptions.H"
 #include "pimpleControl.H"
 #include "ABL.H"
+#include "adjustPhiExtended.H"
+#include "horizontalAxisWindTurbinesALMOpenFAST.H"
+
+
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 int main(int argc, char *argv[])
 {
     #include "postProcess.H"
-
     #include "setRootCaseLists.H"
     #include "createTime.H"
     #include "createMesh.H"
@@ -65,19 +69,11 @@ int main(int argc, char *argv[])
     #include "computeDivergence.H"
     #include "createDivSchemeBlendingField.H"
 
-    turbulence->validate();
+
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
     Info << endl << "Starting time loop" << endl;
-
-    // Update boundary conditions before starting in case anything needs
-    // updating, for example after using mapFields to interpolate initial
-    // field.
-    U.correctBoundaryConditions();
-    phi = linearInterpolate(U) & mesh.Sf();
-    #include "turbulenceCorrect.H"
-    T.correctBoundaryConditions();
 
 
     // Time stepping loop.
@@ -110,13 +106,14 @@ int main(int argc, char *argv[])
         // - perturbation zone forcing.
         momentumPerturbationZones.update();
         temperaturePerturbationZones.update();
+        actuatorTurbineArray.update();
 
 
         // Outer-iteration loop.
         while (pimple.loop())
         {
             // Update the once-per-outer-iteration source terms.
-            // - geostrophic/mesoscale forcing.
+            // - Geostrophic/mesoscale forcing.
             momentumGeoMesoTerm.update(pimple.finalPimpleIter());
             temperatureGeoMesoTerm.update(pimple.finalPimpleIter());
 
@@ -126,8 +123,8 @@ int main(int argc, char *argv[])
             // - Coriolis forcing.
             Coriolis.update();
 
-            // - buoyancy forcing.
-            Boussinesq.updateBuoyancyTerm();
+            // - Buoyancy forcing.
+            Boussinesq.update();
 
 
             // Predictor step.
@@ -143,9 +140,13 @@ int main(int argc, char *argv[])
             {
                 Info << "   Corrector Step " << corrIter << endl;
 
+                // Update the once-per-inner-iteration source terms.
+                // - Buoyancy forcing.
+              //Boussinesq.update();
+
                 #include "pEqn.H"
-                #include "turbulenceCorrect.H"
-                #include "TEqn.H"
+              //#include "turbulenceCorrect.H"
+              //#include "TEqn.H"
                 corrIter++;
             }
 
@@ -175,6 +176,8 @@ int main(int argc, char *argv[])
              << "  ClockTime = " << runTime.elapsedClockTime() << " s"
              << nl << nl << nl << nl << endl;
     }
+
+    actuatorTurbineArray.end();
 
     Info << "Ending the simulation" << endl;
 

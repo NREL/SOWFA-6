@@ -9,11 +9,11 @@
         fvm::ddt(T)
       + fvm::div(phi, T)
       - fvm::laplacian(kappaEff, T)
-      - fvc::div(qwall)
-      - temperatureGeoMesoTerm.force()
-      - temperaturePerturbationZones.source()
      ==
-        fvOptions(T)
+        fvc::div(qwall)
+      + temperatureGeoMesoTerm.force()
+      + temperaturePerturbationZones.source()
+      + fvOptions(T)
     );
 
     TEqn.relax();
@@ -24,10 +24,10 @@
 
     fvOptions.correct(T);
 
-    if (pimple.finalPimpleIter() && pimple.finalPISOIter())
+  //if (pimple.finalPimpleIter() && pimple.finalPISOIter())
+    if (pimple.finalPimpleIter())
     {
+        Info << "perturbing temperature field..." << endl;
         temperaturePerturbationZones.perturb(T);
     }
-
-    Boussinesq.updateDensityField();
 }

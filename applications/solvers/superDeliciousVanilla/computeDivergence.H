@@ -19,11 +19,30 @@
     // Compute global divergence over domain boundaries and report statistics.
     Info << "   -Boundary Flux:" << endl;
 
+
+    List<bool> isCoupledInflow(phi.boundaryField().size(),false);
+    forAll(phi.boundaryField(), patchi)
+    {
+        word patchName = phi.mesh().boundary()[patchi].name();
+        forAll(coupledInflowPatches,j)
+        {
+            if (patchName == coupledInflowPatches[j])
+            {
+                isCoupledInflow[patchi] = true;
+            }
+        }
+    }
+
     scalar globalSumPhiBoundary = 0.0;
     scalar globalSumAreaBoundary = 0.0;
     forAll(phi.boundaryField(), patchi)
     {
-        if ( !mesh.boundary()[patchi].coupled() )
+        // Compute flux on all boundaries except processor boundaries (this is
+        // updated from previously where flux was computed for all uncoupled
+        // boundaries, i.e., coupled=cyclic and processor, as commented out 
+        // below).
+      //if ( !mesh.boundary()[patchi].coupled() || isCoupledInflow[patchi] )
+        if ( !isA<processorFvPatch>(mesh.boundary()[patchi]) || isCoupledInflow[patchi] )
         {
             word boundaryName = mesh.boundary()[patchi].name();
             scalar sumPhiBoundary = 0.0;
