@@ -78,15 +78,20 @@ class hurricaneSource
         //- Body force field of terms specific to hurricane.
         volVectorField source_;
 
+        bool active_;
+
         //- Variables related to obtaining the planar-averaged velocity.
         label nLevels;
         List<List<label> > cellsInPlane;
+        List<scalar> planeHeights;
         List<vector> Ubar;
 
         //- Parameters for hurricane source terms.
         scalar R;
-        scalar V;
-        scalar dVdR;
+        scalar V_surface;
+        scalar dVdR_surface;
+        scalar dVdz;
+        scalar dVdRdz;
 
 
 

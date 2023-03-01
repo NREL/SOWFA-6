@@ -40,69 +40,110 @@ void Foam::hurricaneSource::read()
 {
     dictionary subDict = dict_.subOrEmptyDict("hurricaneSource");
     
-    if (subDict.empty())
+    active_ = subDict.empty() ? false : true;
+
+    if (active_)
     {
-        Info << "No subdict..." << endl;
+        if (!subDict.found("R"))
+        {
+            FatalErrorInFunction << "Must specify radius from center of hurricane, 'R'."
+                                     << abort(FatalError);
+        }
+
+        if (!subDict.found("V_surface"))
+        {
+            FatalErrorInFunction << "Must specify characteristic velocity at the surface, 'V_surface'."
+                                     << abort(FatalError);
+        }
         
+        if (!subDict.found("dVdR_surface"))
+        {
+            FatalErrorInFunction << "Must specify characteristic velocity gradient with respect to radius at the surface, 'dVdR_surface'."
+                                     << abort(FatalError);
+        }
+
+        if (!subDict.found("dVdz"))
+        {
+            FatalErrorInFunction << "Must specify characteristic velocity gradient with height, 'dVdz'."
+                                     << abort(FatalError);
+        }
+        
+        if (!subDict.found("dVdRdz"))
+        {
+            FatalErrorInFunction << "Must specify gradient of characteristic velocity gradient with respect to radius with respect to height, 'dVdRdz'."
+                                     << abort(FatalError);
+        }
+
+        R = subDict.lookupOrDefault<scalar>("R",40.0E3);
+        V_surface = subDict.lookupOrDefault<scalar>("V_surface",40.0);
+        dVdR_surface = subDict.lookupOrDefault<scalar>("dVdR_surface",-8.0E-3);
+        dVdz = subDict.lookupOrDefault<scalar>("dVdz",-2.0E-3);
+        dVdRdz = subDict.lookupOrDefault<scalar>("dVdRdz",1.0E-7);
+
+        Info << "  -using values:" << endl;
+        Info << "      R = " << R/1000.0 << " km" << endl;
+        Info << "      V at surface = " << V_surface << " m/s" << endl;
+        Info << "      dV/dR at surface = " << dVdR_surface << " 1/s" << endl;
+        Info << "      dV/dz = " << dVdz << " 1/s" << endl;
+        Info << "      (dV/dR)/dz = " << dVdRdz << " 1/(m*s)" << endl;
     }
 
-    if (!subDict.found("V"))
+    else
     {
-        FatalErrorInFunction << "Must specify hurricane characteristic velocity, 'V', at this location."
-                                 << abort(FatalError);
-    }
-    
-    if (!subDict.found("R"))
-    {
-        FatalErrorInFunction << "Must specify radius from center of hurricane, 'R'."
-                                 << abort(FatalError);
+        Info << "  -no hurricane source terms specified. Skipping..." << endl;   
     }
 
-    if (!subDict.found("dVdR"))
-    {
-        FatalErrorInFunction << "Must specify radial characteristic velocity gradient, 'dVdR', at this location"
-                                 << abort(FatalError);
-    }
-
-    V = subDict.lookupOrDefault<scalar>("V",10.0);
-    R = subDict.lookupOrDefault<scalar>("R",40.0E3);
-    dVdR = subDict.lookupOrDefault<scalar>("dVdR",0.0);
 }
 
 
 void Foam::hurricaneSource::setupPlanarAveraging()
 {
-    // Initialize the planar averaging.
-    zPlanes_.initialize();
-
-    nLevels = zPlanes_.numberOfPlanes();
-
-    cellsInPlane = zPlanes_.planesCellList();
+    if (active_)
+    {
+        // Initialize the planar averaging.
+        zPlanes_.initialize();
+    
+        nLevels = zPlanes_.numberOfPlanes();
+    
+        cellsInPlane = zPlanes_.planesCellList();
+    
+        planeHeights = zPlanes_.planeLocationValues();
+    }
 }
 
 
 void Foam::hurricaneSource::update()
 {
-    // Get planar average velocity at each height.
-    Ubar = zPlanes_.average(U_);
-
-    // Get the Coriolis f-factor.
-    const scalar f = Coriolis_.f();
-
-    // Update the source term.
-    for (int i = 0; i < nLevels; i++)
+    if (active_)
     {
-        forAll(cellsInPlane[i], j)
+        // Get planar average velocity at each height.
+        Ubar = zPlanes_.average(U_);
+
+        // Get the Coriolis f-factor.
+        const scalar f = Coriolis_.f();
+
+        // Update the source term.
+        for (int i = 0; i < nLevels; i++)
         {
-            source_[j].x() =  Foam::sqr(Ubar[i].x()) / R  
-                             +Ubar[i].y() * (V/R)
-                             -(f*V + (Foam::sqr(V) / R));
-            source_[j].y() = -Ubar[i].x() * dVdR 
-                             -Ubar[i].x() * (V/R);
-            source_[j].z() = 0.0;
+            vector sourceAtLevel = Zero;
+
+            scalar V = V_surface + (planeHeights[i] * dVdz);
+            scalar dVdR = dVdR_surface + (planeHeights[i] * dVdRdz);
+
+            sourceAtLevel.x() =  Foam::sqr(Ubar[i].x()) / R
+                                +Ubar[i].y() * (V/R)
+                                -(f*V + (Foam::sqr(V) / R));
+            sourceAtLevel.y() = -Ubar[i].x() * dVdR
+                                -Ubar[i].x() * (V/R);
+
+          //Info << planeHeights[i] << tab << V_surface << tab << dVdR_surface << tab << V << tab << dVdR << tab << sourceAtLevel << endl;
+
+            forAll(cellsInPlane[i], j)
+            {
+                source_[cellsInPlane[i][j]] = sourceAtLevel;
+            }
         }
     }
-
 }
 
 
@@ -143,13 +184,13 @@ Foam::hurricaneSource::hurricaneSource
         ),
         mesh_,
         dimensionedVector("bodyForce",dimVelocity/dimTime,vector::zero)
-    )
+    ),
+
+    active_(false)
 {
-
-read();
-setupPlanarAveraging();
-update();
-
+    read();
+    setupPlanarAveraging();
+    update();
 }
 
 
