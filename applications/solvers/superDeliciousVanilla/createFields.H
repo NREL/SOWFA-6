@@ -331,8 +331,6 @@
 
 
 
-
-
 // INSTANTIATE OBJECTS OF THE SOURCE TERM CLASSES
     // - Coriolis force term [m/s^2].
     Info << "Creating Coriolis force" << endl;
