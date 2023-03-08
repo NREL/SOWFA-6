@@ -1,3 +1,0 @@
-superDeliciousVanilla.C
-
-EXE = $(SOWFA_APPBIN)/superDeliciousVanilla.turbine
