@@ -6,5 +6,6 @@
 #include "drivingForce.H"
 #include "spongeLayer.H"
 #include "perturbationZone.H"
+#include "hurricaneSource.H"
 
 #endif

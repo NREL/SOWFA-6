@@ -22,21 +22,24 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::CoriolisForce
+    Foam::hurricaneSource
 
 Description
-    Coriolis force object
+    Source terms use to simulate hurricane flow away from the eyewall following
+    G. Bryan's "simple" method.
 
 SourceFiles
-    CoriolisForce.C
+    hurricaneSource.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef CoriolisForce_H
-#define CoriolisForce_H
+#ifndef hurricaneSource_H
+#define hurricaneSource_H
 
 #include "fvCFD.H"
 #include "IOdictionary.H"
+#include "meshPlanes.H"
+#include "CoriolisForce.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -46,65 +49,88 @@ namespace Foam
 // Forward declaration of classes
 
 /*---------------------------------------------------------------------------*\
-                           Class CoriolisForce Declaration
+                           Class hurricaneSource Declaration
 \*---------------------------------------------------------------------------*/
 
-class CoriolisForce
+class hurricaneSource
 {
     // Private data
 
         //- Constants
             //- Runtime pointer
-            const Time& runTime_;;
+            const Time& runTime_;
     
             //- Mesh pointer
             const fvMesh& mesh_;
+
+            //- Coriolis force pointer
+            const CoriolisForce& Coriolis_;
     
             //- Velocity field pointer
             const volVectorField& U_;
 
-        //- Planetary rotation vector field
-        uniformDimensionedVectorField Omega_;
+        //- Dictionary
+        const IOdictionary& dict_;
 
-        //- Coriolis force
-        volVectorField bodyForce_;
+        //- Vertical mesh planes for horizontal averaging
+        meshPlanes zPlanes_;
+        
+        //- Body force field of terms specific to hurricane.
+        volVectorField source_;
+
+        bool active_;
+
+        //- Variables related to obtaining the planar-averaged velocity.
+        label nLevels;
+        List<List<label> > cellsInPlane;
+        List<scalar> planeHeights;
+        List<vector> Ubar;
+
+        //- Parameters for hurricane source terms.
+        scalar R;
+        scalar V_surface;
+        scalar dVdR_surface;
+        scalar dVdz;
+        scalar dVdRdz;
+
+
+
+
+    // Private Member Functions
+
+        //- Read a subdict
+        void read();
+
+        void setupPlanarAveraging();
 
 
 public:
 
     //- Declare name of the class and its debug switch
-    ClassName("CoriolisForce");
+    ClassName("hurricaneSource");
 
 
-    // Constructors
-    CoriolisForce
+    //- Constructors
+    hurricaneSource
     (
-        const volVectorField& U
+        const IOdictionary& dict,
+        const volVectorField& U,
+        const CoriolisForce& Coriolis
     );
 
 
-    // Destructor
-    virtual ~CoriolisForce();
+    //- Destructor
+    virtual ~hurricaneSource();
 
 
-    // Public Member functions
+    //- Update sponge layer total force
+    void update();
 
-        //- Update Coriolis force
-        void update();
-
-        //- Return force
-        volVectorField& force()
-        {
-            return bodyForce_;
-        }
-
-        //- Return Coriolis "f"-factor.
-        scalar f() const
-        {
-            return 2.0*Omega_.value().z();
-        }
-
-
+    //- Return force
+    volVectorField& source()
+    {
+        return source_;
+    }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -115,4 +141,3 @@ public:
 
 #endif
 
-// ************************************************************************* //

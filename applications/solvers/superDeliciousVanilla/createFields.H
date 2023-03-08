@@ -331,8 +331,6 @@
 
 
 
-
-
 // INSTANTIATE OBJECTS OF THE SOURCE TERM CLASSES
     // - Coriolis force term [m/s^2].
     Info << "Creating Coriolis force" << endl;
@@ -343,6 +341,11 @@
     Info << "Creating geostrophic/mesoscale source term(s)" << endl;
     drivingForce<vector> momentumGeoMesoTerm(ABLProperties, "momentum",U);
     drivingForce<scalar> temperatureGeoMesoTerm(ABLProperties, "temperature",T);
+
+
+    // - Hurricane source term [m/s^2].
+    Info << "Creating G. Bryan's 'simple' hurricane source term" << endl;
+    hurricaneSource hurricaneMesoTerm(ABLProperties, U, Coriolis);
     
     
     // - Buoyancy term [m/s^2].

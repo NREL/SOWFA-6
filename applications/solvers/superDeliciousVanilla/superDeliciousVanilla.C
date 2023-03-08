@@ -105,6 +105,7 @@ int main(int argc, char *argv[])
         momentumPerturbationZones.update();
         temperaturePerturbationZones.update();
         actuatorTurbineArray.update();
+        hurricaneMesoTerm.update();
 
 
         // Outer-iteration loop.
