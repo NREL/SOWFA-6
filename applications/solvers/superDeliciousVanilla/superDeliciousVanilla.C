@@ -67,7 +67,6 @@ int main(int argc, char *argv[])
     #include "CourantNo.H"
     #include "setInitialDeltaT.H"
     #include "computeDivergence.H"
-    #include "createDivSchemeBlendingField.H"
 
 
 
@@ -82,7 +81,6 @@ int main(int argc, char *argv[])
         #include "readTimeControls.H"
         #include "CourantNo.H"
         #include "setDeltaT.H"
-        #include "updateDivSchemeBlendingField.H"
 
         word timeNameOld = runTime.timeName();
 
