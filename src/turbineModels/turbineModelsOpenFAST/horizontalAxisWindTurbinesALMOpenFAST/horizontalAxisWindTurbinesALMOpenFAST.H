@@ -240,6 +240,13 @@ private:
             DynamicList<word> towerPointDistType;
             DynamicList<word> nacellePointDistType;
 
+            //- List of booleans to indicate whether or not blade velocity sampling points
+            //  from FAST should be projected onto the line of blade force application points
+            //  from FAST before sampling.  This is required if for some reason there is a 
+            //  mismatch (there once was, but hopefully this is all fixed in OpenFAST 3.4.1
+            //  and beyond).
+            DynamicList<bool> projectBladeSampleToForcePoints;
+
             //- List of description of how velocity field is interpolated from the 
             //  CFD mesh to the actuator line points.  Options are "cellCenter", "linear",
             //  or "integral".  "cellCenter" uses the value at the cell center of the cell

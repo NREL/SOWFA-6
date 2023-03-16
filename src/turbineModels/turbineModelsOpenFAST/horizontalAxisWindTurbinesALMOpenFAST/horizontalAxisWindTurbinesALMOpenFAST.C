@@ -376,6 +376,7 @@ void horizontalAxisWindTurbinesALMOpenFAST::readInput()
         numTowerPoints.append(int(readScalar(turbineArrayProperties.subDict(turbineName[i]).lookup("numTowerPoints"))));
 
         bladePointDistType.append(turbineArrayProperties.subDict(turbineName[i]).lookupOrDefault<word>("bladePointDistType","chordClustered"));
+        projectBladeSampleToForcePoints.append(turbineArrayProperties.subDict(turbineName[i]).lookupOrDefault<bool>("projectBladeSampleToForcePoints",false));
 
         bladeActuatorPointInterpType.append(word(turbineArrayProperties.subDict(turbineName[i]).lookup("bladeActuatorPointInterpType")));
         nacelleActuatorPointInterpType.append(word(turbineArrayProperties.subDict(turbineName[i]).lookup("nacelleActuatorPointInterpType")));
@@ -1648,7 +1649,10 @@ void horizontalAxisWindTurbinesALMOpenFAST::getPositions()
        // of the velocity induced by the bound vortex instead of the "freestream" wind, which
        // can completely throw off the computed lift and drag causing a huge overprediction of
        // torque and thrust.
-       projectPoints(bladeSamplePoints[i],bladePoints[i],rotorApex[i]);
+       if (projectBladeSampleToForcePoints[i])
+       {
+           projectPoints(bladeSamplePoints[i],bladePoints[i],rotorApex[i]);
+       }
 
    }
 
