@@ -13,7 +13,7 @@
       + hurricaneMesoTerm.source()
       + momentumSpongeLayers.force()
       + momentumPerturbationZones.source()
-      - (1.0 - scalar(bodyForceStabilization)) * actuatorTurbineArray.source()
+      + (1.0 - scalar(bodyForceStabilization)) * actuatorTurbineArray.source()
       + fvOptions(U)
     );
 
