@@ -854,6 +854,7 @@ void Foam::perturbationZone<Type>::updateSourceTerm(int m, int k)
             source_[kk] = fluctuations_[m][i] / dt;
         }
     }
+    source_.correctBoundaryConditions();
 }
 
 
@@ -875,6 +876,7 @@ void Foam::perturbationZone<Type>::zeroSourceTerm(int m, int k)
             source_[kk] = Zero;
         }
     }
+    source_.correctBoundaryConditions();
 }
 
 
