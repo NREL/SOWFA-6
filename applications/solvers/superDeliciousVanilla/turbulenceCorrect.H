@@ -12,3 +12,7 @@ kappat = turbulence->nut()/Prt;
 kappat.correctBoundaryConditions();
 qwall.correctBoundaryConditions();
 Rwall.correctBoundaryConditions();
+
+// update the sgs turbulence fields.
+qSgs = -(turbulence->nu()/Pr + kappat)* fvc::grad(T);
+RdevSgs = turbulence->devReff();
