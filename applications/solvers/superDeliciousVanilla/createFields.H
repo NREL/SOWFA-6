@@ -480,6 +480,10 @@
     // - if this is not a restart, update turbulence BCs and do an initial field solve.
     if (!isRestart)
     {
-        #include "turbulenceCorrect.H"
+      //#include "turbulenceCorrect.H"
+        kappat = turbulence->nut()/Prt;
+        kappat.correctBoundaryConditions();    
+        qwall.correctBoundaryConditions();    
+        Rwall.correctBoundaryConditions();    
         turbulence->validate();
     }
