@@ -365,15 +365,23 @@ bool Foam::functionObjects::temporalAveraging::execute()
 
 bool Foam::functionObjects::temporalAveraging::write()
 {
-    writeAverages();
-    writeAveragingProperties();
 
-    if (restartOnOutput_)
+    if (initialised_)
     {
-        restart();
-    }
+        writeAverages();
+        writeAveragingProperties();
 
-    return true;
+        if (restartOnOutput_)
+        {
+            restart();
+        }
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 
