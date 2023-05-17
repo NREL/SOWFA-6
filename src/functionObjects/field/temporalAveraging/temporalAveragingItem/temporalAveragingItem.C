@@ -61,6 +61,7 @@ const Foam::NamedEnum
 Foam::functionObjects::temporalAveragingItem::temporalAveragingItem()
 :
     fieldName_("unknown"),
+    averageName_("unknown"),
     mean_(0),
     meanFieldName_("unknown"),
     prime2Mean_(0),
@@ -79,6 +80,7 @@ Foam::functionObjects::temporalAveragingItem::temporalAveragingItem
 )
 :
     fieldName_(faItem.fieldName_),
+    averageName_(faItem.averageName_),
     mean_(faItem.mean_),
     meanFieldName_(faItem.meanFieldName_),
     prime2Mean_(faItem.prime2Mean_),
@@ -114,6 +116,7 @@ void Foam::functionObjects::temporalAveragingItem::operator=
 
     // Set updated values
     fieldName_ = rhs.fieldName_;
+    averageName_ = rhs.averageName_;
     mean_ = rhs.mean_;
     meanFieldName_ = rhs.meanFieldName_;
     prime2Mean_ = rhs.prime2Mean_;

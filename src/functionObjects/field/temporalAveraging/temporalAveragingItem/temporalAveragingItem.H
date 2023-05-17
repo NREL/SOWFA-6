@@ -107,6 +107,11 @@ private:
         //- Field name
         word fieldName_;
 
+        //- Average name.  You can assign a name to this averaging field in case 
+        //  you have multiple types of averaging happening simultaneously (i.e.,
+        //  time- and phase-averaging.
+        word averageName_;
+
         //- Compute mean flag
         Switch mean_;
 
@@ -164,6 +169,12 @@ public:
             const word& fieldName() const
             {
                 return fieldName_;
+            }
+
+            //- Return const access to the averaging type name
+            const word& averageName() const
+            {
+                return averageName_;
             }
 
             //- Return const access to the mean flag
@@ -264,6 +275,7 @@ public:
         {
             return
                 a.fieldName_ == b.fieldName_
+             && a.averageName_ == b.averageName_
              && a.mean_ == b.mean_
              && a.meanFieldName_ == b.meanFieldName_
              && a.prime2Mean_ == b.prime2Mean_
