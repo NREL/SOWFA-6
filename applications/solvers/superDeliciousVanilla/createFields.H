@@ -443,11 +443,47 @@
         ),
         mesh
     );
+   
+    Info << "Creating SGS temperature flux field, qSgs..." << endl;
+    volVectorField qSgs
+    (
+        IOobject
+        (
+            "qSgs",
+            runTime.timeName(),
+            mesh,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedVector("qSgs",dimensionSet(0, 1, -1, 1, 0, 0, 0),Zero)
+    );
 
    
+    // Create the deviatoric SGS stress field
+    Info << "Creating SGS stress field, RdevSgs..." << endl;
+    volSymmTensorField RdevSgs
+    (
+        IOobject
+        (
+            "RdevSgs",
+            runTime.timeName(),
+            mesh,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedSymmTensor("RdevSgs",dimensionSet(0, 2, -2, 0, 0, 0, 0),Zero)
+    ); 
+
+
     // - if this is not a restart, update turbulence BCs and do an initial field solve.
     if (!isRestart)
     {
-        #include "turbulenceCorrect.H"
+      //#include "turbulenceCorrect.H"
+        kappat = turbulence->nut()/Prt;
+        kappat.correctBoundaryConditions();    
+        qwall.correctBoundaryConditions();    
+        Rwall.correctBoundaryConditions();    
         turbulence->validate();
     }
