@@ -55,45 +55,137 @@ FoamFile
 
   functions
   {
-      temporalAverage
+      // This is an example of two temporal averaging functions simultaneously.
+      // The first is a simple time average with no windowing
+      timeAverage
       {
           //Type of functionObject
           type                 temporalAveraging;
-
+      
           // Where to load it from
           functionObjectLibs   ("libSOWFAfieldFunctionObjects.so");
-
+      
           // Function object enabled flag
           enabled              true;
+      
+          // Write to a log file
+          log                  true;
 
+          //Restart control.
+          restartOnRestart    false;
+          restartOnOutput     false;
+          periodicRestart     false;
+          restartPeriod       100.0;
+      
           // When to output the average fields
-          outputControl        outputTime;
+          writeControl        timeStep;
+          writeInterval       10.0; 
+      
+          // When to start time averaging.
+          timeStart   0.0;
+          timeEnd     1000.0;
+      
+          // Overall control of averaging operation.
+          executeControl     timeStep;
+          executeInterval    1;
 
           //Fields to be averaged - runTime modifiable
           fields
           (
               U
               {
-                  mean          on;
-                  prime2Mean    on;
+                  averageName    "timeAverage";
+                  mean            on;
+                  prime2Mean      on;
                   primeUPrimeMean off;
-                  base          time;
+                  base            time;
+                  windowType      exact;
+                  window          10.0;
+                  windowName      <name>;
               }
 
               T
               {
-                  mean          on;
-                  prime2Mean    on;
+                  averageName    "timeAverage";
+                  mean            on;
+                  prime2Mean      on;
                   primeUPrimeMean on;
-                  base          time;
+                  base            time;
               }
 
               p_rgh
               {
-                  mean          on;
-                  prime2Mean    on;
+                  averageName    "timeAverage";
+                  mean            on;
+                  prime2Mean      on;
                   primeUPrimeMean off;
-                  base          time;
+                  base            time;
+              }
+          );
+      }
+
+
+      // --The second is a periodic (phase average) every N time steps.
+      phaseAverage
+      {
+          //Type of functionObject
+          type                 temporalAveraging;
+      
+          // Where to load it from
+          functionObjectLibs   ("libSOWFAfieldFunctionObjects.so");
+      
+          // Function object enabled flag
+          enabled              true;
+      
+          // Write to a log file
+          log                  true;
+
+          //Restart control.
+          restartOnRestart    false;
+          restartOnOutput     false;
+          periodicRestart     false;
+          restartPeriod       100.0;
+      
+          // When to output the average fields
+          writeControl        timeStep;
+          writeInterval       10.0; 
+      
+          // When to start time averaging.
+          timeStart   0.0;
+          timeEnd     1000.0;
+      
+          // Overall control of averaging operation.
+          executeControl     timeStep;
+          executeInterval    20;
+
+          //Fields to be averaged - runTime modifiable
+          fields
+          (
+              U
+              {
+                  averageName    "phaseAverage";
+                  mean            on;
+                  prime2Mean      on;
+                  primeUPrimeMean off;
+                  base            iteration;
+              }
+
+              T
+              {
+                  averageName    "phaseAverage";
+                  mean            on;
+                  prime2Mean      on;
+                  primeUPrimeMean on;
+                  base            iteration;
+              }
+
+              p_rgh
+              {
+                  averageName    "phaseAverage";
+                  mean            on;
+                  prime2Mean      on;
+                  primeUPrimeMean off;
+                  base            iteration;
               }
           );
       }

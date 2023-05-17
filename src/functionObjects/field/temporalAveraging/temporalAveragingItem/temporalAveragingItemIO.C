@@ -32,6 +32,7 @@ License
 Foam::functionObjects::temporalAveragingItem::temporalAveragingItem(Istream& is)
 :
     fieldName_("unknown"),
+    averageName_("unknown"),
     mean_(0),
     meanFieldName_("unknown"),
     prime2Mean_(0),
@@ -50,6 +51,7 @@ Foam::functionObjects::temporalAveragingItem::temporalAveragingItem(Istream& is)
     const dictionaryEntry entry(dictionary::null, is);
 
     fieldName_ = entry.keyword();
+    entry.lookup("averageName") >> averageName_;
     entry.lookup("mean") >> mean_;
     entry.lookup("prime2Mean") >> prime2Mean_;
     entry.lookup("primeUPrimeMean") >> primeUPrimeMean_;
@@ -86,6 +88,7 @@ Foam::Istream& Foam::functionObjects::operator>>
     const dictionaryEntry entry(dictionary::null, is);
 
     faItem.fieldName_ = entry.keyword();
+    entry.lookup("averageName") >> faItem.averageName_;
     entry.lookup("mean") >> faItem.mean_;
     entry.lookup("prime2Mean") >> faItem.prime2Mean_;
     entry.lookup("primeUPrimeMean") >> faItem.primeUPrimeMean_;
@@ -93,11 +96,11 @@ Foam::Istream& Foam::functionObjects::operator>>
     faItem.window_ = entry.lookupOrDefault<scalar>("window", -1.0);
     faItem.windowName_ = entry.lookupOrDefault<word>("windowName", "");
 
-    faItem.meanFieldName_ = faItem.fieldName_ + temporalAveragingItem::EXT_MEAN;
+    faItem.meanFieldName_ = faItem.fieldName_ + temporalAveragingItem::EXT_MEAN + "_" + faItem.averageName_;
     faItem.prime2MeanFieldName_ =
-        faItem.fieldName_ + temporalAveragingItem::EXT_PRIME2MEAN;
+        faItem.fieldName_ + temporalAveragingItem::EXT_PRIME2MEAN + "_" + faItem.averageName_;
     faItem.primeUPrimeMeanFieldName_ =
-        faItem.fieldName_ + temporalAveragingItem::EXT_PRIMEUPRIMEMEAN;
+        faItem.fieldName_ + temporalAveragingItem::EXT_PRIMEUPRIMEMEAN + "_" + faItem.averageName_;
 
     if ((faItem.window_ > 0) && (faItem.windowName_ != ""))
     {
@@ -127,6 +130,9 @@ Foam::Ostream& Foam::functionObjects::operator<<
     );
 
     os  << faItem.fieldName_ << nl << token::BEGIN_BLOCK << nl;
+
+    os.writeKeyword("averageName")
+        << faItem.averageName_ << token::END_STATEMENT << nl;
 
     os.writeKeyword("mean")
         << faItem.mean_ << token::END_STATEMENT << nl;

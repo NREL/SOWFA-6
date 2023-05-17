@@ -167,7 +167,11 @@ void Foam::functionObjects::temporalAveraging::calcAverages()
     }
 
     Log << type() << " " << name() << " write:" << nl
-        << "    Calculating averages" << nl;
+        << "    Calculating averages" << nl
+        << "      at time: " << currentTime << nl
+        << "      at time step: " << currentTimeIndex << nl
+        << "      total time accumulated: " << totalTime_ << nl
+        << "      total time steps accumulate: " << totalIter_ << nl;
 
     addMeanSqrToPrime2Mean<scalar, scalar>();
     addMeanSqrToPrime2Mean<vector, symmTensor>();
@@ -365,15 +369,23 @@ bool Foam::functionObjects::temporalAveraging::execute()
 
 bool Foam::functionObjects::temporalAveraging::write()
 {
-    writeAverages();
-    writeAveragingProperties();
 
-    if (restartOnOutput_)
+    if (initialised_)
     {
-        restart();
-    }
+        writeAverages();
+        writeAveragingProperties();
 
-    return true;
+        if (restartOnOutput_)
+        {
+            restart();
+        }
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 
