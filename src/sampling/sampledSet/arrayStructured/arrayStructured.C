@@ -31,6 +31,7 @@ License
 #include "addToRunTimeSelectionTable.H"
 #include "word.H"
 #include "transform.H"
+#include "Random.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -55,9 +56,23 @@ void Foam::sampledSets::arrayStructured::calcSamples
     DynamicList<scalar>& samplingCurveDist
 ) const
 {
+    // Set a random number generator.
+    Random randGen(label(0));
+
+    // Compute the sampling points spacing.
     const scalar dx = (pointsDensity_.x() > 1) ? spanBox_.x()/(pointsDensity_.x() - 1) : 0;
     const scalar dy = (pointsDensity_.y() > 1) ? spanBox_.y()/(pointsDensity_.y() - 1) : 0;
     const scalar dz = (pointsDensity_.z() > 1) ? spanBox_.z()/(pointsDensity_.z() - 1) : 0;
+    scalar avgRes = (dx + dy + dz)/3.0;
+
+    Info << nl << endl;
+    Info << "Cartesian Structured Array Sampling:" << endl;
+    Info << "  -resolution = (" << dx << " m, " << dy << " m, " << dz << " m)" << endl;
+    Info << "  -box size = " << spanBox_ << " m" << endl;
+    Info << nl << endl;
+
+    // Compute and locate the points.
+    label pointCount = 0;
 
     for (label k = 0; k < pointsDensity_.z(); k++)
     {
@@ -71,7 +86,14 @@ void Foam::sampledSets::arrayStructured::calcSamples
 		// Global Cartesian
 		pt = csys_.globalPosition(pt);
 
-                const label celli = searchEngine().findCell(pt);
+                // Compute a perturbation to the true point location only for the purposes
+                // of searching to eliminate ties for points exactly on cell faces on
+                // processor boundaries.
+                
+                vector ptPerturb = 0.001 * avgRes * (2.0*randGen.sample01<vector>() - vector::one);
+                const label celli = searchEngine().findCell(pt+ptPerturb);
+              //Info << "ptP(" << i << ", " << j <<", " << k << ") = " << pt+ptPerturb << endl; 
+              //Info << "pt(" << i << ", " << j <<", " << k << ") = " << pt << endl; 
 
                 if (celli != -1)
                 {
@@ -79,8 +101,9 @@ void Foam::sampledSets::arrayStructured::calcSamples
                     samplingCells.append(celli);
                     samplingFaces.append(-1);
                     samplingSegments.append(0);
-                    samplingCurveDist.append(scalar(i));
+                    samplingCurveDist.append(scalar(pointCount));
                 }
+                pointCount++;
             }
         }
     }

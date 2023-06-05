@@ -29,19 +29,28 @@ Description
 
 Usage
     \table
-        Property    | Description                            | Req'd? | Default
-        box         | The box which contains the samples     | yes    |
-        nPoints     | The number of points in each direction | yes    |
-        axis        | The coordinate axis that is written    | yes    |
+        Property           | Description                             | Req'd? | Default
+        origin             | The origin of the box                   | yes    |
+        spanBox            | The length of the box in each direction | yes    |
+        pointsDensity      | The number of points in the box         | yes    |
+        coordinateRotation | Specifies a rotation of the box         | yes    |
+        axis               | The coordinate axis that is written     | yes    |
     \endtable
 
     Example specification:
     \verbatim
     {
-        type        arrayStructured;
-        box         (0.95 0 0.25) (1.2 0.25 0.5);
-        nPoints     (2 4 6);
-        axis        x;
+        type               arrayStructured;
+        origin            (0.01 -50.01 -50.01);
+        spanBox           (0.00  100.0 100.0);
+        pointsDensity     (1 3 3);
+        coordinateRotation
+        {
+            type    axesRotation;
+            e1      (1 0 0);
+            e2      (0 1 0);
+        }
+        axis        xyz;
     }
     \endverbatim
 
