@@ -44,16 +44,14 @@ Usage
     \verbatim
     {
         type               cylinder;
-        origin            (0.01 -50.01 -50.01);
-        spanBox           (0.00  100.0 100.0);
-        pointsDensity     (1 3 3);
-        coordinateRotation
-        {
-            type    axesRotation;
-            e1      (1 0 0);
-            e2      (0 1 0);
-        }
-        axis        xyz;
+        axisPointStart    (-15.0 0.0 0.0);
+        axisPointEnd      ( 15.0 0.0 0.0);
+        radiusStart        25.0;
+        radiusEnd          50.0;
+        thetaStart         0.0;
+        thetaEnd          270.0;
+        pointsDensity     (31 7 26);
+        axis               xyz;
     }
     \endverbatim
 
