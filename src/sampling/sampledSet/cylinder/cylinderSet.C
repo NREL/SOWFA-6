@@ -31,19 +31,23 @@ License
 #include "addToRunTimeSelectionTable.H"
 #include "word.H"
 #include "transform.H"
+#include "Random.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+namespace sampledSets
+{
     defineTypeNameAndDebug(cylinderSet, 0);
     addToRunTimeSelectionTable(sampledSet, cylinderSet, word);
+}
 }
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-void Foam::cylinderSet::calcSamples
+void Foam::sampledSets::cylinderSet::calcSamples
 (
     DynamicList<point>& samplingPts,
     DynamicList<label>& samplingCells,
@@ -52,64 +56,97 @@ void Foam::cylinderSet::calcSamples
     DynamicList<scalar>& samplingCurveDist
 ) const
 {
-    const meshSearch& queryMesh = searchEngine();
+    // Set a random number generator.
+    Random randGen(label(0));
+  
+    // The cylinder may be arbitrarily oriented in x-y space. Get necessary orientation
+    // information.  (Need to update for true fully arbitrary orientation.)  
+    //  - this is the axis down the length of the cylinder.
+    vector cylinderAxis = axisPointEnd_ - axisPointStart_;
 
-    const label nAxial = ceil((mag(origin2_ - origin1_))/dAxial_) + 1;
-    const label nAzimuthal = ceil((2.0*Foam::constant::mathematical::pi*radius_)/dAzimuthal_) + 1;
-    const scalar dTheta = 2.0*Foam::constant::mathematical::pi/(nAzimuthal - 1);
+    //  - this is the length of the cylinder.
+    scalar cylinderLength = mag(cylinderAxis);
 
-    label nTotalSamples(nAxial*nAzimuthal);
+    //  - make the cyliner axis a unit vector.
+    cylinderAxis /= mag(cylinderAxis);
 
-    List<point> sampleCoords(nTotalSamples);
 
-    vector circleAxis = origin2_ - origin1_;
-    circleAxis /= mag(circleAxis);
-
-    vector radialAxis = vector::zero;
-    radialAxis.x() =  circleAxis.y();
-    radialAxis.y() = -circleAxis.x();
+    //  - this is an axis of a radial of the cylinder.  Pointed from the cylinder axis
+    //  - outward along the radius.
+    vector radialAxis = Zero;
+    radialAxis.x() = -cylinderAxis.y();
+    radialAxis.y() =  cylinderAxis.x();
     radialAxis /= mag(radialAxis);
 
-    Info << "nTotalSamples = " << nTotalSamples << endl;
-    Info << "circleAxis = " << circleAxis << endl;
-    Info << "radialAxis = " << radialAxis << endl;
-    Info << "nAxial = " << nAxial << endl;
-    Info << "nAzimuthal = " << nAzimuthal << endl;
+    // Convert theta to radians.
+    scalar thetaStartRad_ = thetaStartDeg_ * (Foam::constant::mathematical::pi/180.0);
+    scalar thetaEndRad_ = thetaEndDeg_ * (Foam::constant::mathematical::pi/180.0);
 
-    label p(0);
-    vector origin = origin1_;
-    for (label j = 0; j < nAxial; j++)
+    // Compute the sampling point spacing.
+    const scalar dx = (pointsDensity_.x() > 1) ? cylinderLength/(pointsDensity_.x() - 1) : 0;
+    const scalar dt = (pointsDensity_.y() > 1) ? (thetaEndRad_ - thetaStartRad_)/(pointsDensity_.y() - 1) : 0;
+    const scalar dtDeg = dt*(180.0/Foam::constant::mathematical::pi);
+    const scalar dr = (pointsDensity_.z() > 1) ? (radiusEnd_ - radiusStart_)/(pointsDensity_.z() - 1) : 0;
+    scalar avgRes = (dx + dr + dt)/3.0;
+
+    Info << nl << endl;
+    Info << "Cylinder sampling:" << endl;
+    Info << "  -resolution = (" << dx << " m, " << dtDeg << " deg, " << dr << " m)" << endl;
+    Info << "  -cylinderLength = " << cylinderLength << " m" << endl;
+    Info << "  -radius range = " << radiusStart_ << " to " << radiusEnd_ << " m" << endl;
+    Info << "  -azimuthal range = " << thetaStartDeg_ << " to " << thetaEndDeg_ << " deg" << endl;
+    Info << nl << endl;
+
+
+    // Compute and locate the points.
+    label pointCount = 0;
+
+    for (label k = 0; k < pointsDensity_.z(); k++)
     {
-        vector r = radialAxis;
-        origin = origin1_ + (j*dAxial_)*circleAxis;
-        for (label i = 0; i < nAzimuthal; i++)
+        // Get the radius at this k-level of the sampling mesh.
+        scalar radius = radiusStart_ + (k*dr);
+
+        for (label j = 0; j < pointsDensity_.y(); j++)
         {
-            r = r * cos(dTheta) + (r^circleAxis)*sin(dTheta);
+
+            // Get the azimuth at this j-level of the sampling mesh.
+            scalar theta = thetaStartRad_ + (j*dt);
+
+            // Get this particular radial axis.  Start with the basic radial
+            // axis and rotate.
+            vector r = radialAxis;
+            r = r * cos(theta) + (cylinderAxis^r)*sin(theta);
             r /= mag(r);
+ 
+            for (label i = 0; i < pointsDensity_.x(); i++)
+            {
+                vector origin = axisPointStart_ + (i*dx)*cylinderAxis;
+                point pt(origin + radius*r);
 
-            sampleCoords[p] = origin + radius_*r;
-            
-            p++;
-        }
-    }
+                // Compute a perturbation to the true point location only for the purposes
+                // of searching to eliminate ties for points exactly on cell faces on
+                // processor boundaries.
+                vector ptPerturb = 0.001 * avgRes * (2.0*randGen.sample01<vector>() - vector::one);
+                const label celli = searchEngine().findCell(pt+ptPerturb);
+              //Info << "ptP(" << i << ", " << j <<", " << k << ") = " << pt+ptPerturb << endl; 
+              //Info << "pt(" << i << ", " << j <<", " << k << ") = " << pt << endl; 
 
-    forAll(sampleCoords, sampleI)
-    {
-        label cellI = queryMesh.findCell(sampleCoords[sampleI]);
-
-        if (cellI != -1)
-        {
-            samplingPts.append(sampleCoords[sampleI]);
-            samplingCells.append(cellI);
-            samplingFaces.append(-1);
-            samplingSegments.append(0);
-            samplingCurveDist.append(1.0 * sampleI);
+                if (celli != -1)
+                {
+                    samplingPts.append(pt);
+                    samplingCells.append(celli);
+                    samplingFaces.append(-1);
+                    samplingSegments.append(0);
+                    samplingCurveDist.append(scalar(pointCount));
+                }
+                pointCount++;
+            }
         }
     }
 }
 
 
-void Foam::cylinderSet::genSamples()
+void Foam::sampledSets::cylinderSet::genSamples()
 {
     // Storage for sample points
     DynamicList<point> samplingPts;
@@ -146,25 +183,29 @@ void Foam::cylinderSet::genSamples()
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::cylinderSet::cylinderSet
+Foam::sampledSets::cylinderSet::cylinderSet
 (
     const word& name,
     const polyMesh& mesh,
     const meshSearch& searchEngine,
     const word& axis,
-    const point& origin1,
-    const point& origin2,
-    const scalar& radius,
-    const scalar& dAxial,
-    const scalar& dAzimuthal
+    const point& axisPointStart,
+    const point& axisPointEnd,
+    const scalar& radiusStart,
+    const scalar& radiusEnd,
+    const scalar& thetaStart,
+    const scalar& thetaEnd,
+    const labelVector& pointsDensity
 )
 :
     sampledSet(name, mesh, searchEngine, axis),
-    origin1_(origin1),
-    origin2_(origin2),
-    radius_(radius),
-    dAxial_(dAxial),
-    dAzimuthal_(dAzimuthal)
+    axisPointStart_(axisPointStart),
+    axisPointEnd_(axisPointEnd),
+    radiusStart_(radiusStart),
+    radiusEnd_(radiusEnd),
+    thetaStartDeg_(thetaStart),
+    thetaEndDeg_(thetaEnd),
+    pointsDensity_(pointsDensity)
 {
     genSamples();
 
@@ -175,7 +216,7 @@ Foam::cylinderSet::cylinderSet
 }
 
 
-Foam::cylinderSet::cylinderSet
+Foam::sampledSets::cylinderSet::cylinderSet
 (
     const word& name,
     const polyMesh& mesh,
@@ -184,11 +225,13 @@ Foam::cylinderSet::cylinderSet
 )
 :
     sampledSet(name, mesh, searchEngine, dict),
-    origin1_(dict.lookup("origin1")),
-    origin2_(dict.lookup("origin2")),
-    radius_(readScalar(dict.lookup("radius"))),
-    dAxial_(readScalar(dict.lookup("dAxial"))),
-    dAzimuthal_(readScalar(dict.lookup("dAzimuthal")))
+    axisPointStart_(dict.lookup("axisPointStart")),
+    axisPointEnd_(dict.lookup("axisPointEnd")),
+    radiusStart_(readScalar(dict.lookup("radiusStart"))),
+    radiusEnd_(readScalar(dict.lookup("radiusEnd"))),
+    thetaStartDeg_(readScalar(dict.lookup("thetaStart"))),
+    thetaEndDeg_(readScalar(dict.lookup("thetaEnd"))),
+    pointsDensity_(dict.lookup("pointsDensity"))
 {
     genSamples();
 
@@ -201,7 +244,7 @@ Foam::cylinderSet::cylinderSet
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::cylinderSet::~cylinderSet()
+Foam::sampledSets::cylinderSet::~cylinderSet()
 {}
 
 

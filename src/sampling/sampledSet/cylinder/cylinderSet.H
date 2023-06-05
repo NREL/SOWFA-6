@@ -25,7 +25,37 @@ Class
     Foam::cylinderSet
 
 Description
-    Samples a regular array of points on a cylinder
+    Samples a regular array of points on a cylinder.
+
+Usage
+    \table
+        Property           | Description                             | Req'd? | Default
+        axisPointStart     | The starting point of the cylinder axis | yes    |
+        axisPointEnd       | The ending point of the cylinder axis   | yes    |
+        radiusStart        | The starting radius of the cylinder     | yes    |
+        radiusEnd          | The ending radius of the cylinder       | yes    |
+        thetaStart         | The starting azimuth (in degrees)       | yes    |
+        thetaEnd           | The ending azimuth (in degrees)         | yes    |
+        pointsDensity      | The number of points in the box         | yes    |
+        axis               | The coordinate axis that is written     | yes    |
+    \endtable
+
+    Example specification:
+    \verbatim
+    {
+        type               cylinder;
+        origin            (0.01 -50.01 -50.01);
+        spanBox           (0.00  100.0 100.0);
+        pointsDensity     (1 3 3);
+        coordinateRotation
+        {
+            type    axesRotation;
+            e1      (1 0 0);
+            e2      (0 1 0);
+        }
+        axis        xyz;
+    }
+    \endverbatim
 
 SourceFiles
     cylinderSet.C
@@ -36,6 +66,7 @@ SourceFiles
 #define cylinderSet_H
 
 #include "sampledSet.H"
+#include "labelVector.H"
 #include "DynamicList.H"
 #include "coordinateSystem.H"
 
@@ -44,9 +75,8 @@ SourceFiles
 namespace Foam
 {
 
-// Forward declaration of classes
-class passiveParticle;
-template<class Type> class particle;
+namespace sampledSets
+{
 
 /*---------------------------------------------------------------------------*\
                            Class cylinderSet Declaration
@@ -59,15 +89,20 @@ class cylinderSet
     // Private data
 
         //- Origin (x, y, z) in global cartesian co-ordinates
-        point origin1_;
-        point origin2_;
+        point axisPointStart_;
+        point axisPointEnd_;
 
         //- Radius of cylinder
-        scalar radius_;
+        scalar radiusStart_;
+        scalar radiusEnd_;
 
-        //- Number of axial and azimuthal sampling points
-        scalar dAxial_;
-        scalar dAzimuthal_;
+        //- Azimuth start and end locations in degrees and radians.
+        scalar thetaStartDeg_;
+        scalar thetaEndDeg_;
+
+        //- Number of points in each direction.
+        labelVector pointsDensity_;
+
 
 
     // Private Member Functions
@@ -101,11 +136,13 @@ public:
             const polyMesh& mesh,
             const meshSearch& searchEngine,
             const word& axis,
-            const point& origin1,
-            const point& origin2,
-            const scalar& radius,
-            const scalar& dAxial,
-            const scalar& dAzimuthal
+            const point& axisPointStart,
+            const point& axisPointEnd,
+            const scalar& radiusStart,
+            const scalar& radiusEnd,
+            const scalar& thetaStart,
+            const scalar& thetaEnd,
+            const labelVector& pointsDensity
         );
 
         //- Construct from dictionary
@@ -125,6 +162,7 @@ public:
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+} // End namespace sampledSets
 } // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
