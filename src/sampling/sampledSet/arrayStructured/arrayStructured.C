@@ -65,12 +65,6 @@ void Foam::sampledSets::arrayStructured::calcSamples
     const scalar dz = (pointsDensity_.z() > 1) ? spanBox_.z()/(pointsDensity_.z() - 1) : 0;
     scalar avgRes = (dx + dy + dz)/3.0;
 
-    Info << nl << endl;
-    Info << "Cartesian Structured Array Sampling:" << endl;
-    Info << "  -resolution = (" << dx << " m, " << dy << " m, " << dz << " m)" << endl;
-    Info << "  -box size = " << spanBox_ << " m" << endl;
-    Info << nl << endl;
-
     // Compute and locate the points.
     label pointCount = 0;
 
@@ -107,6 +101,13 @@ void Foam::sampledSets::arrayStructured::calcSamples
             }
         }
     }
+
+    Info << nl << endl;
+    Info << "Cartesian Structured Array Sampling:" << endl;
+    Info << "  -resolution = (" << dx << " m, " << dy << " m, " << dz << " m)" << endl;
+    Info << "  -box size = " << spanBox_ << " m" << endl;
+    Info << "  -box dimensions = " << pointsDensity_ << endl;
+    Info << "  -point count = " << pointCount << endl;
 }
 
 
@@ -133,6 +134,27 @@ void Foam::sampledSets::arrayStructured::genSamples()
     samplingFaces.shrink();
     samplingSegments.shrink();
     samplingCurveDist.shrink();
+
+    // Check to see if the number of valid points that will actually be sampled matches
+    // the specified desired number of sample points.  If it does not (because points are
+    // outside the domain or set right on a domain boundary), print a warning statement.
+    // For any output format that lists all points (e.g., vtk, ensight) it is okay if there
+    // are some invalid points that don't get sampled, but might be undesirable for post-
+    // processing.  For any output format that doesn't list all points but rather gives
+    // metadata for points and assumes some structure (e.g. structuredVTK), it is NOT okay
+    // if there are invalid points.
+    label desiredPointCount = pointsDensity_.x() * pointsDensity_.y() * pointsDensity_.z();
+    label validPointCount = samplingPts.size();
+    reduce(validPointCount,sumOp<label>());
+    label invalidPointCount = desiredPointCount - validPointCount;
+    if (invalidPointCount)
+    {
+        Info << "  -WARNING: There are " << invalidPointCount << " invalid points!!! This is okay for most output" << endl;
+        Info << "            formants but not for structuredVTK. Make sure all specified points"  << endl;
+        Info << "            are within the domain and not exactly on domain boundaries." << endl;
+    }
+    Info << nl << endl;
+    
 
     setSamples
     (
