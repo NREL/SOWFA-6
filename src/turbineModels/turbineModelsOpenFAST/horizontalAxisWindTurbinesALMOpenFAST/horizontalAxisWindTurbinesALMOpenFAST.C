@@ -2299,8 +2299,8 @@ void horizontalAxisWindTurbinesALMOpenFAST::computeTipRootLossCorrectedForce(int
         {
             // Compute the wind angle relative the the blade.
             vector vRel = bladeWindVectors[i][j][k];
-            scalar windAng = Foam::atan2(vRel.x(),vRel.y())/degRad;
-                
+            scalar windAng = Foam::atan2(vRel.y(),vRel.x())/degRad;
+
             // Compute the correction factor.
             scalar F = 1.0;
             if (tipRootLossCorrType[i] == "Glauert")
