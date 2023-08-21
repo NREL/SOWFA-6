@@ -2307,10 +2307,13 @@ void horizontalAxisWindTurbinesALMOpenFAST::computeTipRootLossCorrectedForce(int
             {
                 scalar g = 1.0;
 
-                scalar ftip  = (tipRadius - bladePointRadius[i][j][k])/(bladePointRadius[i][j][k] * sin(max(0.1,mag(windAng))*degRad));
+                scalar r = bladeSamplePointRadius[i][j][k];
+                scalar rSmall = 1.0E-5 * (tipRadius - rootRadius);
+
+                scalar ftip  = (tipRadius - r)/(max(rSmall,(r - rootRadius)) * sin(max(0.1,mag(windAng))*degRad));
                 scalar Ftip  = (2.0/(Foam::constant::mathematical::pi)) * acos(min(1.0, exp(-g * (numBl[i] / 2.0) * ftip)));
 
-                scalar froot = (bladePointRadius[i][j][k] - rootRadius)/(bladePointRadius[i][j][k] * sin(max(0.1,mag(windAng))*degRad));
+                scalar froot = (r - rootRadius)/(max(rSmall,(tipRadius - r)) * sin(max(0.1,mag(windAng))*degRad));
                 scalar Froot = (2.0/(Foam::constant::mathematical::pi)) * acos(min(1.0, exp(-g * (numBl[i] / 2.0) * froot)));
 
                 F = Ftip * Froot;
