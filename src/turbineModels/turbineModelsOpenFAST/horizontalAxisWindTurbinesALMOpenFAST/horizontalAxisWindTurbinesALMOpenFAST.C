@@ -2248,7 +2248,8 @@ void horizontalAxisWindTurbinesALMOpenFAST::computeTipRootLossCorrectedVelocity(
                 
             // Compute the wind angle relative the the blade.
             vector vRel = bladeWindVectors[i][j][k];
-            scalar windAng = Foam::atan2(vRel.x(),vRel.y())/degRad;
+            scalar windAng = Foam::atan2(vRel.y(),vRel.x())/degRad;
+          //Info << "i, j, k = " << i << ", " << j << ", " << k << endl;
           //Info << "vRel = " << vRel << endl;
           //Info << "windAng = " << windAng << endl;
                 
@@ -2258,13 +2259,18 @@ void horizontalAxisWindTurbinesALMOpenFAST::computeTipRootLossCorrectedVelocity(
             {
                 scalar g = 1.0;
 
-                scalar ftip  = (tipRadius - bladeSamplePointRadius[i][j][k])/(bladeSamplePointRadius[i][j][k] * sin(max(0.1,mag(windAng))*degRad));
+                scalar r = bladeSamplePointRadius[i][j][k];
+                scalar rSmall = 1.0E-5 * (tipRadius - rootRadius);
+
+                scalar ftip  = (tipRadius - r)/(max(rSmall,(r - rootRadius)) * sin(max(0.1,mag(windAng))*degRad));
                 scalar Ftip  = (2.0/(Foam::constant::mathematical::pi)) * acos(min(1.0, exp(-g * (numBl[i] / 2.0) * ftip)));
 
-                scalar froot = (bladeSamplePointRadius[i][j][k] - rootRadius)/(bladeSamplePointRadius[i][j][k] * sin(max(0.1,mag(windAng))*degRad));
+                scalar froot = (r - rootRadius)/(max(rSmall,(tipRadius - r)) * sin(max(0.1,mag(windAng))*degRad));
                 scalar Froot = (2.0/(Foam::constant::mathematical::pi)) * acos(min(1.0, exp(-g * (numBl[i] / 2.0) * froot)));
 
                 F = Ftip * Froot;
+
+              //Info << "r, ftip, froot, Ftip, Froot, F = " << bladeSamplePointRadius[i][j][k] << ", " << ftip << ", " << froot << ", " << Ftip << ", " << Froot << ", " << F << endl;
             }
                 
             // Multiply only the axial velocity by the correction factor, and then rotate back
