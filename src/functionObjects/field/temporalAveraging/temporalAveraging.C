@@ -75,6 +75,23 @@ void Foam::functionObjects::temporalAveraging::resetFields()
 
 void Foam::functionObjects::temporalAveraging::initialize()
 {
+    // Get name of mean velocity field.
+    label Uindex(-1);
+    UMeanFieldName_ = "empty";
+    forAll(faItems_, fieldi)
+    {
+        const word& fieldNamei = faItems_[fieldi].fieldName();
+        if (fieldNamei == "U")
+        {
+            Uindex = fieldi;
+        }
+    }
+    if (Uindex != -1)
+    {
+        UMeanFieldName_ = faItems_[Uindex].meanFieldName();
+    }
+    Info << "UMeanFieldName = " << UMeanFieldName_ << endl;
+
     if (!totalIter_.size())
     {
         totalIter_.setSize(faItems_.size(), 1);
@@ -122,8 +139,9 @@ void Foam::functionObjects::temporalAveraging::initialize()
         addPrimeUPrimeMeanField<scalar, vector>(fieldi);
     }
 
-    // ensure first averaging works unconditionally
+    // Ensure first averaging works unconditionally
     prevTimeIndex_ = -1;
+
 
     initialised_ = true;
 }

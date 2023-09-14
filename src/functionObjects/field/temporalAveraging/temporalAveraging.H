@@ -185,6 +185,9 @@ protected:
         //  calculated and output
         List<temporalAveragingItem> faItems_;
 
+        //- Name of mean of velocity field.
+        word UMeanFieldName_;
+
         // Counters
 
             //- Iteration steps counter
@@ -211,6 +214,8 @@ protected:
 
             //- Restart averaging for restartOnOutput
             void restart();
+
+            const word& findUMeanFieldName();
 
             //- Add mean average field to database
             template<class Type>

@@ -212,7 +212,7 @@ void Foam::functionObjects::temporalAveraging::addPrimeUPrimeMeanFieldType
         const Type1& meanField = obr_.lookupObject<Type1>(meanFieldName);
 
         const volVectorField& UField = obr_.lookupObject<volVectorField>("U");
-        const volVectorField& UMeanField = obr_.lookupObject<volVectorField>("UMean");
+        const volVectorField& UMeanField = obr_.lookupObject<volVectorField>(UMeanFieldName_);
 
         // Store on registry
         obr_.store
@@ -255,7 +255,8 @@ void Foam::functionObjects::temporalAveraging::addPrimeUPrimeMeanField(const lab
                 << fieldName << nl << exit(FatalError);
         }
 
-        if (!obr_.foundObject<volVectorField>("UMean"))
+        Info << UMeanFieldName_ << endl;
+        if (!obr_.foundObject<volVectorField>(UMeanFieldName_))
         {
             FatalErrorInFunction
                 << "To calculate the prime-Uprime average, the "
@@ -415,7 +416,7 @@ void Foam::functionObjects::temporalAveraging::calculatePrimeUPrimeMeanFieldType
             obr_.lookupObject<Type1>(faItems_[fieldi].meanFieldName());
 
         const volVectorField& UField = obr_.lookupObject<volVectorField>("U");
-        const volVectorField& UMeanField = obr_.lookupObject<volVectorField>("UMean");
+        const volVectorField& UMeanField = obr_.lookupObject<volVectorField>(UMeanFieldName_);
 
         Type2& primeUPrimeMeanField = 
             obr_.lookupObjectRef<Type2>(faItems_[fieldi].primeUPrimeMeanFieldName());
@@ -521,7 +522,7 @@ void Foam::functionObjects::temporalAveraging::addMeanUMeanToPrimeUPrimeMeanType
         const Type1& meanField =
             obr_.lookupObject<Type1>(faItems_[fieldi].meanFieldName());
 
-        const volVectorField& UMeanField = obr_.lookupObject<volVectorField>("UMean");
+        const volVectorField& UMeanField = obr_.lookupObject<volVectorField>(UMeanFieldName_);
 
         Type2& primeUPrimeMeanField =
             obr_.lookupObjectRef<Type2>(faItems_[fieldi].primeUPrimeMeanFieldName());

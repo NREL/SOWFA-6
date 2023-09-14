@@ -51,10 +51,10 @@ Foam::functionObjects::temporalAveragingItem::temporalAveragingItem(Istream& is)
     const dictionaryEntry entry(dictionary::null, is);
 
     fieldName_ = entry.keyword();
-    entry.lookup("averageName") >> averageName_;
     entry.lookup("mean") >> mean_;
     entry.lookup("prime2Mean") >> prime2Mean_;
     entry.lookup("primeUPrimeMean") >> primeUPrimeMean_;
+    averageName_ = entry.lookupOrDefault<word>("averageName","");
     base_ = baseTypeNames_[entry.lookup("base")];
     window_ = entry.lookupOrDefault<scalar>("window", -1.0);
     windowName_ = entry.lookupOrDefault<word>("windowName", "");
@@ -88,10 +88,10 @@ Foam::Istream& Foam::functionObjects::operator>>
     const dictionaryEntry entry(dictionary::null, is);
 
     faItem.fieldName_ = entry.keyword();
-    entry.lookup("averageName") >> faItem.averageName_;
     entry.lookup("mean") >> faItem.mean_;
     entry.lookup("prime2Mean") >> faItem.prime2Mean_;
     entry.lookup("primeUPrimeMean") >> faItem.primeUPrimeMean_;
+    faItem.averageName_ = entry.lookupOrDefault<word>("averageName","");
     faItem.base_ = faItem.baseTypeNames_[entry.lookup("base")];
     faItem.window_ = entry.lookupOrDefault<scalar>("window", -1.0);
     faItem.windowName_ = entry.lookupOrDefault<word>("windowName", "");
