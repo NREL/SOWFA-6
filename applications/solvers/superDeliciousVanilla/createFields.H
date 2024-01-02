@@ -339,8 +339,8 @@
     
     // - Geostrophic/mesoscale source terms [<field units>/s].
     Info << "Creating geostrophic/mesoscale source term(s)" << endl;
-    drivingForce<vector> momentumGeoMesoTerm(ABLProperties, "momentum",U);
-    drivingForce<scalar> temperatureGeoMesoTerm(ABLProperties, "temperature",T);
+    drivingForce<vector> momentumGeoMesoTerm(ABLProperties, "momentum", Coriolis, U);
+    drivingForce<scalar> temperatureGeoMesoTerm(ABLProperties, "temperature", Coriolis, T);
 
 
     // - Hurricane source term [m/s^2].

@@ -37,6 +37,8 @@ momentumSource
 {
     // General input parameters
     type                "computed";                 // Type of source to use
+  //type                "given";                    // Type of source to use
+  //type                "geostrophic";              // Type of source to use
     inputType           "component";                // Specific for momentum and only used when type is "computed":
                                                     // - "component" means the x, y and z components are specified,
                                                     // - "speedAndDirection" means wind speed, wind direction and vertical component are specified.
