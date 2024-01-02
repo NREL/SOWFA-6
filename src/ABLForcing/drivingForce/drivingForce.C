@@ -259,7 +259,7 @@ void Foam::drivingForce<Type>::updateGeostrophicTimeHeightDepSource_(bool writeI
 {
     FatalErrorIn
     (
-        "Input type 'updateGeostrophicTimeDepSource' only supported for driving force of type vector"
+        "Input type 'updateGeostrophicTimeHeightDepSource' only supported for driving force of type vector"
     ) << abort(FatalError);
 
     // Update the source term
