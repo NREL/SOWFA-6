@@ -41,14 +41,9 @@ Description
         w = f_{scheme_1} + (1 - f_{scheme_2})
     \f]
 
-    The factor is calculated based on six criteria:
+    The factor is calculated based on these criteria:
     \verbatim
-      1. mesh non-orthogonality field
-      2. magnitude of cell centres gradient
-      3. convergence rate of residuals
-      4. faceWeight
-      5. skewness
-      6. Courant number
+      1. mesh cell volume
     \endverbatim
 
     The user can enable them individually.
@@ -69,103 +64,6 @@ Description
             )
     \f]
 
-    For option 2, the following relation is used, where \f$\phi_2\f$ is
-    the magnitude of cell centres gradient (Note that \f$\phi_2 = 3\f$
-    for orthogonal meshes):
-
-    \f[
-        fMagGradCc =
-            min
-            (
-                max
-                (
-                    0.0,
-                    (\phi_2 - max(\phi_2))
-                    / (min(\phi_2) - max(\phi_2))
-                ),
-                1.0
-            )
-    \f]
-
-    For option 3, a PID control is used in order to control residual
-    unbounded fluctuations for individual cells.
-
-    \f[
-        factor =
-            P*residual
-            + I*residualIntegral
-            + D*residualDifferential
-    \f]
-
-    where \c P, \c I and \c D are user inputs.
-
-    The following relation is used:
-    \f[
-        fRes = (factor - meanRes)/(maxRes*meanRes);
-    \f]
-
-    where
-    \vartable
-        meanRes | Average(residual)
-        maxRes  | User input
-    \endvartable
-
-    Note that \f$f_{Res}\f$ will blend more towards one as
-    the cell residual is larger then the domain mean residuals.
-
-
-    For option 4, the following relation is used, where \f$\phi_4\f$ is
-    the face weight (Note that \f$\phi_4 = 0.5\f$ for orthogonal meshes):
-
-    \f[
-        ffaceWeight = min
-        (
-            max
-            (
-                0.0,
-                (min(\phi_4) - \phi_4)
-                / (min(\phi_4) - max(\phi_4))
-            ),
-            1.0
-        )
-    \f]
-
-
-    For option 5, the following relation is used, where \f$\phi_5\f$ is
-    the cell skewness:
-
-    \f[
-        fskewness =
-        min
-        (
-            max
-            (
-                0.0,
-                (\phi_5    - max(\phi_5))
-                / (min(\phi_5) - max(\phi_5))
-            ),
-            1.0
-        )
-    \f]
-
-
-    For option 6, the following relation is used:
-
-    \f[
-        fCoWeight = min(max((Co - Co1)/(Co2 - Co1), 0), 1)
-    \f]
-
-    where
-    \vartable
-        Co1 | Courant number below which scheme2 is used
-        Co2 | Courant number above which scheme1 is used
-    \endvartable
-
-    The final factor is determined by:
-
-    \f[
-        f = max(fNon, fMagGradCc, fRes, ffaceWeight, fskewness, fCoWeight)
-    \f]
 
     An indicator (volume) field, named \c blendedIndicator
     is generated if the log flag is on:
@@ -348,17 +246,44 @@ class geometricBlendingFactor
             //- Switch for grid cell volume
             Switch gridCellResolution_;
 
+            //- Switch for grid cell x-value
+            Switch gridCellx_;
+
+            //- Switch for grid cell y-value
+            Switch gridCelly_;
+
+            //- Switch for grid cell z-value
+            Switch gridCellz_;
+
 
         // Blending tables
 
-            //- Grid cell volume blending table.
+            //- Grid cell volume blending table
             autoPtr<Function1<scalar> > gridCellResolutionBlendingTable_;
+
+            //- Grid cell x-value blending table
+            autoPtr<Function1<scalar> > gridCellxBlendingTable_;
+
+            //- Grid cell y-value blending table
+            autoPtr<Function1<scalar> > gridCellyBlendingTable_;
+
+            //- Grid cell z-value blending table
+            autoPtr<Function1<scalar> > gridCellzBlendingTable_;
 
 
         // File names
 
             //- Name of the grid cell volume field
             word gridCellResolutionName_;
+
+            //- Name of the grid cell x-value field
+            word gridCellxName_;
+
+            //- Name of the grid cell y-value field
+            word gridCellyName_;
+
+            //- Name of the grid cell z-value field
+            word gridCellzName_;
 
 
         //- Tolerance used when calculating the number of blended cells
