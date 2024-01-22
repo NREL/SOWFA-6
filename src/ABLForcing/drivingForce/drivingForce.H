@@ -27,11 +27,13 @@ Class
 Description
     Determine the driving force
 
-    There are two possible types of source terms:
-    - "given": the source values are directly given
-      and the flow field will react accordingly.
-    - "computed": the mean profiles
-      are given and the source terms that maintain them are computed.
+    There are three possible types of source terms:
+    - "given":       the source values are directly given and the flow field 
+                     will react accordingly.
+    - "computed":    the mean profiles are given and the source terms that 
+                     maintain them are computed.
+    - "geostrophic": the geostrophic wind is given and the pressure gradient
+                     that achieves geostrophic balance is computed.
 
     Each object of this class has a name. The name is used to identify
     input parameters. Some special feature are available when name
@@ -46,7 +48,8 @@ Description
     - \c gain: controller gain
 
     - when name equals "momentum:
-        - \c inputType: specify how the velocity is given
+        - \c inputType: sets how the velocity is specified (only for the 
+              "computed" and "geostrophic" source term options).
             - "component" means the x, y and z components are specified,
             - "speedAndDirection" means horizontal wind speed, cardinal
               direction, and vertical component are specified
@@ -106,6 +109,7 @@ SourceFiles
 #include "fvCFD.H"
 #include "IOdictionary.H"
 #include "meshPlanes.H"
+#include "CoriolisForce.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -137,6 +141,9 @@ class drivingForce
     
             //- Mesh pointer
             const fvMesh& mesh_;
+
+            //- Coriolis force pointer
+            const CoriolisForce& Coriolis_;
     
             //- Field pointer
             const volFieldType& field_;
@@ -276,6 +283,12 @@ class drivingForce
         //- Update computed time-height-dependent source term
         void updateComputedTimeHeightDepSource_(bool writeIter);
 
+        //- Update geostrophic time-dependent source term
+        void updateGeostrophicTimeDepSource_(bool writeIter);
+
+        //- Update geostrophic time-height-dependent source term
+        void updateGeostrophicTimeHeightDepSource_(bool writeIter);
+
         //- Initialize controller
         void initializeController_();
 
@@ -319,6 +332,7 @@ public:
     (
         const IOdictionary& dict,
         const word& name,
+        const CoriolisForce& Coriolis,
         const volFieldType& field
     );
 

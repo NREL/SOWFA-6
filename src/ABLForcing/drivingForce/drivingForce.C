@@ -157,14 +157,23 @@ void Foam::drivingForce<Type>::updateComputedTimeHeightDepSource_(bool writeIter
 {
     // Interpolate specified source values in time and height
     List<Type> fldMeanDesired = interpolate2D(runTime_.value(),
-                                zPlanes_.planeLocationValues(),
-                                sourceTimesSpecified_,
-                                sourceHeightsSpecified_,
-                                sourceSpecified_);
+                                              zPlanes_.planeLocationValues(),
+                                              sourceTimesSpecified_,
+                                              sourceHeightsSpecified_,
+                                              sourceSpecified_);
 
 
     // Compute the planar-averaged actual field at each cell level
     List<Type> fldMean = zPlanes_.average<Type>(field_);
+
+    // If speed and direction is specified, convert to velocity components.
+    if (velocityInputType_ == "speedAndDirection")
+    {
+        forAllPlanes(zPlanes_,planeI)
+        {
+             fldMeanDesired[planeI] = speedDirToComp_(fldMeanDesired[planeI]);
+        } 
+    }
 
     // Compute the error at each cell level
     List<Type> fldError = fldMeanDesired - fldMean;
@@ -206,6 +215,64 @@ void Foam::drivingForce<Type>::updateComputedTimeHeightDepSource_(bool writeIter
 
 
     // Write the column of source information.
+    if (writeIter)
+    {
+        writeSourceHistory_(source);
+    }
+}
+
+
+// This function should only be used for vectors.  If not applied to a vector
+// throw an error and return zero. **See the vector specialization of this function
+// below.
+template<class Type>
+void Foam::drivingForce<Type>::updateGeostrophicTimeDepSource_(bool writeIter)
+{
+    FatalErrorIn
+    (
+        "Input type 'updateGeostrophicTimeDepSource' only supported for driving force of type vector"
+    ) << abort(FatalError);
+
+    // Update the source term
+    Type source = zeroTensor_();
+
+    forAll(bodyForce_,cellI)
+    {
+        bodyForce_[cellI] = source;
+    }
+
+    bodyForce_.correctBoundaryConditions();
+    
+    // Write the source information
+    if (writeIter)
+    {
+        writeSourceHistory_(source);
+    }
+}
+
+
+// This function should only be used for vectors.  If not applied to a vector
+// throw an error and return zero. **See the vector specialization of this function
+// below.
+template<class Type>
+void Foam::drivingForce<Type>::updateGeostrophicTimeHeightDepSource_(bool writeIter)
+{
+    FatalErrorIn
+    (
+        "Input type 'updateGeostrophicTimeHeightDepSource' only supported for driving force of type vector"
+    ) << abort(FatalError);
+
+    // Update the source term
+    Type source = zeroTensor_();
+
+    forAll(bodyForce_,cellI)
+    {
+        bodyForce_[cellI] = source;
+    }
+
+    bodyForce_.correctBoundaryConditions();
+    
+    // Write the source information
     if (writeIter)
     {
         writeSourceHistory_(source);
@@ -369,6 +436,8 @@ void Foam::drivingForce<Type>::blendLinearSlopeDecay_
 // Specialization for Type vector
 // - input type speedAndDirection is supported
 // - subtractVerticalPart is supported
+// - updateGeostrophicTimeDepSource is supported.
+// - updateGeostrophicTimeHeightDepSource is supported.
 namespace Foam
 {
     template<>
@@ -394,6 +463,90 @@ namespace Foam
         source -= (source & nUp) * nUp;
         return source;
     }
+
+
+    template<>
+    void Foam::drivingForce<vector>::updateGeostrophicTimeDepSource_(bool writeIter)
+    {
+        // Interpolate the desired geostrophic wind to current time
+        vector geostrophicWindDesired = interpolate2D(runTime_.value(),
+                                                      sourceHeightsSpecified_[0],
+                                                      sourceTimesSpecified_,
+                                                      sourceHeightsSpecified_,
+                                                      sourceSpecified_);
+       
+        // Convert from speedAndDirection to component if necessary
+        if (velocityInputType_ == "speedAndDirection")
+        {
+            geostrophicWindDesired = speedDirToComp_(geostrophicWindDesired);
+        }
+    
+    
+        // Compute the source term for geostrophic balance.
+        vector source = Zero;
+        source.x() = -Coriolis_.f() * geostrophicWindDesired.y();
+        source.y() =  Coriolis_.f() * geostrophicWindDesired.x();
+      //Info << "Coriolis term = " << source << endl;
+    
+    
+        // Update the source term
+        forAll(bodyForce_,cellI)
+        {
+            bodyForce_[cellI] = source;
+        }
+    
+        bodyForce_.correctBoundaryConditions();
+        
+        // Write the source information
+        if (writeIter)
+        {
+            writeSourceHistory_(source);
+        }
+    }
+
+
+    template<>
+    void Foam::drivingForce<vector>::updateGeostrophicTimeHeightDepSource_(bool writeIter)
+    {
+        // Interpolate the desired geostrophic wind to current time
+        List<vector> geostrophicWindDesired = interpolate2D(runTime_.value(),
+                                                            zPlanes_.planeLocationValues(),
+                                                            sourceTimesSpecified_,
+                                                            sourceHeightsSpecified_,
+                                                            sourceSpecified_);
+       
+        // Convert from speedAndDirection to component if necessary
+        if (velocityInputType_ == "speedAndDirection")
+        {
+            forAllPlanes(zPlanes_,planeI)
+            {
+                geostrophicWindDesired[planeI] = speedDirToComp_(geostrophicWindDesired[planeI]);
+            }
+        }
+    
+        // Compute the source term for geostrophic balance.
+        List<vector> source(zPlanes_.numberOfPlanes(),Zero);
+        forAllPlanes(zPlanes_,planeI)
+        {
+            source[planeI].x() = -Coriolis_.f() * geostrophicWindDesired[planeI].y();
+            source[planeI].y() =  Coriolis_.f() * geostrophicWindDesired[planeI].x();
+
+            for (label i = 0; i < zPlanes_.numCellPerPlane()[planeI]; i++)
+            {
+                label cellI = zPlanes_.planesCellList()[planeI][i];
+                bodyForce_[cellI] = source[planeI];
+            }
+        }
+        Info << "Coriolis term = " << source << endl;
+    
+        bodyForce_.correctBoundaryConditions();
+        
+        // Write the source information
+        if (writeIter)
+        {
+            writeSourceHistory_(source);
+        }
+    }
 }
 
 
@@ -404,11 +557,14 @@ void Foam::drivingForce<Type>::readInputData_(const IOdictionary& ABLProperties)
     const dictionary& sourceDict(ABLProperties.subOrEmptyDict(name_ & "Source"));
 
     // Specify the type of source to use.  The
-    // possible types are "given" and "computed".  
+    // possible types are "given", "computed", and "geostrophic".  
     // - The "given" type means that the source values are directly given
     //   and the momentum and temperature fields will react accordingly.  
     // - The "computed" type means that the mean velocity and temperature
     //   are given and the source terms that maintain them are computed. 
+    // - The "geostrophic" type means that the geostrophic wind vector
+    //   is given and the pressure gradient for geostrophic balance is
+    //   computed.
     word sourceType(sourceDict.lookup("type"));
     sourceType_ = sourceType;
     
@@ -718,7 +874,7 @@ void Foam::drivingForce<Type>::findBlendLevels_()
             break;
         }
     }
-    Info<< "Blending source terms to constant between z= "
+    Info<< "Blending source terms to constant between z = "
         << zPlanes_.planeLocationValues()[hLevelBlend1] <<  " and "
         << zPlanes_.planeLocationValues()[hLevelBlendMax]
         << endl;
@@ -789,6 +945,7 @@ Foam::drivingForce<Type>::drivingForce
 (
     const IOdictionary& dict,
     const word& name,
+    const CoriolisForce& Coriolis,   
     const GeometricField<Type, fvPatchField, volMesh>& field
 )
 :
@@ -800,6 +957,9 @@ Foam::drivingForce<Type>::drivingForce
 
     // Set the pointer to the mesh
     mesh_(field.mesh()),
+
+    // Set the pointer to the Coriolis information.
+    Coriolis_(Coriolis),
 
     // Set the pointer to the velocity field
     field_(field),
@@ -865,7 +1025,7 @@ void Foam::drivingForce<Type>::update(bool writeIter)
         }
     }
 
-    // Source terms have to be computed
+    // Source terms are computed to match a given wind vector or profile
     else if (sourceType_ == "computed")
     {
         // Field is only specified at one height. In this case,
@@ -880,6 +1040,25 @@ void Foam::drivingForce<Type>::update(bool writeIter)
         else
         {
             updateComputedTimeHeightDepSource_(writeIter);
+        }
+    }
+
+    // Source terms are computed for geostrophic balance with a geostrophic
+    // wind vector.
+    else if (sourceType_ == "geostrophic")
+    {
+        // Geostrphic wind is only specified at one height. In this case,
+        // a source term will be computed and applied uniformly in all three
+        // dimensions, the same as in the original ABLSolver.
+        if (sourceHeightsSpecified_.size() == 1)
+        {
+            updateGeostrophicTimeDepSource_(writeIter);
+        }
+
+        // Otherwise, set the source as a function of height and time
+        else
+        {
+            updateGeostrophicTimeHeightDepSource_(writeIter);
         }
     }
 }
