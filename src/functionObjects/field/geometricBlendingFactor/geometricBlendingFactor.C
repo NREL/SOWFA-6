@@ -149,21 +149,68 @@ bool Foam::functionObjects::geometricBlendingFactor::calc()
 bool Foam::functionObjects::geometricBlendingFactor::init(bool first)
 {
     volScalarField& indicator = this->indicator();
+    indicator = 0.0;
 
     const volScalarField& gridCellResolutionRef = lookupObject<volScalarField>(gridCellResolutionName_);
-
     if (gridCellResolution_)
     {
         forAll(indicator, i)
         {
-            indicator[i] = gridCellResolutionBlendingTable_->value(gridCellResolutionRef[i]);
+            scalar indicatorCell = gridCellResolutionBlendingTable_->value(gridCellResolutionRef[i]);
+            indicator[i] = max(indicator[i],max(min(indicatorCell,scalar(1)),scalar(0)));
         }
-        indicator = max(min(indicator,scalar(1)),scalar(0));
-
         if (first)
         {
             Log << "    Max / Min grid cell resolution:  " << max(gridCellResolutionRef).value() 
                 << " / "                                   << min(gridCellResolutionRef).value()
+                << endl;
+        }
+    }
+
+    const volScalarField& gridCellxRef = lookupObject<volScalarField>(gridCellxName_);
+    if (gridCellx_)
+    {
+        forAll(indicator, i)
+        {
+            scalar indicatorCell = gridCellxBlendingTable_->value(gridCellxRef[i]);
+            indicator[i] = max(indicator[i],max(min(indicatorCell,scalar(1)),scalar(0)));
+        }
+        if (first)
+        {
+            Log << "    Max / Min grid cell x-value:  " << max(gridCellxRef).value() 
+                << " / "                                << min(gridCellxRef).value()
+                << endl;
+        }
+    }
+
+    const volScalarField& gridCellyRef = lookupObject<volScalarField>(gridCellyName_);
+    if (gridCelly_)
+    {
+        forAll(indicator, i)
+        {
+            scalar indicatorCell = gridCellyBlendingTable_->value(gridCellyRef[i]);
+            indicator[i] = max(indicator[i],max(min(indicatorCell,scalar(1)),scalar(0)));
+        }
+        if (first)
+        {
+            Log << "    Max / Min grid cell y-value:  " << max(gridCellyRef).value() 
+                << " / "                                << min(gridCellyRef).value()
+                << endl;
+        }
+    }
+
+    const volScalarField& gridCellzRef = lookupObject<volScalarField>(gridCellzName_);
+    if (gridCellz_)
+    {
+        forAll(indicator, i)
+        {
+            scalar indicatorCell = gridCellzBlendingTable_->value(gridCellzRef[i]);
+            indicator[i] = max(indicator[i],max(min(indicatorCell,scalar(1)),scalar(0)));
+        }
+        if (first)
+        {
+            Log << "    Max / Min grid cell z-value:  " << max(gridCellzRef).value() 
+                << " / "                                << min(gridCellzRef).value()
                 << endl;
         }
     }
@@ -215,10 +262,19 @@ Foam::functionObjects::geometricBlendingFactor::geometricBlendingFactor
     logFiles(obr_, name),
 
     gridCellResolution_(dict.lookupOrDefault<Switch>("useGridCellResolution", false)),
+    gridCellx_(dict.lookupOrDefault<Switch>("useGridCellxValue", false)),
+    gridCelly_(dict.lookupOrDefault<Switch>("useGridCellyValue", false)),
+    gridCellz_(dict.lookupOrDefault<Switch>("useGridCellzValue", false)),
 
     gridCellResolutionBlendingTable_(),
+    gridCellxBlendingTable_(),
+    gridCellyBlendingTable_(),
+    gridCellzBlendingTable_(),
 
     gridCellResolutionName_(dict.lookupOrDefault<word>("gridCellResolutionName", "gridCellResolution")),
+    gridCellxName_(dict.lookupOrDefault<word>("gridCellxValueName", "gridCellxValue")),
+    gridCellyName_(dict.lookupOrDefault<word>("gridCellyValueName", "gridCellyValue")),
+    gridCellzName_(dict.lookupOrDefault<word>("gridCellzValueName", "gridCellzValue")),
 
     tolerance_(0.001),
 
@@ -295,6 +351,118 @@ Foam::functionObjects::geometricBlendingFactor::geometricBlendingFactor
 
 
 
+    // Check to see if the grid cell x-value field exists.  If it does not, create
+    // it and put it in the IO object registry.  Then set the gridCellz variable
+    // as a reference to this field.
+    bool gridCellxExist = mesh_.foundObject<volScalarField>(gridCellxName_);
+
+    if (!gridCellxExist)
+    {
+        volScalarField* gridCellx
+        (
+            new volScalarField
+            (
+                IOobject
+                (
+                    gridCellxName_,
+                    mesh_.time().timeName(),
+                    mesh_,
+                    IOobject::NO_READ,
+                    IOobject::NO_WRITE
+                ),
+                mesh_,
+                dimensionedScalar("xValue",dimLength,Zero),
+                zeroGradientFvPatchScalarField::typeName
+            )
+        );
+        mesh_.objectRegistry::store(gridCellx);
+    }
+    volScalarField& gridCellx = mesh_.lookupObjectRef<volScalarField>(gridCellxName_);
+
+    // Set the gridCellz field to the actual grid cell z-value in case it has not already
+    // been set, which would the the usual case.
+    forAll(mesh_.C(), i)
+    {
+        gridCellx[i] = mesh_.C()[i].x();
+    }
+    gridCellx.correctBoundaryConditions();
+
+
+    // Check to see if the grid cell y-value field exists.  If it does not, create
+    // it and put it in the IO object registry.  Then set the gridCellz variable
+    // as a reference to this field.
+    bool gridCellyExist = mesh_.foundObject<volScalarField>(gridCellyName_);
+
+    if (!gridCellyExist)
+    {
+        volScalarField* gridCelly
+        (
+            new volScalarField
+            (
+                IOobject
+                (
+                    gridCellyName_,
+                    mesh_.time().timeName(),
+                    mesh_,
+                    IOobject::NO_READ,
+                    IOobject::NO_WRITE
+                ),
+                mesh_,
+                dimensionedScalar("yValue",dimLength,Zero),
+                zeroGradientFvPatchScalarField::typeName
+            )
+        );
+        mesh_.objectRegistry::store(gridCelly);
+    }
+    volScalarField& gridCelly = mesh_.lookupObjectRef<volScalarField>(gridCellyName_);
+
+    // Set the gridCellz field to the actual grid cell z-value in case it has not already
+    // been set, which would the the usual case.
+    forAll(mesh_.C(), i)
+    {
+        gridCelly[i] = mesh_.C()[i].y();
+    }
+    gridCelly.correctBoundaryConditions();
+
+
+    // Check to see if the grid cell z-value field exists.  If it does not, create
+    // it and put it in the IO object registry.  Then set the gridCellz variable
+    // as a reference to this field.
+    bool gridCellzExist = mesh_.foundObject<volScalarField>(gridCellzName_);
+
+    if (!gridCellzExist)
+    {
+        volScalarField* gridCellz
+        (
+            new volScalarField
+            (
+                IOobject
+                (
+                    gridCellzName_,
+                    mesh_.time().timeName(),
+                    mesh_,
+                    IOobject::NO_READ,
+                    IOobject::NO_WRITE
+                ),
+                mesh_,
+                dimensionedScalar("zValue",dimLength,Zero),
+                zeroGradientFvPatchScalarField::typeName
+            )
+        );
+        mesh_.objectRegistry::store(gridCellz);
+    }
+    volScalarField& gridCellz = mesh_.lookupObjectRef<volScalarField>(gridCellzName_);
+
+    // Set the gridCellz field to the actual grid cell z-value in case it has not already
+    // been set, which would the the usual case.
+    forAll(mesh_.C(), i)
+    {
+        gridCellz[i] = mesh_.C()[i].z();
+    }
+    gridCellz.correctBoundaryConditions();
+
+
+
     // If the log option is true, then set the indicator field to write at 
     // write time.
     if (log)
@@ -317,11 +485,32 @@ bool Foam::functionObjects::geometricBlendingFactor::read
     if (fieldExpression::read(dict))
     {
         gridCellResolution_ = dict.lookupOrDefault<Switch>("useGridCellResolution", false);
+        gridCellx_ = dict.lookupOrDefault<Switch>("useGridCellxValue", false);
+        gridCelly_ = dict.lookupOrDefault<Switch>("useGridCellyValue", false);
+        gridCellz_ = dict.lookupOrDefault<Switch>("useGridCellzValue", false);
 
-        gridCellResolutionBlendingTable_ = Function1<scalar>::New("gridCellResolutionBlendingTable",dict);
-    
         gridCellResolutionName_ = dict.lookupOrDefault<word>("gridCellResolutionName", "gridCellResolution");
+        gridCellxName_ = dict.lookupOrDefault<word>("gridCellxValueName", "gridCellxValue");
+        gridCellyName_ = dict.lookupOrDefault<word>("gridCellyValueName", "gridCellyValue");
+        gridCellzName_ = dict.lookupOrDefault<word>("gridCellzValueName", "gridCellzValue");
 
+        if (gridCellResolution_)
+        {
+            gridCellResolutionBlendingTable_ = Function1<scalar>::New("gridCellResolutionBlendingTable",dict);
+        }
+        if (gridCellx_)
+        {
+            gridCellxBlendingTable_ = Function1<scalar>::New("gridCellxValueBlendingTable",dict);
+        }
+        if (gridCelly_)
+        {
+            gridCellyBlendingTable_ = Function1<scalar>::New("gridCellyValueBlendingTable",dict);
+        }
+        if (gridCellz_)
+        {
+            gridCellzBlendingTable_ = Function1<scalar>::New("gridCellzValueBlendingTable",dict);
+        }
+    
         tolerance_ = 0.001;
         if
         (
