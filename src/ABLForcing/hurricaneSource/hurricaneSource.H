@@ -39,7 +39,6 @@ SourceFiles
 #include "fvCFD.H"
 #include "IOdictionary.H"
 #include "meshPlanes.H"
-#include "CoriolisForce.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -63,9 +62,6 @@ class hurricaneSource
             //- Mesh pointer
             const fvMesh& mesh_;
 
-            //- Coriolis force pointer
-            const CoriolisForce& Coriolis_;
-    
             //- Velocity field pointer
             const volVectorField& U_;
 
@@ -114,8 +110,7 @@ public:
     hurricaneSource
     (
         const IOdictionary& dict,
-        const volVectorField& U,
-        const CoriolisForce& Coriolis
+        const volVectorField& U
     );
 
 

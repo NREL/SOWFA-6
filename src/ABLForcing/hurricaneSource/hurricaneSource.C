@@ -119,9 +119,6 @@ void Foam::hurricaneSource::update()
         // Get planar average velocity at each height.
         Ubar = zPlanes_.average(U_);
 
-        // Get the Coriolis f-factor.
-        const scalar f = Coriolis_.f();
-
         // Update the source term.
         for (int i = 0; i < nLevels; i++)
         {
@@ -132,7 +129,7 @@ void Foam::hurricaneSource::update()
 
             sourceAtLevel.x() =  Foam::sqr(Ubar[i].x()) / R
                                 +Ubar[i].y() * (V/R)
-                                -(f*V + (Foam::sqr(V) / R));
+                                -(Foam::sqr(V) / R);
             sourceAtLevel.y() = -Ubar[i].x() * dVdR
                                 -Ubar[i].x() * (V/R);
 
@@ -152,8 +149,7 @@ void Foam::hurricaneSource::update()
 Foam::hurricaneSource::hurricaneSource
 (
     const IOdictionary& dict,
-    const volVectorField& U,
-    const CoriolisForce& Coriolis
+    const volVectorField& U
 )
 :
     // Set the pointer to runTime
@@ -161,8 +157,6 @@ Foam::hurricaneSource::hurricaneSource
 
     // Set the pointer to the mesh
     mesh_(U.mesh()),
-
-    Coriolis_(Coriolis),
 
     dict_(dict),
 

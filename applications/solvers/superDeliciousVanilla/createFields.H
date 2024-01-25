@@ -345,7 +345,7 @@
 
     // - Hurricane source term [m/s^2].
     Info << "Creating G. Bryan's 'simple' hurricane source term" << endl;
-    hurricaneSource hurricaneMesoTerm(ABLProperties, U, Coriolis);
+    hurricaneSource hurricaneMesoTerm(ABLProperties, U);
     
     
     // - Buoyancy term [m/s^2].
