@@ -537,7 +537,7 @@ namespace Foam
                 bodyForce_[cellI] = source[planeI];
             }
         }
-        Info << "Coriolis term = " << source << endl;
+      //Info << "Coriolis term = " << source << endl;
     
         bodyForce_.correctBoundaryConditions();
         
